@@ -1,0 +1,19 @@
+Package: eric.utils
+Title: Eric Utilities
+Version: 0.0.0.9000
+Authors@R: person("Eric", "Fournier", email = "Fournier.Eric.2@crchudequebec.ulaval.ca", role = c("aut", "cre"))
+Description: Various utilities for the bioinformatics tasks I have to perform
+    often.
+Depends:
+    R (>= 3.3.0),
+    GenomicRanges,
+    rtracklayer,
+    VennDiagram,
+    gage,
+    PWMEnrich,
+    MotifDb,
+    ChIPseeker
+License: GPL
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 5.0.1.9000
