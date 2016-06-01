@@ -8,12 +8,6 @@ library(gage)
 library(PWMEnrich)
 library(MotifDb)
 
-# If we're on guillimin, increase the core number.
-#if(ON_SERVER) {
-#    registerCoresPWMEnrich(8)
-#}
-
-
 
 library(ChIPseeker)
 
@@ -104,7 +98,7 @@ select.annotations <- function(genome.build) {
 annotate.region <- function(region, annotations.list, filename=NULL) {
     tfAnnotation = NULL
     if(length(region) > 0) {
-        tfAnnotation <- annotatePeak2(region,
+        tfAnnotation <- annotatePeak(region,
                                       tssRegion=c(-3000, 3000), 
                                       TxDb=annotations.list$TxDb, 
                                       annoDb=annotations.list$OrgDbStr)
@@ -398,17 +392,20 @@ kegg.enrichment.regions <- function(regions, annotations.list, ...) {
 
 #' Given a set of regions, perform annotation, motif enrichment and KEGG enrichment.
 #'  
-#' @param regions A GRanges object with regions to enriched for KEGG pathways.
+#' @param region A GRanges object with regions to be characterized.
 #' @param annotations.list A list of annotation databases returned by 
 #'   select.annotations.
-#' @param ... Parameters to be passed to kegg.enrichment.
-#' @return A vector of Entrez gene ids containing a non-redundant list of the 
-#'   genes represented by the given regions.
+#' @param file.label A label for generating file names to save the results. 
+#'   If NULL, results are not saved to disk.
+#' @param skip.motif If TRUE, motif enrichment is skipped.
+#' @param skip.kegg If TRUE, KEGG pathway enrichment is skipped.
+#' @param output.dir The directory where output should be stored.A directory for storing output.
+#' @return A list containing the characterization results.
 #' @export.
-characterize.region <- function(region, label, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/") {
+characterize.region <- function(region, annotations.list, file.label=NULL, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/") {
     results = list()
 
-    base.dir = file.path(output.dir, label)
+    base.dir = file.path(output.dir, file.label)
     dir.create(base.dir, showWarnings = FALSE, recursive = TRUE)
 
     results[["Annotation"]] = annotate.region(region, file.path(base.dir, "Annotations.txt"))
@@ -425,11 +422,22 @@ characterize.region <- function(region, label, skip.motif=FALSE, skip.kegg=FALSE
     return(results)
 }
 
-# Given a set of Entrez gene ids, perform  KEGG enrichment and motif enrichement at the promoters.
-characterize.gene.set <- function(gene.set, label, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/", promoter.size=1000) {
+#' Given a set of Entrez gene ids, perform  KEGG enrichment and motif enrichement at the promoters.
+#'  
+#' @param gene.set A vector of Entrez IDs representing the genes to be characterized.
+#' @param annotations.list A list of annotation databases returned by 
+#'   select.annotations.
+#' @param file.label A label for generating file names to save the results. 
+#'   If NULL, results are not saved to disk.
+#' @param skip.motif If TRUE, motif enrichment is skipped.
+#' @param skip.kegg If TRUE, KEGG pathway enrichment is skipped.
+#' @param output.dir The directory where output should be stored.A directory for storing output.
+#' @return A list containing the characterization results.
+#' @export.
+characterize.gene.set <- function(gene.set, annotations.list, file.label=NULL, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/", promoter.size=1000) {
     results = list()
 
-    base.dir = file.path(output.dir, label)
+    base.dir = file.path(output.dir, file.label)
     dir.create(base.dir, showWarnings = FALSE, recursive = TRUE)
 
     if(!skip.motif) {
@@ -443,125 +451,3 @@ characterize.gene.set <- function(gene.set, label, skip.motif=FALSE, skip.kegg=F
     
     return(results)
 }
-
-# Fix bug in annotatePeak whereas the id type is not found because the TxDb metadata
-# is accessed by numerical index rather than name.
-annotatePeak2 <- function (peak, tssRegion = c(-3000, 3000), TxDb = NULL, level = "transcript",
-    assignGenomicAnnotation = TRUE, genomicAnnotationPriority = c("Promoter",
-        "5UTR", "3UTR", "Exon", "Intron", "Downstream", "Intergenic"),
-    annoDb = NULL, addFlankGeneInfo = FALSE, flankDistance = 5000,
-    verbose = TRUE)
-{
-    level <- match.arg(level, c("transcript", "gene"))
-    if (all(genomicAnnotationPriority %in% c("Promoter", "5UTR",
-        "3UTR", "Exon", "Intron", "Downstream", "Intergenic")) ==
-        FALSE) {
-        stop("genomicAnnotationPriority should be any order of c(\"Promoter\", \"5UTR\", \"3UTR\", \"Exon\", \"Intron\", \"Downstream\", \"Intergenic\")")
-    }
-    if (is(peak, "GRanges")) {
-        input <- "gr"
-        peak.gr <- peak
-    }
-    else {
-        input <- "file"
-        peak.gr <- loadPeak(peak, verbose)
-    }
-    peakNum <- length(peak.gr)
-    if (verbose)
-        cat(">> preparing features information...\t\t", format(Sys.time(),
-            "%Y-%m-%d %X"), "\n")
-    TxDb <- loadTxDb(TxDb)
-    if (level == "transcript") {
-        features <- getGene(TxDb, by = "transcript")
-    }
-    else {
-        features <- getGene(TxDb, by = "gene")
-    }
-    if (verbose)
-        cat(">> identifying nearest features...\t\t", format(Sys.time(),
-            "%Y-%m-%d %X"), "\n")
-    idx.dist <- getNearestFeatureIndicesAndDistances(peak.gr,
-        features)
-    nearestFeatures <- features[idx.dist$index]
-    if (verbose)
-        cat(">> calculating distance from peak to TSS...\t",
-            format(Sys.time(), "%Y-%m-%d %X"), "\n")
-    distance <- idx.dist$distance
-    peak.gr <- idx.dist$peak
-    if (verbose)
-        cat(">> assigning genomic annotation...\t\t", format(Sys.time(),
-            "%Y-%m-%d %X"), "\n")
-    if (assignGenomicAnnotation == TRUE) {
-        anno <- getGenomicAnnotation(peak.gr, distance, tssRegion,
-            TxDb, level, genomicAnnotationPriority)
-        annotation <- anno[["annotation"]]
-        detailGenomicAnnotation <- anno[["detailGenomicAnnotation"]]
-    }
-    else {
-        annotation <- NULL
-        detailGenomicAnnotation <- NULL
-    }
-    names(nearestFeatures) <- NULL
-    nearestFeatures.df <- as.data.frame(nearestFeatures)
-    if (level == "transcript") {
-        colnames(nearestFeatures.df) <- c("geneChr", "geneStart",
-            "geneEnd", "geneLength", "geneStrand", "geneId",
-            "transcriptId")
-        nearestFeatures.df$geneId <- TXID2EG(as.character(nearestFeatures.df$geneId),
-            geneIdOnly = TRUE)
-    }
-    else {
-        colnames(nearestFeatures.df) <- c("geneChr", "geneStart",
-            "geneEnd", "geneLength", "geneStrand", "geneId")
-    }
-    if (!is.null(annotation))
-        mcols(peak.gr)[["annotation"]] <- annotation
-    for (cn in colnames(nearestFeatures.df)) {
-        mcols(peak.gr)[[cn]] <- unlist(nearestFeatures.df[, cn])
-    }
-    mcols(peak.gr)[["distanceToTSS"]] <- distance
-    if (!is.null(annoDb)) {
-        if (verbose)
-            cat(">> adding gene annotation...\t\t\t", format(Sys.time(),
-                "%Y-%m-%d %X"), "\n")
-        # Won't work. The Type of Gene ID key is now at row index 9!
-        # IDType <- metadata(TxDb)[8, 2]
-        IDType <- metadata(TxDb)$value[metadata(TxDb)$name == "Type of Gene ID"]
-        geneAnno <- addGeneAnno(annoDb, peak.gr$geneId, type = IDType)
-        if (!all(is.na(geneAnno))) {
-            for (cn in colnames(geneAnno)[-1]) {
-                mcols(peak.gr)[[cn]] <- geneAnno[, cn]
-            }
-        }
-    }
-    if (addFlankGeneInfo == TRUE) {
-        if (verbose)
-            cat(">> adding flank feature information from peaks...\t",
-                format(Sys.time(), "%Y-%m-%d %X"), "\n")
-        flankInfo <- getAllFlankingGene(peak.gr, features, flankDistance)
-        mcols(peak.gr)[["flank_txIds"]] <- NA
-        mcols(peak.gr)[["flank_geneIds"]] <- NA
-        mcols(peak.gr)[["flank_gene_distances"]] <- NA
-        mcols(peak.gr)[["flank_txIds"]][flankInfo$peakIdx] <- flankInfo$flank_txIds
-        mcols(peak.gr)[["flank_geneIds"]][flankInfo$peakIdx] <- flankInfo$flank_geneIds
-        mcols(peak.gr)[["flank_gene_distances"]][flankInfo$peakIdx] <- flankInfo$flank_gene_distances
-    }
-    if (verbose)
-        cat(">> assigning chromosome lengths\t\t\t", format(Sys.time(),
-            "%Y-%m-%d %X"), "\n")
-    peak.gr@seqinfo <- seqinfo(TxDb)[names(seqlengths(peak.gr))]
-    if (verbose)
-        cat(">> done...\t\t\t\t\t", format(Sys.time(), "%Y-%m-%d %X"),
-            "\n")
-    if (assignGenomicAnnotation) {
-        res <- new("csAnno", anno = peak.gr, tssRegion = tssRegion,
-            level = level, hasGenomicAnnotation = TRUE, detailGenomicAnnotation = detailGenomicAnnotation,
-            annoStat = getGenomicAnnoStat(peak.gr), peakNum = peakNum)
-    }
-    else {
-        res <- new("csAnno", anno = peak.gr, tssRegion = tssRegion,
-            level = level, hasGenomicAnnotation = FALSE, peakNum = peakNum)
-    }
-    return(res)
-}
-environment(annotatePeak2) <- asNamespace('ChIPseeker')
