@@ -13,193 +13,398 @@ library(MotifDb)
 #    registerCoresPWMEnrich(8)
 #}
 
-# Load whichever libraries are necessary to annotate the genome of interest.
-#if(exists("GENOME_VERSION") && GENOME_VERSION=="hg38") {
-#    library(BSgenome.Hsapiens.UCSC.hg38)
-#    library(TxDb.Hsapiens.UCSC.hg38.knownGene)
-#    library(PWMEnrich.Hsapiens.background)
-#    
-#    txDb <- TxDb.Hsapiens.UCSC.hg38.knownGene
-#    orgDb <- "org.Hs.eg.db"
-#    pwmBG = PWMLogn.hg19.MotifDb.Hsap
-#    bsGenome = BSgenome.Hsapiens.UCSC.hg38
-#} else if(exists("GENOME_VERSION") && GENOME_VERSION=="mm10") {
-#    library(BSgenome.Mmusculus.UCSC.mm10)
-#    library(TxDb.Mmusculus.UCSC.mm10.knownGene)    
-#    library(PWMEnrich.Mmusculus.background)
-#    data(PWMLogn.mm9.MotifDb.Mmus)
-#    
-#    txDb <- TxDb.Mmusculus.UCSC.mm10.knownGene
-#    orgDb <- "org.Mm.eg.db"    
-#    pwmBG = PWMLogn.mm9.MotifDb.Mmus
-#    bsGenome = BSgenome.Mmusculus.UCSC.mm10
-#} else if(exists("GENOME_VERSION") && GENOME_VERSION=="mm9") {
-#    library(BSgenome.Mmusculus.UCSC.mm9)
-#    library(TxDb.Mmusculus.UCSC.mm9.knownGene)    
-#    library(PWMEnrich.Mmusculus.background)
-#    data(PWMLogn.mm9.MotifDb.Mmus)
-#    
-#    txDb <- TxDb.Mmusculus.UCSC.mm9.knownGene
-#    orgDb <- "org.Mm.eg.db"
-#    pwmBG = PWMLogn.mm9.MotifDb.Mmus
-#    bsGenome = BSgenome.Mmusculus.UCSC.mm9
-#    
-#} else {
-#    library(BSgenome.Hsapiens.UCSC.hg19)
-#    library(PWMEnrich.Hsapiens.background)
-#    data(PWMLogn.hg19.MotifDb.Hsap)
-#    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-#
-#    txDb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-#    orgDb <- "org.Hs.eg.db"    
-#    pwmBG = PWMLogn.hg19.MotifDb.Hsap
-#    bsGenome = BSgenome.Hsapiens.UCSC.hg19
-#}
+
 
 library(ChIPseeker)
 
-# Convert the annotation to a list for easier manipulation.
-#list.txDb = as.list(txDb)
+#' Annotations selection helper.
+#' 
+#' Given a genome build identifier, creates a list of annotation databases
+#' which can be passed to the annotation functions.
+#'
+#' @param genome.build The genome build to use for annotation.
+#' @return A list with the following elements:
+#'   - *TxDb*: A TxDb of class AnnotationDBI providing informations about the genes
+#'     of the selected build.
+#'   - *OrgDb*: An OrgDb object for the selected species.
+#'   - *OrgDbStr*: A character string representing the name of the OrgDb object.
+#'   - *BSGenome*: A BSGenome object to retrieve DNA sequences
+#'   - *KEGG*: A cache of KEGG pathways, as returned by kegg.gsets from the gage library.
+#'   - *PWMBG*: A PWMLogn background for motif enrichment of promoter regions.
+#' @export
+select.annotations <- function(genome.build) {
+    if(genome.build=="hg38") {
+        library(BSgenome.Hsapiens.UCSC.hg38)
+        library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+        library(PWMEnrich.Hsapiens.background)
+        data(PWMLogn.hg19.MotifDb.Hsap)
+        
+        return(list(TxDb=TxDb.Hsapiens.UCSC.hg38.knownGene,
+                    OrgDbStr="org.Hs.eg.db",
+                    OrgDb=org.Hs.eg.db,
+                    PWMBG=PWMLogn.hg19.MotifDb.Hsap,
+                    BSGenome=BSgenome.Hsapiens.UCSC.hg38,
+                    KEGG=hs.keggs))
+    } else if(genome.build=="mm10") {
+        library(BSgenome.Mmusculus.UCSC.mm10)
+        library(TxDb.Mmusculus.UCSC.mm10.knownGene)    
+        library(PWMEnrich.Mmusculus.background)
+        data(PWMLogn.mm9.MotifDb.Mmus)
 
-# # Load HOCOMOCO background.
-# load(file.path(cache.dir, "bg.denovo.RData"))
-# 
-# # Load KEGG backgrounds. We can't rely on fetching them from the web when executing on a computing
-# # node on guillimin/colosse.
-# if(exists("GENOME_VERSION") && (GENOME_VERSION=="mm10" || GENOME_VERSION=="mm9")) {
-#     load(file.path(cache.dir, "cached.mm.keggs.RData"))
-# } else {
-#     load(file.path(cache.dir, "cached.hs.keggs.RData"))
-# }
+        return(list(TxDb=TxDxDb.Mmusculus.UCSC.mm10.knownGene,
+                    OrgDbStr="org.Mm.eg.db",
+                    OrgDb=org.Mm.eg.db,
+                    PWMBGPWMLogn.mm9.MotifDb.Mmus,
+                    BSGenome=BSgenome.Mmusculus.UCSC.mm10,
+                    KEGG=mm.keggs))
+    } else if(genome.build=="mm9") {
+        library(BSgenome.Mmusculus.UCSC.mm9)
+        library(TxDb.Mmusculus.UCSC.mm9.knownGene)    
+        library(PWMEnrich.Mmusculus.background)
+        data(PWMLogn.mm9.MotifDb.Mmus)
+        
+        return(list(TxDb=TxDb.Mmusculus.UCSC.mm9.knownGene,
+                    OrgDbStr="org.Mm.eg.db",
+                    OrgDb=org.Mm.eg.db,
+                    PWMBGPWMLogn.mm9.MotifDb.Mmus,
+                    BSGenome=BSgenome.Mmusculus.UCSC.mm9,
+                    KEGG=mm.keggs))        
+    } else if(genome.build=="hg19") {
+        library(BSgenome.Hsapiens.UCSC.hg19)
+        library(PWMEnrich.Hsapiens.background)
+        data(PWMLogn.hg19.MotifDb.Hsap)
+        library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+        
+        return(list(TxDb=TxDb.Hsapiens.UCSC.hg19.knownGene,
+                    OrgDbStr="org.Hs.eg.db",
+                    OrgDb=org.Mm.eg.db,
+                    PWMBG=PWMLogn.hg19.MotifDb.Hsap,
+                    BSGenome=BSgenome.Hsapiens.UCSC.hg19,
+                    KEGG=hs.keggs))          
+    } else {
+        stop("The selected genome build is not supported.")
+    }
+    
+    # Cannot be reached.
+    stop("ERROR: Cannot be reached!")
+}
 
-
-# Given a GRanges object, annotates it using default parameters.
-annotate.region <- function(region, filename) {
+#' Annotates a set of regions with genomic features.
+#' 
+#' Given a genome build identifier, creates a list of annotation databases
+#' which can be passed to the annotation functions.
+#'
+#' @param region The regions to annotate.
+#' @param annotations.list A list of annotation databases returned by 
+#'   select.annotations.
+#' @param filename The name of the file where the results should be saved.
+#    If NULL, results are not saved to disk.
+#' @return An annotation object.
+#' @export
+annotate.region <- function(region, annotations.list, filename=NULL) {
     tfAnnotation = NULL
     if(length(region) > 0) {
         tfAnnotation <- annotatePeak2(region,
                                       tssRegion=c(-3000, 3000), 
-                                      TxDb=txDb, 
-                                      annoDb=orgDb)
-        
-        write.table(tfAnnotation,
-                    file=filename, 
-                    sep="\t", col.names=TRUE, row.names=FALSE, quote=FALSE)
+                                      TxDb=annotations.list$TxDb, 
+                                      annoDb=annotations.list$OrgDbStr)
+
+        if(!is.null(filename)) {
+            write.table(tfAnnotation,
+                        file=filename, 
+                        sep="\t", col.names=TRUE, row.names=FALSE, quote=FALSE)
+        }
     }
     return(tfAnnotation)
 }
 
-# Given a GRanges object, finds enriched motifs within those regions.
-motif.enrichment <- function(regions, file.label, use.HOCOMOCO=FALSE, top.x=20) {
-    # Remove regions smaller than 30nt.
-    regions.subset = regions[as.data.frame(regions)$width >= 30]
+#' Given a GRanges object, finds enriched motifs within those regions. 
+#' 
+#' Performs motif enrichment against pwm.bg. If pwm.bg is not provided,
+#' annotations.list$PWMBG is used.
+#'
+#' @param regions The regions on which motif enrichment should be performed.
+#' @param annotations.list A list of annotation databases returned by 
+#'   select.annotations.
+#' @param file.label A label for generating file names to save the results. 
+#'   If NULL, results are not saved to disk.
+#' @param pwm.bg A PWMLogn background object against which enrichment
+#'   should be performed.
+#' @param top.x Number of top motifs for which logos are generated.
+#' @return A list with the following elements:
+#'   - *Region*: The subset of regions where motifs were sought.
+#'   - *Enrichment*: The result of the PWMEnrich motifEnrichment call.
+#'   - *Report*: The result of the PWMEnrich groupReport call.
+#' @export
+motif.enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg=NULL, top.x=20) {
+    # Make sure we have a valid background.
+    if(is.null(pwm.bg)) {
+        if(is.null(annotations.list$PWMBG)) {
+            stop("The provided annotations.list does not have a valid PWMBG element.")
+        } else {
+            pwm.bg = annotations.list$PWMBG
+        }
+    }
     
-    intersectSeq <- getSeq(bsGenome, regions.subset)
-    if(!use.HOCOMOCO) {
-        res <-  motifEnrichment(intersectSeq, pwmBG)
+    # Get sequences for the given regions.
+    intersectSeq <- getSeq(annotations.list$BSGenome, regions.subset)
+
+    # Remove N prefix/suffixes. Will also deal with all N sequences, which would cause a crash.
+    DNAStringSet(gsub("N*$", "", gsub("^N*", "", as.character(test[1:5]))))    
+    
+    # Remove sequences which are smaller than the maximum PWM length.
+    max.pwm.length = max(unlist(lapply(pwm.bg$pwms, length)))
+    sequence.subset = width(intersectSeq) >= max.pwm.length
+    intersectSeq <- intersectSeq[sequence.subset]
+    
+    if(length(intersectSeq) > 0) {
+        res <-  motifEnrichment(intersectSeq, pwm.bg)
+        report <- groupReport(res)
+        
+        if(!is.null(file.label)) {
+            # Plot top X motifs
+            ordered.motifs = order(res$group.bg)
+            for(i in 1:top.x) {
+                # Perform some name sanitation.
+                # For HOCOMOCO motif names.
+                motif.name = gsub("Hsapiens-HOCOMOCOv9_AD_PLAINTEXT_H_PWM_hg19-", "", names(res$group.bg)[ordered.motifs[i]])
+                
+                # For mouse names.
+                # Mouse motif names contain forward slashes, which are obviously not valid file name characters.
+                motif.name = gsub("/", "", motif.name)
+                
+                # Generate logo file.
+                pdf(paste(file.label, " ", i, " - ", motif.name, ".pdf"), width=7/1.5, height=11/6)
+                plotMultipleMotifs(res$pwms[ordered.motifs[i]], xaxis=FALSE, titles="")
+                dev.off()
+            }
+            
+            # Write results to disc.
+            write.table(as.data.frame(report), file=paste0(file.label, " MotifEnrichment.txt"),
+                        sep="\t", row.names=FALSE, col.names=TRUE)
+        }
+        
+        return(list(Region=regions[sequence.subset], Enrichment=res, Report=report))
     } else {
-        res <-  motifEnrichment(intersectSeq, bg.denovo)
+        warning("No sequences were eligeible for motif enrichment.")
+        return(NULL)
     }
-    report <- groupReport(res)
-    
-    # Plot top X motifs
-    ordered.motifs = order(res$group.bg)
-    for(i in 1:top.x) {
-        motif.name = gsub("Hsapiens-HOCOMOCOv9_AD_PLAINTEXT_H_PWM_hg19-", "", names(res$group.bg)[ordered.motifs[i]])
-        # Mouse motif names contain forward slashes, which are obviously not valid file name characters.
-        motif.name = gsub("/", "", motif.name)
-        pdf(paste(file.label, " ", i, " - ", motif.name, ".pdf"), width=7/1.5, height=11/6)
-        plotMultipleMotifs(res$pwms[ordered.motifs[i]], xaxis=FALSE, titles="")
-        dev.off()
-    }
-    
-    
-    write.table(as.data.frame(report), file=paste0(file.label, " MotifEnrichment.txt"),
-                sep="\t", row.names=FALSE, col.names=TRUE)
-    
-    return(list(Region=regions.subset, Enrichment=res, Report=report))
 }
 
+#' Given a set of Entrez IDS, retrieve the coordinates of those genes' promoters. 
+#' 
+#' @param selected.genes A vector of ENTREZ gene ids whose promoters should be
+#'   retrieved.
+#' @param annotations.list A list of annotation databases returned by 
+#'   select.annotations.
+#' @param flank.size How many base pairs upstream of the TSS should we retrieve?
+#' @return A GRanges objects representing the promoters of the given genes.
+#' @export
+get.promoters <- function(selected.genes, annotations.list, flank.size=1000) {
+    # Get the transcription regions from the database.
+    tx.regions = select(annotations.list$TxDb, selected.genes, c("TXCHROM", "TXSTART", "TX_END", "TX_STRAND"), "GENEID")
+    
+    # Keep only the first record for each gene.
+    tx.regions = tx.regions[match(selected.genes, tx.regions$GENE_ID),]
+    
+    # Keep promoter only.
+    promoter.regions = reduce(flank(GRanges(tx.regions), flank.size))
 
-motif.enrichment.genes <- function(selected.genes, file.label, use.HOCOMOCO=FALSE, top.x=20, flank.size=1000) {
-    which.tx.id =  list.txDb$genes$tx_id[list.txDb$genes$gene_id %in% selected.genes]
-    ranges.df = list.txDb$transcripts[which.tx.id,c("tx_chrom", "tx_start", "tx_end", "tx_strand")]
-    promoter.regions = reduce(flank(GRanges(ranges.df), flank.size))
-
-    return(motif.enrichment(promoter.regions, file.label, use.HOCOMOCO, top.x))
+    return(promoter.regions)
 }
 
-kegg.enrichment <- function(selected.genes, file.name, diseases=FALSE, gene.background=NULL) {
-  # Retrieve all KEGG pathways.
-  # allKeggs <- kegg.gsets()
-  keptSets <- allKeggs$kg.sets[allKeggs$dise.idx]
-  if(!diseases) {
-      keptSets <- allKeggs$kg.sets[allKeggs$sigmet.idx]
-  }
-  
-  if(is.null(gene.background)) {
-      gene.background <- unique(as.list(txDb)$genes$gene_id)
-  }
-  
-  # For all pathways, perform enrichment analysis.
-  inUniverse <- as.numeric(gene.background)
-  inDataset <- as.numeric(selected.genes)
-
-  results <- data.frame(Pathway=character(0),
-                        Chosen=numeric(0),
-                        Possible=numeric(0),
-                        Universe=numeric(0),
-                        Drawn=numeric(0),
-                        Expected=numeric(0),
-                        PVal=numeric(0),
-                        AdjPVal=numeric(0))
-  for(kegg.set in names(keptSets)) {
-    inPathway <- as.numeric(keptSets[[kegg.set]])
+#' Perform motif enrichment on the promoters of a set of genes.
+#' 
+#' Utility function which performs the same operations as motif.enrichment,
+#' but accepts a list of genes instead of a list of regions.
+#'
+#' @param selected.genes A vector of ENTREZ gene ids whose promoters should be
+#'   subjected to motif enrichment.
+#' @param annotations.list A list of annotation databases returned by 
+#'   select.annotations.
+#' @param flank.size How many base pairs upstream of the TSS should we retrieve?
+#' @param ... Additional arguments for motif.enrichment.
+#' @return A list with the following elements:
+#'   - *Region*: The subset of regions where motifs were sought.
+#'   - *Enrichment*: The result of the PWMEnrich motifEnrichment call.
+#'   - *Report*: The result of the PWMEnrich groupReport call.
+#' @export
+motif.enrichment.genes <- function(selected.genes, annotations.list, flank.size=1000, ...) {
+    promoter.regions = get.promoters(selected.genes, annotations.list, flank.size)
     
-    chosen <- sum(unique(inDataset) %in% unique(inPathway))
-    universe <- length(unique(inUniverse))
-    possible <- length(unique(inPathway))
-    drawn <- length(unique(inDataset))
-    expected <- possible*(drawn/universe)
-    
-    # Perform the hypergeometric test.
-    results <- rbind(results,
-                     data.frame(Pathway=kegg.set,
-                                Chosen=chosen,
-                                Possible=possible,
-                                Universe=universe,
-                                Drawn=drawn,
-                                Expected=expected,
-                                PVal=phyper(chosen, possible, universe - possible, drawn, lower.tail=FALSE),
-                                AdjPVal=1))
-  }
+    return(motif.enrichment(promoter.regions, annotations.list=annotations.list, ...))
+}
 
-  results$AdjPVal <- p.adjust(results$PVal, method="fdr")
-  write.table(results, file=file.name, sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
+#' Perform KEGG pathway enrichment on a set of genes.
+#' 
+#' Utility function which performs the same operations as motif.enrichment,
+#' but accepts a list of genes instead of a list of regions.
+#'
+#' @param selected.genes A vector of ENTREZ gene ids to be subjected 
+#'   to motif enrichment.
+#' @param annotations.list A list of annotation databases returned by 
+#'   select.annotations.
+#' @param filename The name of the file where the results should be saved.
+#    If NULL, results are not saved to disk.
+#' @param diseases If true, the enrichment is performed against the disease pathways.
+#' @param gene.background A list of Entrez gene ids of the genes to be used
+#'   as the background of the enrichment. If NULL, all genes in annotations.list$TxDb
+#'   are used.
+#' @return A data-frame with the enrichment results.
+#' @export
+kegg.enrichment <- function(selected.genes, annotations.list, filename=NULL, diseases=FALSE, gene.background=NULL) {
+    # Retrieve all KEGG pathways.
+    keptSets <- annotations.list$KEGG$kg.sets[annotations.list$KEGG$dise.idx]
+    if(!diseases) {
+        keptSets <- annotations.list$KEGG$kg.sets[annotations.list$KEGG$sigmet.idx]
+    }
+    
+    if(is.null(gene.background)) {
+        gene.background <- keys(annotations.list$TxDb)
+    }
+    
+    # For all pathways, perform enrichment analysis.
+    inUniverse <- as.numeric(gene.background)
+    inDataset <- as.numeric(selected.genes)
   
-  return(results)
+    # list.enrichment <- function(all.drawn, all.category, all.universe) {
+    #     chosen <- sum(unique(all.drawn) %in% unique(all.category))
+    #     universe <- length(unique(all.universe))
+    #     possible <- length(unique(all.category))
+    #     drawn <- length(unique(all.drawn))
+    #     expected <- possible*(drawn/universe)  
+    #     
+    #     return(data.frame(Chosen=chosen,
+    #                       Possible=possible,
+    #                       Universe=universe,
+    #                       Drawn=drawn,
+    #                       Expected=expected,
+    #                       PVal=phyper(chosen, possible, universe - possible, drawn, lower.tail=FALSE)))
+    # }
+    # 
+    # ldply(keptSets, list.enrichment, function(x) { list.enrichment(all.drawn=inDataset, x, inUniverse) })
+    
+    results <- data.frame(Pathway=character(0),
+                          Chosen=numeric(0),
+                          Possible=numeric(0),
+                          Universe=numeric(0),
+                          Drawn=numeric(0),
+                          Expected=numeric(0),
+                          PVal=numeric(0),
+                          AdjPVal=numeric(0))
+    for(kegg.set in names(keptSets)) {
+      inPathway <- as.numeric(keptSets[[kegg.set]])
+      
+      chosen <- sum(unique(inDataset) %in% unique(inPathway))
+      universe <- length(unique(inUniverse))
+      possible <- length(unique(inPathway))
+      drawn <- length(unique(inDataset))
+      expected <- possible*(drawn/universe)
+      
+      # Perform the hypergeometric test.
+      results <- rbind(results,
+                       data.frame(Pathway=kegg.set,
+                                  Chosen=chosen,
+                                  Possible=possible,
+                                  Universe=universe,
+                                  Drawn=drawn,
+                                  Expected=expected,
+                                  PVal=phyper(chosen, possible, universe - possible, drawn, lower.tail=FALSE),
+                                  AdjPVal=1))
+    }
+  
+    results$AdjPVal <- p.adjust(results$PVal, method="fdr")
+    if(!is.null(filename)) {
+      write.table(results, file=filename, sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
+    }
+    
+    return(results)
 }
 
 # Given a set of annotations, convert it to a set of Entrez gene ids before calling kegg.enrichment.
-kegg.enrichment.annotation <- function(annotations, file.name, diseases=FALSE, gene.background=NULL) {
-  selected.genes = unique(as.data.frame(annotations)$geneId)                                   
+# kegg.enrichment.annotation <- function(annotations, file.name, diseases=FALSE, gene.background=NULL) {
+#   selected.genes = unique(as.data.frame(annotations)$geneId)                                   
+# 
+#   return(kegg.enrichment(selected.genes, file.name, diseases, gene.background))
+# }
 
-  return(kegg.enrichment(selected.genes, file.name, diseases, gene.background))
+#' Given a set of regions, convert it to a set of Entrez gene ids.
+#' 
+#' Utility function to get a gene list from a set of regions.
+#'
+#' @param regions A GRanges object with regions to be associated to genes.
+#' @param annotations.list A list of annotation databases returned by 
+#'   select.annotations.
+#' @param flank.size The extent around the TSS which is considered the 
+#'   promoter region.
+#' @param region.types A character vector representing region types which will
+#'   cause a gene association. These can be:
+#'     - *Promoter*: Promoter region (upstream and downstream of the TSS)
+#'     - *Gene body*: Exons, introns, 5' and 3' UTRs.
+#'     - *Downstream*: Region downstream of the TES.
+#'     - *Distal*: Regions which do not fit any of the above category.
+#'     - *All*: All of the above.
+#'   disease pathways.
+#' @return A data-frame with the enrichment results.
+#' @export
+gene.from.regions <- function(regions, annotations.list, flank.size=c(-3000, 3000), region.types=c("Promoter", "Gene body")) {
+    # Annotate regions to retrieve gene names.
+    overlap.annotation <- annotatePeak(regions,
+                                       tssRegion=flank.size, 
+                                       TxDb=annotations.list$TxDb, 
+                                       annoDb=annotations.list$OrgDbStr)
+                                       
+    if(region.types=="All") {
+        region.types=c("Promoter", "Gene body", "Downstream", "Distal")
+    }
+    
+    to.keep = rep(FALSE, length(regions))
+    if("Promoter" %in% region.types) {
+        to.keep = to.keep | grepl("Promoter", overlap.annotation@anno$annotation)
+    }
+    
+    if("Gene body" %in% region.types) {
+        to.keep = to.keep | grepl("Promoter", overlap.annotation@anno$annotation)
+    }
+    
+    if("Downstream" %in% region.types) {
+        to.keep = to.keep | grepl("Downstream", overlap.annotation@anno$annotation)
+    }
+
+    if("Distal" %in% region.types) {
+        to.keep = to.keep | grepl("Distal", overlap.annotation@anno$annotation)
+    }
+    
+    return(unique(overlap.annotation@anno$geneId[to.keep]))
 }
 
-
-# Given a set of regions, convert it to a set of annotations before calling kegg.enrichment.annotation.
-kegg.enrichment.regions <- function(regions, file.name, diseases=FALSE, gene.background=NULL) {
-  # Annotate regions to retrieve gene names.
-  overlap.annotation <- annotatePeak(regions,
-                                     tssRegion=c(-3000, 3000), 
-                                     TxDb=txDb, 
-                                     annoDb=orgDb)
-                                     
-  return(kegg.enrichment.annotation(overlap.annotation, file.name, diseases, gene.background))
+#' Perform KEGG enrichment on a set of regions.
+#'  
+#' Conveniance function. Regions are converted to genes with 
+#' gene.from.regions using default parameters.
+#'
+#' @param regions A GRanges object with regions to enriched for KEGG pathways.
+#' @param annotations.list A list of annotation databases returned by 
+#'   select.annotations.
+#' @param ... Parameters to be passed to kegg.enrichment.
+#' @return A vector of Entrez gene ids containing a non-redundant list of the 
+#'   genes represented by the given regions.
+#' @export
+kegg.enrichment.regions <- function(regions, annotations.list, ...) {
+    selected.genes = gene.from.regions(regions, annotations.list)
+    
+    return(kegg.enrichment.annotation(selected.genes, annotations.list=annotations.list, ...))
 }
 
-# Given a GRanges object, annotate it  and find enriched motifs/KEGG pathways.
+#' Given a set of regions, perform annotation, motif enrichment and KEGG enrichment.
+#'  
+#' @param regions A GRanges object with regions to enriched for KEGG pathways.
+#' @param annotations.list A list of annotation databases returned by 
+#'   select.annotations.
+#' @param ... Parameters to be passed to kegg.enrichment.
+#' @return A vector of Entrez gene ids containing a non-redundant list of the 
+#'   genes represented by the given regions.
+#' @export.
 characterize.region <- function(region, label, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/") {
     results = list()
 
