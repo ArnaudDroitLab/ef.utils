@@ -66,8 +66,8 @@ select.annotations <- function(genome.build) {
     } else if(genome.build=="hg19") {
         library(BSgenome.Hsapiens.UCSC.hg19)
         library(PWMEnrich.Hsapiens.background)
-        data(PWMLogn.hg19.MotifDb.Hsap)
         library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+        data(PWMLogn.hg19.MotifDb.Hsap)
         
         return(list(TxDb=TxDb.Hsapiens.UCSC.hg19.knownGene,
                     OrgDbStr="org.Hs.eg.db",
@@ -401,7 +401,7 @@ kegg.enrichment.regions <- function(regions, annotations.list, ...) {
 #' @param skip.kegg If TRUE, KEGG pathway enrichment is skipped.
 #' @param output.dir The directory where output should be stored.A directory for storing output.
 #' @return A list containing the characterization results.
-#' @export.
+#' @export
 characterize.region <- function(region, annotations.list, file.label=NULL, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/") {
     results = list()
 
@@ -433,7 +433,7 @@ characterize.region <- function(region, annotations.list, file.label=NULL, skip.
 #' @param skip.kegg If TRUE, KEGG pathway enrichment is skipped.
 #' @param output.dir The directory where output should be stored.A directory for storing output.
 #' @return A list containing the characterization results.
-#' @export.
+#' @export
 characterize.gene.set <- function(gene.set, annotations.list, file.label=NULL, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/", promoter.size=1000) {
     results = list()
 

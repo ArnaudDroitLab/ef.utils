@@ -65,8 +65,8 @@ inclusive.overlap.internal <- function(all.regions, overlap.matrix, which.factor
 #' @param names A vector of factor names in intersect.object.
 #' @param exclusive If TRUE, a region will be returned if the factors in
 #    indices or names are the ONLY the factors present at that region.
-#' @export
 #' @return A GRanges object with the regions matching the given criteria.
+#' @export
 intersect.overlap <- function(intersect.object, indices=NULL, names=NULL, exclusive=FALSE) {
     if(is.null(indices) && is.null(names)) {
        which.factors = rep(TRUE, intersect.object$Length)

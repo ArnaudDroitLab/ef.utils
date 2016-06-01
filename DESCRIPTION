@@ -5,14 +5,24 @@ Authors@R: person("Eric", "Fournier", email = "Fournier.Eric.2@crchudequebec.ula
 Description: Various utilities for the bioinformatics tasks I have to perform
     often.
 Depends:
-    R (>= 3.3.0),
+    R (>= 3.2.2),
     GenomicRanges,
     rtracklayer,
     VennDiagram,
     gage,
     PWMEnrich,
     MotifDb,
-    ChIPseeker
+    ChIPseeker,
+    BSgenome.Hsapiens.UCSC.hg38,
+    TxDb.Hsapiens.UCSC.hg38.knownGene,
+    PWMEnrich.Hsapiens.background,
+    BSgenome.Mmusculus.UCSC.mm10,
+    TxDb.Mmusculus.UCSC.mm10.knownGene,
+    PWMEnrich.Mmusculus.background,
+    BSgenome.Mmusculus.UCSC.mm9,
+    TxDb.Mmusculus.UCSC.mm9.knownGene,
+    BSgenome.Hsapiens.UCSC.hg19,
+    TxDb.Hsapiens.UCSC.hg19.knownGene
 License: GPL
 Encoding: UTF-8
 LazyData: true
