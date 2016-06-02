@@ -1,8 +1,3 @@
-library(GenomicRanges)
-library(VennDiagram)
-
-# source(file.path(shared, "AnnotationHelper.R"))
-
 #' Internal exclusive overlap.
 #' 
 #' Returns the set of regions within all.regions where all

@@ -71,7 +71,7 @@ select.annotations <- function(genome.build) {
                         PWMBG=PWMLogn.hg19.MotifDb.Hsap,
                         BSGenome=BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19,
                         KEGG=hs.keggs))  
-        else {
+        } else {
             stop("The required annotation packages are not available.")
         }                    
     } else {

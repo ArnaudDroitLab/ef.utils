@@ -1,6 +1,3 @@
-library(GenomicRanges)
-library(rtracklayer)
-
 #' Import a bed file and discards its metadata.
 #'
 #' @param x The name of the BED file to import.
