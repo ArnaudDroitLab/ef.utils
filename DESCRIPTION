@@ -4,8 +4,7 @@ Version: 0.0.0.9000
 Authors@R: person("Eric", "Fournier", email = "Fournier.Eric.2@crchudequebec.ulaval.ca", role = c("aut", "cre"))
 Description: Various utilities for the bioinformatics tasks I have to perform
     often.
-Depends:
-    R (>= 3.2.2),
+Imports:
     GenomicRanges,
     rtracklayer,
     VennDiagram,
@@ -13,6 +12,7 @@ Depends:
     PWMEnrich,
     MotifDb,
     ChIPseeker,
+Suggests:
     BSgenome.Hsapiens.UCSC.hg38,
     TxDb.Hsapiens.UCSC.hg38.knownGene,
     PWMEnrich.Hsapiens.background,
@@ -23,6 +23,9 @@ Depends:
     TxDb.Mmusculus.UCSC.mm9.knownGene,
     BSgenome.Hsapiens.UCSC.hg19,
     TxDb.Hsapiens.UCSC.hg19.knownGene
+Depends:
+    R (>= 3.2.2),
+biocViews: Software
 License: GPL
 Encoding: UTF-8
 LazyData: true

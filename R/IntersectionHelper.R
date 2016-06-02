@@ -105,7 +105,7 @@ intersect.overlap <- function(intersect.object, indices=NULL, names=NULL, exclus
 #' @export
 build.intersect <- function(grl) {
     # Flatten the GRangesList so we can get a list of all possible regions.
-    all.regions = reduce(unlist(grl))
+    all.regions = GenomicRanges::reduce(unlist(grl))
     
     # Build a matrix to hold the results.
     overlap.matrix <- matrix(0, nrow=length(all.regions), ncol=length(grl))
@@ -113,7 +113,7 @@ build.intersect <- function(grl) {
     
     # Loop over all ranges, intersecting them with the flattened list of all possible regions.
     for(i in 1:length(grl)) {
-        overlap.matrix[,i] <- countOverlaps(all.regions, grl[[i]], type="any")
+        overlap.matrix[,i] <- GenomicRanges::countOverlaps(all.regions, grl[[i]], type="any")
         overlap.list[[ names(grl)[i] ]] <- which(overlap.matrix[,i] != 0)
     }
     colnames(overlap.matrix) <-  names(grl)
@@ -133,10 +133,10 @@ plot.intersect.venn <- function(intersect.object, filename=NULL) {
         stop("Cannot plot venn diagram of more than 5 groups!")
     }
     
-    return(venn.diagram(intersect.object$List,
-                        fill=c("red", "yellow", "green", "blue", "orange")[1:intersect.object$Length],
-                        filename=filename,
-                        print.mode="raw"))
+    return(VennDiagram::venn.diagram(intersect.object$List,
+                                     fill=c("red", "yellow", "green", "blue", "orange")[1:intersect.object$Length],
+                                     filename=filename,
+                                     print.mode="raw"))
 }
 
 #' Annotate the inner group of an intersect.object.

@@ -1,16 +1,3 @@
-library(GenomicRanges)
-library(VennDiagram)
-
-# Perform KEGG enrichment
-library(gage)
-
-# Libraries to do motif search.
-library(PWMEnrich)
-library(MotifDb)
-
-
-library(ChIPseeker)
-
 #' Annotations selection helper.
 #' 
 #' Given a genome build identifier, creates a list of annotation databases
@@ -28,53 +15,65 @@ library(ChIPseeker)
 #' @export
 select.annotations <- function(genome.build) {
     if(genome.build=="hg38") {
-        library(BSgenome.Hsapiens.UCSC.hg38)
-        library(TxDb.Hsapiens.UCSC.hg38.knownGene)
-        library(PWMEnrich.Hsapiens.background)
-        data(PWMLogn.hg19.MotifDb.Hsap)
-        
-        return(list(TxDb=TxDb.Hsapiens.UCSC.hg38.knownGene,
-                    OrgDbStr="org.Hs.eg.db",
-                    OrgDb=org.Hs.eg.db,
-                    PWMBG=PWMLogn.hg19.MotifDb.Hsap,
-                    BSGenome=BSgenome.Hsapiens.UCSC.hg38,
-                    KEGG=hs.keggs))
+        if(requireNamespace(c("BSgenome.Hsapiens.UCSC.hg38",
+                              "TxDb.Hsapiens.UCSC.hg38.knownGene",
+                              "PWMEnrich.Hsapiens.background"), quietly=TRUE)) {
+            data(PWMLogn.hg19.MotifDb.Hsap, package="PWMEnrich.Hsapiens.background")
+            
+            return(list(TxDb=TxDb.Hsapiens.UCSC.hg38.knownGene::TxDb.Hsapiens.UCSC.hg38.knownGene,
+                        OrgDbStr="org.Hs.eg.db",
+                        OrgDb=org.Hs.eg.db::org.Hs.eg.db,
+                        PWMBG=PWMLogn.hg19.MotifDb.Hsap,
+                        BSGenome=BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38,
+                        KEGG=hs.keggs))
+        } else {
+            stop("The required annotation packages are not available.")
+        }
     } else if(genome.build=="mm10") {
-        library(BSgenome.Mmusculus.UCSC.mm10)
-        library(TxDb.Mmusculus.UCSC.mm10.knownGene)    
-        library(PWMEnrich.Mmusculus.background)
-        data(PWMLogn.mm9.MotifDb.Mmus)
-
-        return(list(TxDb=TxDxDb.Mmusculus.UCSC.mm10.knownGene,
-                    OrgDbStr="org.Mm.eg.db",
-                    OrgDb=org.Mm.eg.db,
-                    PWMBGPWMLogn.mm9.MotifDb.Mmus,
-                    BSGenome=BSgenome.Mmusculus.UCSC.mm10,
-                    KEGG=mm.keggs))
+        if(requireNamespace(c("BSgenome.Mmusculus.UCSC.mm10",
+                              "TxDb.Mmusculus.UCSC.mm10.knownGene",
+                              "PWMEnrich.Mmusculus.background"), quietly=TRUE)) {    
+            data(PWMLogn.mm9.MotifDb.Mmus, package="PWMEnrich.Mmusculus.background")
+            
+            return(list(TxDb=TxDxDb.Mmusculus.UCSC.mm10.knownGene::TxDxDb.Mmusculus.UCSC.mm10.knownGene,
+                        OrgDbStr="org.Mm.eg.db",
+                        OrgDb=org.Mm.eg.db::org.Mm.eg.db,
+                        PWMBG=PWMLogn.mm9.MotifDb.Mmus,
+                        BSGenome=BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10,
+                        KEGG=mm.keggs))
+        } else {
+            stop("The required annotation packages are not available.")
+        }
     } else if(genome.build=="mm9") {
-        library(BSgenome.Mmusculus.UCSC.mm9)
-        library(TxDb.Mmusculus.UCSC.mm9.knownGene)    
-        library(PWMEnrich.Mmusculus.background)
-        data(PWMLogn.mm9.MotifDb.Mmus)
+        if(requireNamespace(c("BSgenome.Mmusculus.UCSC.mm9",
+                              "TxDb.Mmusculus.UCSC.mm9.knownGene",
+                              "PWMEnrich.Mmusculus.background"), quietly=TRUE)) {    
+            data(PWMLogn.mm9.MotifDb.Mmus, package="PWMEnrich.Mmusculus.background")
         
-        return(list(TxDb=TxDb.Mmusculus.UCSC.mm9.knownGene,
-                    OrgDbStr="org.Mm.eg.db",
-                    OrgDb=org.Mm.eg.db,
-                    PWMBGPWMLogn.mm9.MotifDb.Mmus,
-                    BSGenome=BSgenome.Mmusculus.UCSC.mm9,
-                    KEGG=mm.keggs))        
+            return(list(TxDb=TxDb.Mmusculus.UCSC.mm9.knownGene::TxDb.Mmusculus.UCSC.mm9.knownGene,
+                        OrgDbStr="org.Mm.eg.db",
+                        OrgDb=org.Mm.eg.db::org.Mm.eg.db,
+                        PWMBG=PWMLogn.mm9.MotifDb.Mmus,
+                        BSGenome=BSgenome.Mmusculus.UCSC.mm9::BSgenome.Mmusculus.UCSC.mm9,
+                        KEGG=mm.keggs))
+        } else {
+            stop("The required annotation packages are not available.")
+        }
     } else if(genome.build=="hg19") {
-        library(BSgenome.Hsapiens.UCSC.hg19)
-        library(PWMEnrich.Hsapiens.background)
-        library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-        data(PWMLogn.hg19.MotifDb.Hsap)
-        
-        return(list(TxDb=TxDb.Hsapiens.UCSC.hg19.knownGene,
-                    OrgDbStr="org.Hs.eg.db",
-                    OrgDb=org.Mm.eg.db,
-                    PWMBG=PWMLogn.hg19.MotifDb.Hsap,
-                    BSGenome=BSgenome.Hsapiens.UCSC.hg19,
-                    KEGG=hs.keggs))          
+        if(requireNamespace(c("BSgenome.Hsapiens.UCSC.hg19",
+                              "TxDb.Hsapiens.UCSC.hg19.knownGene",
+                              "PWMEnrich.Hsapiens.background"), quietly=TRUE)) {       
+            data(PWMLogn.hg19.MotifDb.Hsap, package="PWMEnrich.Hsapiens.background", package="PWMEnrich.Hsapiens.background")
+            
+            return(list(TxDb=TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene,
+                        OrgDbStr="org.Hs.eg.db",
+                        OrgDb=org.Hs.eg.db::org.Hs.eg.db,
+                        PWMBG=PWMLogn.hg19.MotifDb.Hsap,
+                        BSGenome=BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19,
+                        KEGG=hs.keggs))  
+        else {
+            stop("The required annotation packages are not available.")
+        }                    
     } else {
         stop("The selected genome build is not supported.")
     }
@@ -98,10 +97,10 @@ select.annotations <- function(genome.build) {
 annotate.region <- function(region, annotations.list, filename=NULL) {
     tfAnnotation = NULL
     if(length(region) > 0) {
-        tfAnnotation <- annotatePeak(region,
-                                      tssRegion=c(-3000, 3000), 
-                                      TxDb=annotations.list$TxDb, 
-                                      annoDb=annotations.list$OrgDbStr)
+        tfAnnotation <- ChIPseeker::annotatePeak(region,
+                                                 tssRegion=c(-3000, 3000), 
+                                                 TxDb=annotations.list$TxDb, 
+                                                 annoDb=annotations.list$OrgDbStr)
 
         if(!is.null(filename)) {
             write.table(tfAnnotation,
@@ -141,10 +140,10 @@ motif.enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg
     }
     
     # Get sequences for the given regions.
-    intersectSeq <- getSeq(annotations.list$BSGenome, regions.subset)
+    intersectSeq <- Biostrings::getSeq(annotations.list$BSGenome, regions.subset)
 
     # Remove N prefix/suffixes. Will also deal with all N sequences, which would cause a crash.
-    DNAStringSet(gsub("N*$", "", gsub("^N*", "", as.character(test[1:5]))))    
+    intersectSeq <- Biostrings::DNAStringSet(gsub("N*$", "", gsub("^N*", "", as.character(test[1:5]))))    
     
     # Remove sequences which are smaller than the maximum PWM length.
     max.pwm.length = max(unlist(lapply(pwm.bg$pwms, length)))
@@ -152,8 +151,8 @@ motif.enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg
     intersectSeq <- intersectSeq[sequence.subset]
     
     if(length(intersectSeq) > 0) {
-        res <-  motifEnrichment(intersectSeq, pwm.bg)
-        report <- groupReport(res)
+        res <-  PWMEnrich::motifEnrichment(intersectSeq, pwm.bg)
+        report <- PWMEnrich::groupReport(res)
         
         if(!is.null(file.label)) {
             # Plot top X motifs
@@ -169,7 +168,7 @@ motif.enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg
                 
                 # Generate logo file.
                 pdf(paste(file.label, " ", i, " - ", motif.name, ".pdf"), width=7/1.5, height=11/6)
-                plotMultipleMotifs(res$pwms[ordered.motifs[i]], xaxis=FALSE, titles="")
+                PWMEnrich::plotMultipleMotifs(res$pwms[ordered.motifs[i]], xaxis=FALSE, titles="")
                 dev.off()
             }
             
@@ -196,13 +195,13 @@ motif.enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg
 #' @export
 get.promoters <- function(selected.genes, annotations.list, flank.size=1000) {
     # Get the transcription regions from the database.
-    tx.regions = select(annotations.list$TxDb, selected.genes, c("TXCHROM", "TXSTART", "TX_END", "TX_STRAND"), "GENEID")
+    tx.regions = AnnotationDbi::select(annotations.list$TxDb, selected.genes, c("TXCHROM", "TXSTART", "TX_END", "TX_STRAND"), "GENEID")
     
     # Keep only the first record for each gene.
     tx.regions = tx.regions[match(selected.genes, tx.regions$GENE_ID),]
     
     # Keep promoter only.
-    promoter.regions = reduce(flank(GRanges(tx.regions), flank.size))
+    promoter.regions = GenomicRanges::reduce(GenomicRanges::flank(GRanges(tx.regions), flank.size))
 
     return(promoter.regions)
 }
@@ -254,7 +253,7 @@ kegg.enrichment <- function(selected.genes, annotations.list, filename=NULL, dis
     }
     
     if(is.null(gene.background)) {
-        gene.background <- keys(annotations.list$TxDb)
+        gene.background <- AnnotationDbi::keys(annotations.list$TxDb)
     }
     
     # For all pathways, perform enrichment analysis.
@@ -343,10 +342,10 @@ kegg.enrichment <- function(selected.genes, annotations.list, filename=NULL, dis
 #' @export
 gene.from.regions <- function(regions, annotations.list, flank.size=c(-3000, 3000), region.types=c("Promoter", "Gene body")) {
     # Annotate regions to retrieve gene names.
-    overlap.annotation <- annotatePeak(regions,
-                                       tssRegion=flank.size, 
-                                       TxDb=annotations.list$TxDb, 
-                                       annoDb=annotations.list$OrgDbStr)
+    overlap.annotation <- ChIPseeker::annotatePeak(regions,
+                                                   tssRegion=flank.size, 
+                                                   TxDb=annotations.list$TxDb, 
+                                                   annoDb=annotations.list$OrgDbStr)
                                        
     if(region.types=="All") {
         region.types=c("Promoter", "Gene body", "Downstream", "Distal")

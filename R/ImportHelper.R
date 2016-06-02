@@ -63,9 +63,9 @@ import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, dis
 
     # Import regions and discard extra data if requested.
     if(discard.metadata) {
-        grl <- GRangesList(lapply(all.files, import.and.discard.metadata, extraCols =extraCols))
+        grl <- GenomicRanges::GRangesList(lapply(all.files, import.and.discard.metadata, extraCols =extraCols))
     } else {
-        grl <- GRangesList(lapply(all.files, import, format="BED", extraCols =extraCols))
+        grl <- GenomicRanges::GRangesList(lapply(all.files, rtracklayer::import, format="BED", extraCols =extraCols))
     }
     names(grl) <- gsub(file.ext, "", list.namess)
     
