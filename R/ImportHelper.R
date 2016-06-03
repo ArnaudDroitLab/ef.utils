@@ -4,7 +4,7 @@
 #' @param extraCols The names and types of the extra columns.
 #' @return A GRanges object representing the regions of x, without the metadata.
 import.and.discard.metadata <- function(x, extraCols) {
-    regions = import(x, format="BED", extraCols=extraCols)
+    regions = rtracklayer::import(x, format="BED", extraCols=extraCols)
     mcols(regions) = NULL
     return(regions)
 }
