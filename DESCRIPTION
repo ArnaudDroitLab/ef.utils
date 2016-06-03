@@ -5,7 +5,6 @@ Authors@R: person("Eric", "Fournier", email = "Fournier.Eric.2@crchudequebec.ula
 Description: Various utilities for the bioinformatics tasks I have to perform
     often.
 Imports:
-    GenomicRanges,
     rtracklayer,
     VennDiagram,
     gage,
@@ -25,6 +24,7 @@ Suggests:
     TxDb.Hsapiens.UCSC.hg19.knownGene
 Depends:
     R (>= 3.2.2),
+    GenomicRanges    
 biocViews: Software
 License: GPL
 Encoding: UTF-8

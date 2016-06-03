@@ -140,14 +140,15 @@ plot.intersect.venn <- function(intersect.object, filename=NULL) {
 #' where all factors are present.
 #'
 #' @param intersect.object An intersect object returned by build.intersect.
+#' @param annotations.list A list of annotation objects returned by select.annotations
 #' @param filename A filename for the resulting annotations. Pass NULL
 #'   to skip saving to a file.
 #' @return The annotations for the intersect's inner regions.
 #' @export
-annotate.venn.center <- function(intersect.object, filename=NULL) {
+annotate.venn.center <- function(intersect.object, annotations.list, filename=NULL) {
     overlap.regions = exclusive.overlap(intersect.object, rep(TRUE, intersect.object$Length))
     
-    return(annotate.region(overlap.regions, filename))
+    return(annotate.region(overlap.regions, annotations.list, filename))
 }
 
 #' Annotate the outer groups of an intersect.object.
@@ -156,11 +157,12 @@ annotate.venn.center <- function(intersect.object, filename=NULL) {
 #' where only one factor is present. One annotation per factor is generated.
 #'
 #' @param intersect.object An intersect object returned by build.intersect.
+#' @param annotations.list A list of annotation objects returned by select.annotations
 #' @param file.prefix A prefix for the names of the output files where the
 #'   annotations will be written. Pass NULL to skip saving to a file.
 #' @return A list with the generated annotations.
 #' @export
-annotate.venn.exclusive <- function(intersect.object, file.prefix=NULL) {
+annotate.venn.exclusive <- function(intersect.object, annotations.list, file.prefix=NULL) {
     results = list()
     for(i in 1:intersect.object$Length) {
         which.factors = 1:intersect.object$Length == i
@@ -174,9 +176,11 @@ annotate.venn.exclusive <- function(intersect.object, file.prefix=NULL) {
                 output.file = paste0(file.prefix, "Annotation for ", factor.name, " specific.txt")
             }
             
-            results[[factor.name]] = annotate.region(subset.regions, output.file)
+            results[[factor.name]] = annotate.region(subset.regions, annotations.list, output.file)
         }
     }
+    
+    return(results)
 }
 
 #' Calculate the pairwise overlaps of all factors within an intersect.object.
@@ -217,18 +221,19 @@ pairwise.overlap <- function(intersect.object, filename=NULL) {
 #'  - The pairwise overlap of all factors.
 #'
 #' @param regions A GRangesList of the regions to be intersected and analyzed.
+#' @param annotations.list A list of annotation objects returned by select.annotations
 #' @param label A label to use when generating file names.
 #' @return The generated intersect object.
 #' @export
-build.intersect.all <- function(regions, label) {
+build.intersect.all <- function(regions, annotations.list, label) {
     base.dir = file.path("output/", label)
     dir.create(base.dir, showWarnings = FALSE, recursive = TRUE)
     
     intersect.object = build.intersect(regions)
 
     plot.intersect.venn(intersect.object, file.path(base.dir, "Venn diagram.tiff"))
-    annotate.venn.center(intersect.object, file.path(base.dir, "Venn intersection annotation.txt"))
-    annotate.venn.exclusive(intersect.object, file.path(base.dir, "/"))
+    annotate.venn.center(intersect.object, annotations.list, file.path(base.dir, "Venn intersection annotation.txt"))
+    annotate.venn.exclusive(intersect.object, annotations.list, file.path(base.dir, "/"))
     pairwise.overlap(intersect.object, file.path(base.dir, "Pairwise overlap.txt"))
     
     return(intersect.object)
