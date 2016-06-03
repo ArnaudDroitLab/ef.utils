@@ -5,7 +5,7 @@
 #' @return A GRanges object representing the regions of x, without the metadata.
 import.and.discard.metadata <- function(x, extraCols) {
     regions = rtracklayer::import(x, format="BED", extraCols=extraCols)
-    mcols(regions) = NULL
+    GenomicRanges::mcols(regions) = NULL
     return(regions)
 }
 
