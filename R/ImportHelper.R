@@ -53,9 +53,9 @@ import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, dis
         list.names = peak.dirs
     } else {
         # Grab all files in directory.
-        all.file.names = list.files(input.dir, pattern=file.ext, include.dirs=TRUE)
-        all.files = file.path(input.dir, all.file.name)
-        list.names = gsub(file.ext, "", all.file.names)
+        all.filenames = list.files(input.dir, pattern=file.ext, include.dirs=TRUE)
+        all.files = file.path(input.dir, all.filenames)
+        list.names = gsub(file.ext, "", all.filenames)
     }
 
     # Import regions and discard extra data if requested.
