@@ -64,7 +64,7 @@ import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, dis
     } else {
         grl <- GenomicRanges::GRangesList(lapply(all.files, rtracklayer::import, format="BED", extraCols =extraCols))
     }
-    names(grl) <- gsub(file.ext, "", list.namess)
+    names(grl) <- gsub(file.ext, "", list.names)
     
     return(grl)    
 }
