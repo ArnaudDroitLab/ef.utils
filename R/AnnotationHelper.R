@@ -63,7 +63,7 @@ select.annotations <- function(genome.build) {
         if(requireNamespace(c("BSgenome.Hsapiens.UCSC.hg19",
                               "TxDb.Hsapiens.UCSC.hg19.knownGene",
                               "PWMEnrich.Hsapiens.background"), quietly=TRUE)) {       
-            data(PWMLogn.hg19.MotifDb.Hsap, package="PWMEnrich.Hsapiens.background", package="PWMEnrich.Hsapiens.background")
+            data(PWMLogn.hg19.MotifDb.Hsap, package="PWMEnrich.Hsapiens.background")
             
             return(list(TxDb=TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene,
                         OrgDbStr="org.Hs.eg.db",
