@@ -68,3 +68,39 @@ import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, dis
     
     return(grl)    
 }
+
+
+#' Import a set of identically structured files.
+#'
+#' Given a set of files with identical row names and column names, this 
+#' function reads all files and concatenate the requested columns from each.
+#'
+#' @param file.names The files to be read.
+#' @param header.columns Indices or names of row-identifying columns which should
+#'   be repeated across all files. Those columns are added only once to the
+#'   output, as the very first columns.
+#' @param data.columns Indices or names fo the columns containing unique data in
+#'   each file. The values from each file will be added to the output.
+#' @param file.labels A vector of labels for the imported files. This must be of
+#'   the of same length as file.names. The label is prefixed to column names
+#'   in the resulting data frame.
+#' @return A data-frame with the concatenated information from all files.
+#' @export
+read.identical <- function(file.names, header.columns, data.columns, file.labels=basename(file.names)) {
+    results=NULL
+    for(i in 1:length(file.names)) {
+        file.name = file.names[i]
+        file.label = file.labels[i]
+        
+        file.data = read.table(file.name, sep="\t", header=TRUE)
+        if(is.null(results)) {
+            results = file.data[, header.columns]
+        }
+        
+        colnames(file.data) <- paste(file.label, colnames(file.data), sep=".")
+        
+        results = cbind(results, file.data[,data.columns])
+    }
+    
+    return(results)
+}
