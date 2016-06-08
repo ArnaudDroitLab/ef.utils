@@ -4,10 +4,12 @@
 \alias{annotate.venn.center}
 \title{Annotate the inner group of an intersect.object.}
 \usage{
-annotate.venn.center(intersect.object, filename = NULL)
+annotate.venn.center(intersect.object, annotations.list, filename = NULL)
 }
 \arguments{
 \item{intersect.object}{An intersect object returned by build.intersect.}
+
+\item{annotations.list}{A list of annotation objects returned by select.annotations}
 
 \item{filename}{A filename for the resulting annotations. Pass NULL
 to skip saving to a file.}
