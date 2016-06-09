@@ -132,9 +132,19 @@ download.encode.rna <- function(biosample, assembly, download.filter=default.dow
     downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results, resultOrigin="queryEncode", dir=download.dir, force=FALSE)
     
     # Read the files.
-    rna.data = read.identical(list.files(download.dir), 1:5, 6:7)
+    rna.filenames = list.files(download.dir)
+    rna.data = read.identical(file.path(download.dir, rna.filenames), 1:5, 6:7, file.labels=gsub(".tsv", "", rna.filenames))
     
-    # Maybe we should do a mean of replicates?
+    # Calculate mean of metrics.
+    for(metric in c("TPM", "FPKM")) {
+        mean.metric = apply(rna.data[,grepl(metric, colnames(rna.data))], 1, mean, na.rm=TRUE)
+        #sd.metric = apply(rna.data[,grepl(metric, colnames(rna.data))], 1, sd, na.rm=TRUE)
+        rna.data = cbind(rna.data, mean.metric)
+        colnames(rna.data)[ncol(rna.data)] <- paste0("Mean.", metric)
+        #rna.data = cbind(rna.data, mean.metric)
+        #colnames(rna.data)[ncol(rna.data)] <- paste0("SD.", metric)
+    }
+    
     
     # Return results
     return(list(Metadata=query.results$experiment,
