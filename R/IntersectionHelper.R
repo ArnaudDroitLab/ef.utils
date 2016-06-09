@@ -100,7 +100,7 @@ intersect.overlap <- function(intersect.object, indices=NULL, names=NULL, exclus
 #' @export
 build.intersect <- function(grl) {
     # Flatten the GRangesList so we can get a list of all possible regions.
-    all.regions = GenomicRanges::reduce(GenomicRanges::unlist(grl))
+    all.regions = GenomicRanges::reduce(unlist(grl))
     
     # Build a matrix to hold the results.
     overlap.matrix <- matrix(0, nrow=length(all.regions), ncol=length(grl))
