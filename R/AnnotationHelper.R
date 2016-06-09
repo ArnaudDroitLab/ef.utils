@@ -1,3 +1,58 @@
+#' Install required annotation packages.
+#' 
+#' Install BiocInstaller and the required annotation packages for the given
+#' genome assemblies.
+#'
+#' @param which.assembly Which assembly's annotations should be installed.
+#'   Supported assemblies are hg19, hg28, mm10 and mm9.
+#' @export
+install.annotations <- function(which.assembly) {
+    if(!requireNamespace("BiocInstaller")) {
+        source("https://bioconductor.org/biocLite.R")
+        biocLite("BiocInstaller")
+    }
+    
+    if("all" %in% which.assembly) {
+        which.assembly = c("hg19", "hg38", "mm9", "mm10")
+    }
+    
+    if("hg19" %in% which.assembly) {
+        if(requireNamespace("BiocInstaller")) {
+            BiocInstaller::biocLite(pkgs=c("BSgenome.Hsapiens.UCSC.hg19",
+                 "TxDb.Hsapiens.UCSC.hg19.knownGene",
+                 "PWMEnrich.Hsapiens.background",
+                 "org.Hs.eg.db"))
+        }
+    }
+    
+    if("hg38" %in% which.assembly) {
+        if(requireNamespace("BiocInstaller")) {
+            BiocInstaller::biocLite(pkgs=c("BSgenome.Hsapiens.UCSC.hg38",
+                 "TxDb.Hsapiens.UCSC.hg38.knownGene",
+                 "PWMEnrich.Hsapiens.background",
+                 "org.Hs.eg.db"))
+        }
+    }
+    
+    if("mm10" %in% which.assembly) {
+        if(requireNamespace("BiocInstaller")) {
+            BiocInstaller::biocLite(pkgs=c("BSgenome.Mmusculus.UCSC.mm10",
+                 "TxDb.Mmusculus.UCSC.mm10.knownGene",
+                 "PWMEnrich.Mmusculus.background",
+                 "org.Mm.eg.db"))
+        }
+    }    
+
+    if("mm9" %in% which.assembly) {
+        if(requireNamespace("BiocInstaller")) {
+            BiocInstaller::biocLite(pkgs=c("BSgenome.Mmusculus.UCSC.mm9",
+                 "TxDb.Mmusculus.UCSC.mm9.knownGene",
+                 "PWMEnrich.Mmusculus.background",
+                 "org.Mm.eg.db"))
+        }
+    }    
+}
+
 #' Annotations selection helper.
 #' 
 #' Given a genome build identifier, creates a list of annotation databases
