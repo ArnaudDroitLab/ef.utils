@@ -15,7 +15,7 @@ default.download.filter.chip <- function(query.results, genome.assembly) {
     filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
         x = subset(x, assembly==genome.assembly)
         
-        if(grepl("^H\\d", x$target) | grepl("^POL", x$target)) {
+        if(grepl("^H\\d", x$target[1]) || grepl("^POL", x$target[1])) {
             return(NULL)
         }
     
