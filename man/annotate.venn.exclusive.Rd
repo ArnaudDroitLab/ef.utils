@@ -4,10 +4,13 @@
 \alias{annotate.venn.exclusive}
 \title{Annotate the outer groups of an intersect.object.}
 \usage{
-annotate.venn.exclusive(intersect.object, file.prefix = NULL)
+annotate.venn.exclusive(intersect.object, annotations.list,
+  file.prefix = NULL)
 }
 \arguments{
 \item{intersect.object}{An intersect object returned by build.intersect.}
+
+\item{annotations.list}{A list of annotation objects returned by select.annotations}
 
 \item{file.prefix}{A prefix for the names of the output files where the
 annotations will be written. Pass NULL to skip saving to a file.}

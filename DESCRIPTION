@@ -11,6 +11,8 @@ Imports:
     PWMEnrich,
     MotifDb,
     ChIPseeker,
+    plyr,
+    ENCODExplorer
 Suggests:
     BSgenome.Hsapiens.UCSC.hg38,
     TxDb.Hsapiens.UCSC.hg38.knownGene,

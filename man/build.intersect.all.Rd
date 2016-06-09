@@ -4,10 +4,12 @@
 \alias{build.intersect.all}
 \title{Builds an overlap of the given regions and output all default annotations.}
 \usage{
-build.intersect.all(regions, label)
+build.intersect.all(regions, annotations.list, label)
 }
 \arguments{
 \item{regions}{A GRangesList of the regions to be intersected and analyzed.}
+
+\item{annotations.list}{A list of annotation objects returned by select.annotations}
 
 \item{label}{A label to use when generating file names.}
 }
