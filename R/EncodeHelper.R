@@ -69,7 +69,7 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
 #' @export
 download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter, download.dir=file.path("input/ENCODE", biosample, "chip-seq")) {
     # Query ENCODE to obtain appropriate files.
-    query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", assembly=assembly, status="released")
+    query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", status="released")
     
     # Filter the ENCODE files using the supplied functions.  Only download relevant files.
     query.results$experiment = download.filter(query.results$experiment, assembly)
