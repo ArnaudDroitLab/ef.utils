@@ -146,7 +146,8 @@ plot.intersect.venn <- function(intersect.object, filename=NULL) {
 #' @return The annotations for the intersect's inner regions.
 #' @export
 annotate.venn.center <- function(intersect.object, annotations.list, filename=NULL) {
-    overlap.regions = exclusive.overlap(intersect.object, rep(TRUE, intersect.object$Length))
+    #overlap.regions = exclusive.overlap(intersect.object, rep(TRUE, intersect.object$Length))
+    overlap.regions <- intersect.overlap(intersect.object, exclusive = TRUE)
     
     return(annotate.region(overlap.regions, annotations.list, filename))
 }
@@ -166,7 +167,7 @@ annotate.venn.exclusive <- function(intersect.object, annotations.list, file.pre
     results = list()
     for(i in 1:intersect.object$Length) {
         which.factors = 1:intersect.object$Length == i
-        subset.regions = exclusive.overlap(intersect.object, which.factors)
+        subset.regions = intersect.overlap(intersect.object, which.factors, exclusive = TRUE)
         
         if(length(subset.regions) > 0) {
             factor.name = intersect.object$Names[i]

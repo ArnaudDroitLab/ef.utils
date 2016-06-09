@@ -195,10 +195,10 @@ motif.enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg
     }
     
     # Get sequences for the given regions.
-    intersectSeq <- Biostrings::getSeq(annotations.list$BSGenome, regions.subset)
+    intersectSeq <- Biostrings::getSeq(annotations.list$BSGenome, regions)
 
     # Remove N prefix/suffixes. Will also deal with all N sequences, which would cause a crash.
-    intersectSeq <- Biostrings::DNAStringSet(gsub("N*$", "", gsub("^N*", "", as.character(test[1:5]))))    
+    intersectSeq <- Biostrings::DNAStringSet(gsub("N*$", "", gsub("^N*", "", as.character(intersectSeq))))    
     
     # Remove sequences which are smaller than the maximum PWM length.
     max.pwm.length = max(unlist(lapply(pwm.bg$pwms, length)))
@@ -250,10 +250,10 @@ motif.enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg
 #' @export
 get.promoters <- function(selected.genes, annotations.list, flank.size=1000) {
     # Get the transcription regions from the database.
-    tx.regions = AnnotationDbi::select(annotations.list$TxDb, selected.genes, c("TXCHROM", "TXSTART", "TX_END", "TX_STRAND"), "GENEID")
+    tx.regions = AnnotationDbi::select(annotations.list$TxDb, selected.genes, c("TXCHROM", "TXSTART", "TXEND", "TXSTRAND"), "GENEID")
     
     # Keep only the first record for each gene.
-    tx.regions = tx.regions[match(selected.genes, tx.regions$GENE_ID),]
+    tx.regions = tx.regions[match(selected.genes, tx.regions$GENEID),]
     
     # Keep promoter only.
     promoter.regions = GenomicRanges::reduce(GenomicRanges::flank(GRanges(tx.regions), flank.size))
@@ -395,14 +395,17 @@ kegg.enrichment <- function(selected.genes, annotations.list, filename=NULL, dis
 #'   disease pathways.
 #' @return A data-frame with the enrichment results.
 #' @export
-gene.from.regions <- function(regions, annotations.list, flank.size=c(-3000, 3000), region.types=c("Promoter", "Gene body")) {
+gene.from.regions <- function(regions, annotations.list, flank.size=c(-3000, 3000), region.types=c("Gene body", "Promoter", "Downstream", "Distal", "All")) {
+  
+    region.types <- match.arg(region.types, several.ok = TRUE)
+  
     # Annotate regions to retrieve gene names.
     overlap.annotation <- ChIPseeker::annotatePeak(regions,
                                                    tssRegion=flank.size, 
                                                    TxDb=annotations.list$TxDb, 
                                                    annoDb=annotations.list$OrgDbStr)
                                        
-    if(region.types=="All") {
+    if("All" %in% regions.types) {
         region.types=c("Promoter", "Gene body", "Downstream", "Distal")
     }
     
@@ -412,7 +415,9 @@ gene.from.regions <- function(regions, annotations.list, flank.size=c(-3000, 300
     }
     
     if("Gene body" %in% region.types) {
-        to.keep = to.keep | grepl("Promoter", overlap.annotation@anno$annotation)
+        to.keep = to.keep | grepl("Promoter", overlap.annotation@anno$annotation) | grepl("3' UTR", overlap.annotation@anno$annotation) |
+          grepl("5' UTR", overlap.annotation@anno$annotation) | grepl("Exon", overlap.annotation@anno$annotation) | grepl("Intron", overlap.annotation@anno$annotation)
+        
     }
     
     if("Downstream" %in% region.types) {
@@ -441,7 +446,7 @@ gene.from.regions <- function(regions, annotations.list, flank.size=c(-3000, 300
 kegg.enrichment.regions <- function(regions, annotations.list, ...) {
     selected.genes = gene.from.regions(regions, annotations.list)
     
-    return(kegg.enrichment.annotation(selected.genes, annotations.list=annotations.list, ...))
+    return(kegg.enrichment(selected.genes, annotations.list=annotations.list, ...))
 }
 
 #' Given a set of regions, perform annotation, motif enrichment and KEGG enrichment.
@@ -456,21 +461,35 @@ kegg.enrichment.regions <- function(regions, annotations.list, ...) {
 #' @param output.dir The directory where output should be stored.A directory for storing output.
 #' @return A list containing the characterization results.
 #' @export
-characterize.region <- function(region, annotations.list, file.label=NULL, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/") {
+characterize.region <- function(region, annotations.list, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/") {
     results = list()
 
-    base.dir = file.path(output.dir, file.label)
-    dir.create(base.dir, showWarnings = FALSE, recursive = TRUE)
+    if(is.null(output.dir)){
+      file.label.annotation <- NULL
+      file.label.motif <- NULL
+      file.label.KEGG.sig <- NULL
+      file.label.KEGG.dis <- NULL
+    } else {
+      dir.create(output.dir, showWarnings = FALSE, recursive = TRUE)
+      file.label.annotation <- file.path(output.dir, "Annotations.txt")
+      file.label.motif <- file.path(output.dir, "Motifs")
+      file.label.KEGG.sig <- file.path(output.dir, "KEGG signalisation and metabolism.txt")
+      file.label.KEGG.dis <- file.path(output.dir, "KEGG diseases.txt")
+    }
 
-    results[["Annotation"]] = annotate.region(region, file.path(base.dir, "Annotations.txt"))
+    #results[["Annotation"]] = annotate.region(region, file.path(base.dir, "Annotations.txt"))
+    results[["Annotation"]] = annotate.region(region, annotations.list, filename = file.label.annotation)
     
     if(!skip.motif) {
-        results[["Motif"]] = motif.enrichment(region, file.path(base.dir, "Motifs"), use.HOCOMOCO=(!exists("GENOME_VERSION") || GENOME_VERSION=="hg38"))
+        #results[["Motif"]] = motif.enrichment(region, file.path(base.dir, "Motifs"), use.HOCOMOCO=(!exists("GENOME_VERSION") || GENOME_VERSION=="hg38"))
+      results[["Motif"]] = motif.enrichment(region, annotations.list, file.label = file.label.motif)
     }
     
     if(!skip.kegg) {
-        results[["KEGG.sig"]] = kegg.enrichment.annotation(results[["Annotation"]], file.path(base.dir, "KEGG signalisation and metabolism.txt"))
-        results[["KEGG.dis"]] = kegg.enrichment.annotation(results[["Annotation"]], file.path(base.dir, "KEGG diseases.txt"), diseases=TRUE)
+        #results[["KEGG.sig"]] = kegg.enrichment.annotation(results[["Annotation"]], file.path(base.dir, "KEGG signalisation and metabolism.txt"))
+        #results[["KEGG.dis"]] = kegg.enrichment.annotation(results[["Annotation"]], file.path(base.dir, "KEGG diseases.txt"), diseases=TRUE)
+        results[["KEGG.sig"]] = kegg.enrichment.regions(region, annotations.list, filename = file.label.KEGG.sig)
+        results[["KEGG.dis"]] = kegg.enrichment.regions(region, annotations.list, filename = file.label.KEGG.dis, diseases = TRUE)
     }
     
     return(results)
@@ -488,19 +507,32 @@ characterize.region <- function(region, annotations.list, file.label=NULL, skip.
 #' @param output.dir The directory where output should be stored.A directory for storing output.
 #' @return A list containing the characterization results.
 #' @export
-characterize.gene.set <- function(gene.set, annotations.list, file.label=NULL, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/", promoter.size=1000) {
+characterize.gene.set <- function(gene.set, annotations.list, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/", promoter.size=1000) {
     results = list()
 
-    base.dir = file.path(output.dir, file.label)
-    dir.create(base.dir, showWarnings = FALSE, recursive = TRUE)
-
+    if(is.null(output.dir)){
+      file.label.motif <- NULL
+      file.label.KEGG.sig <- NULL
+      file.label.KEGG.dis <- NULL
+    } else {
+      dir.create(output.dir, showWarnings = FALSE, recursive = TRUE)
+      file.label.motif <- file.path(output.dir, "Motifs")
+      file.label.KEGG.sig <- file.path(output.dir, "KEGG signalisation and metabolism.txt")
+      file.label.KEGG.dis <- file.path(output.dir, "KEGG diseases.txt")
+    }
+    
     if(!skip.motif) {
-        results[["Motif"]] = motif.enrichment.genes(gene.set, file.path(base.dir, "Motifs"), use.HOCOMOCO=(!exists("GENOME_VERSION") || GENOME_VERSION=="hg38"), flank.size=promoter.size)
+        #results[["Motif"]] = motif.enrichment.genes(gene.set, file.path(base.dir, "Motifs"), use.HOCOMOCO=(!exists("GENOME_VERSION") || GENOME_VERSION=="hg38"), flank.size=promoter.size)
+        results[["Motif"]] = motif.enrichment.genes(gene.set, annotations.list, flank.size=promoter.size, file.label = file.label.motif)
+        
     }
     
     if(!skip.kegg) {
-        results[["KEGG.sig"]] = kegg.enrichment(gene.set, file.path(base.dir, "KEGG signalisation and metabolism.txt"))
-        results[["KEGG.dis"]] = kegg.enrichment(gene.set, file.path(base.dir, "KEGG diseases.txt"), diseases=TRUE)
+        #results[["KEGG.sig"]] = kegg.enrichment(gene.set, file.path(base.dir, "KEGG signalisation and metabolism.txt"))
+        #results[["KEGG.dis"]] = kegg.enrichment(gene.set, file.path(base.dir, "KEGG diseases.txt"), diseases=TRUE)
+        results[["KEGG.sig"]] = kegg.enrichment(gene.set, annotations.list, filename = file.label.KEGG.sig)
+        results[["KEGG.dis"]] = kegg.enrichment(gene.set, annotations.list, filename = file.label.KEGG.dis, diseases=TRUE)
+        
     }
     
     return(results)
