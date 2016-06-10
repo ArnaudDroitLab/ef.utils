@@ -27,9 +27,9 @@ Suggests:
     BiocInstaller
 Depends:
     R (>= 3.2.2),
-    GenomicRanges    
+    GenomicRanges
 biocViews: Software
 License: GPL
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 5.0.1.9000
+RoxygenNote: 5.0.1

@@ -5,7 +5,7 @@
 \title{Given a set of regions, convert it to a set of Entrez gene ids.}
 \usage{
 gene.from.regions(regions, annotations.list, flank.size = c(-3000, 3000),
-  region.types = c("Promoter", "Gene body"))
+  region.types = c("Gene body", "Promoter", "Downstream", "Distal", "All"))
 }
 \arguments{
 \item{regions}{A GRanges object with regions to be associated to genes.}

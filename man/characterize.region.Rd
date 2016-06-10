@@ -4,8 +4,8 @@
 \alias{characterize.region}
 \title{Given a set of regions, perform annotation, motif enrichment and KEGG enrichment.}
 \usage{
-characterize.region(region, annotations.list, file.label = NULL,
-  skip.motif = FALSE, skip.kegg = FALSE, output.dir = "output/")
+characterize.region(region, annotations.list, skip.motif = FALSE,
+  skip.kegg = FALSE, output.dir = "output/")
 }
 \arguments{
 \item{region}{A GRanges object with regions to be characterized.}
@@ -13,14 +13,14 @@ characterize.region(region, annotations.list, file.label = NULL,
 \item{annotations.list}{A list of annotation databases returned by 
 select.annotations.}
 
-\item{file.label}{A label for generating file names to save the results. 
-If NULL, results are not saved to disk.}
-
 \item{skip.motif}{If TRUE, motif enrichment is skipped.}
 
 \item{skip.kegg}{If TRUE, KEGG pathway enrichment is skipped.}
 
 \item{output.dir}{The directory where output should be stored.A directory for storing output.}
+
+\item{file.label}{A label for generating file names to save the results. 
+If NULL, results are not saved to disk.}
 }
 \value{
 A list containing the characterization results.

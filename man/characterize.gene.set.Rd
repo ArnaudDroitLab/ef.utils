@@ -4,9 +4,8 @@
 \alias{characterize.gene.set}
 \title{Given a set of Entrez gene ids, perform  KEGG enrichment and motif enrichement at the promoters.}
 \usage{
-characterize.gene.set(gene.set, annotations.list, file.label = NULL,
-  skip.motif = FALSE, skip.kegg = FALSE, output.dir = "output/",
-  promoter.size = 1000)
+characterize.gene.set(gene.set, annotations.list, skip.motif = FALSE,
+  skip.kegg = FALSE, output.dir = "output/", promoter.size = 1000)
 }
 \arguments{
 \item{gene.set}{A vector of Entrez IDs representing the genes to be characterized.}
@@ -14,14 +13,14 @@ characterize.gene.set(gene.set, annotations.list, file.label = NULL,
 \item{annotations.list}{A list of annotation databases returned by 
 select.annotations.}
 
-\item{file.label}{A label for generating file names to save the results. 
-If NULL, results are not saved to disk.}
-
 \item{skip.motif}{If TRUE, motif enrichment is skipped.}
 
 \item{skip.kegg}{If TRUE, KEGG pathway enrichment is skipped.}
 
 \item{output.dir}{The directory where output should be stored.A directory for storing output.}
+
+\item{file.label}{A label for generating file names to save the results. 
+If NULL, results are not saved to disk.}
 }
 \value{
 A list containing the characterization results.
