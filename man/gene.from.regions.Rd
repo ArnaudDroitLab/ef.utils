@@ -8,22 +8,21 @@ gene.from.regions(regions, annotations.list, flank.size = c(-3000, 3000),
   region.types = c("Gene body", "Promoter", "Downstream", "Distal", "All"))
 }
 \arguments{
-\item{regions}{A GRanges object with regions to be associated to genes.}
+\item{regions}{A \linkS4class{GRanges} object with regions to be associated to genes.}
 
-\item{annotations.list}{A list of annotation databases returned by 
-select.annotations.}
+\item{annotations.list}{A list of annotation databases returned by
+\code{\link{select.annotations}}.}
 
-\item{flank.size}{The extent around the TSS which is considered the 
+\item{flank.size}{The extent around the TSS which is considered the
 promoter region.}
 
 \item{region.types}{A character vector representing region types which will
-cause a gene association. These can be:
-  - *Promoter*: Promoter region (upstream and downstream of the TSS)
-  - *Gene body*: Exons, introns, 5' and 3' UTRs.
-  - *Downstream*: Region downstream of the TES.
-  - *Distal*: Regions which do not fit any of the above category.
-  - *All*: All of the above.
-disease pathways.}
+cause a gene association. These can be: \describe{
+  \item{Promoter} {Promoter region (upstream and downstream of the TSS).}
+  \item{Gene body} {Promoter, Exons, introns, 5' and 3' UTRs.}
+  \item{Downstream} {Region downstream of the TES.}
+  \item{Distal} {Regions which do not fit any of the above category.}
+  \item{All} {All of the above.}}}
 }
 \value{
 A data-frame with the enrichment results.

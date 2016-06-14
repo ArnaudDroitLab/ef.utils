@@ -8,22 +8,22 @@ intersect.overlap(intersect.object, indices = NULL, names = NULL,
   exclusive = FALSE)
 }
 \arguments{
-\item{intersect.object}{An intersect.object returned by build.intersect.
-by the rows of overlap.matrix.}
+\item{intersect.object}{An \code{intersect.object} returned by \code{\link{build.intersect}}.
+by the rows of \code{overlap.matrix}.}
 
-\item{indices}{A vector of indices into the factors of intersect.object.}
+\item{indices}{A vector of indices into the factors of \code{intersect.object}.}
 
-\item{names}{A vector of factor names in intersect.object.}
+\item{names}{A vector of factor names in \code{intersect.object}.}
 
-\item{exclusive}{If TRUE, a region will be returned if the factors in}
+\item{exclusive}{If \code{TRUE}, a region will be returned if the factors in}
 }
 \value{
-A GRanges object with the regions matching the given criteria.
+A \linkS4class{GRanges} object with the regions matching the given criteria.
 }
 \description{
-Given an intersect.object , finds all regions where all
-factors described by either indices or names are present. 
-If both indices and names are NULL, the inner intersection
+Given an \code{intersect.object} , finds all regions where all
+factors described by either indices or names are present.
+If both indices and names are \code{NULL}, the inner intersection
 is calculated.
 }
 

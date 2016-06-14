@@ -8,25 +8,26 @@ kegg.enrichment(selected.genes, annotations.list, filename = NULL,
   diseases = FALSE, gene.background = NULL)
 }
 \arguments{
-\item{selected.genes}{A vector of ENTREZ gene ids to be subjected 
+\item{selected.genes}{A vector of ENTREZ gene ids to be subjected
 to motif enrichment.}
 
-\item{annotations.list}{A list of annotation databases returned by 
-select.annotations.}
+\item{annotations.list}{A list of annotation databases returned by
+\code{\link{select.annotations}}.}
 
-\item{filename}{The name of the file where the results should be saved.}
+\item{filename}{The name of the file where the results should be saved.
+If \code{NULL}, results are not saved to disk.}
 
-\item{diseases}{If true, the enrichment is performed against the disease pathways.}
+\item{diseases}{If \code{TRUE}, the enrichment is performed against the disease pathways.}
 
 \item{gene.background}{A list of Entrez gene ids of the genes to be used
-as the background of the enrichment. If NULL, all genes in annotations.list$TxDb
+as the background of the enrichment. If \code{NULL}, all genes in \code{annotations.list$TxDb}
 are used.}
 }
 \value{
 A data-frame with the enrichment results.
 }
 \description{
-Utility function which performs the same operations as motif.enrichment,
+Utility function which performs the same operations as \code{\link{motif.enrichment}},
 but accepts a list of genes instead of a list of regions.
 }
 

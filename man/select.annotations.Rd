@@ -10,14 +10,14 @@ select.annotations(genome.build)
 \item{genome.build}{The genome build to use for annotation.}
 }
 \value{
-A list with the following elements:
-  - *TxDb*: A TxDb of class AnnotationDBI providing informations about the genes
-    of the selected build.
-  - *OrgDb*: An OrgDb object for the selected species.
-  - *OrgDbStr*: A character string representing the name of the OrgDb object.
-  - *BSGenome*: A BSGenome object to retrieve DNA sequences
-  - *KEGG*: A cache of KEGG pathways, as returned by kegg.gsets from the gage library.
-  - *PWMBG*: A PWMLogn background for motif enrichment of promoter regions.
+A list with the following elements: \describe{
+  \item{TxDb} {A TxDb of class \linkS4class{AnnotationDBI} providing informations about the genes
+  of the selected build.}
+  \item{OrgDb} {An \linkS4class{OrgDb} object for the selected species.}
+  \item{OrgDbStr} {A character string representing the name of the \linkS4class{OrgDb} object.}
+  \item{BSGenome} {A \linkS4class{BSGenome} object to retrieve DNA sequences.}
+  \item{KEGG} {A cache of KEGG pathways, as returned by \code{\link[gage]{kegg.gsets}} from the \pkg{gage} library.}
+  \item{PWMBG} {A PWMLogn background for motif enrichment of promoter regions.}}
 }
 \description{
 Given a genome build identifier, creates a list of annotation databases

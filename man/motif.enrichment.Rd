@@ -2,7 +2,7 @@
 % Please edit documentation in R/AnnotationHelper.R
 \name{motif.enrichment}
 \alias{motif.enrichment}
-\title{Given a GRanges object, finds enriched motifs within those regions.}
+\title{Given a \linkS4class{GRanges} object, finds enriched motifs within those regions.}
 \usage{
 motif.enrichment(regions, annotations.list, file.label = NULL,
   pwm.bg = NULL, top.x = 20)
@@ -10,11 +10,11 @@ motif.enrichment(regions, annotations.list, file.label = NULL,
 \arguments{
 \item{regions}{The regions on which motif enrichment should be performed.}
 
-\item{annotations.list}{A list of annotation databases returned by 
-select.annotations.}
+\item{annotations.list}{A list of annotation databases returned by
+\code{\link{select.annotations}}.}
 
-\item{file.label}{A label for generating file names to save the results. 
-If NULL, results are not saved to disk.}
+\item{file.label}{A label for generating file names to save the results.
+If \code{NULL}, results are not saved to disk.}
 
 \item{pwm.bg}{A PWMLogn background object against which enrichment
 should be performed.}
@@ -22,13 +22,13 @@ should be performed.}
 \item{top.x}{Number of top motifs for which logos are generated.}
 }
 \value{
-A list with the following elements:
-  - *Region*: The subset of regions where motifs were sought.
-  - *Enrichment*: The result of the PWMEnrich motifEnrichment call.
-  - *Report*: The result of the PWMEnrich groupReport call.
+A list with the following elements: \describe{
+  \item{Region} {The subset of regions where motifs were sought.}
+  \item{Enrichment} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{motifEnrichment}} call.}
+  \item{Report} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{groupReport}} call.}}
 }
 \description{
-Performs motif enrichment against pwm.bg. If pwm.bg is not provided,
-annotations.list$PWMBG is used.
+Performs motif enrichment against \code{pwm.bg}. If \code{pwm.bg} is not provided,
+\code{annotations.list$PWMBG} is used.
 }
 

@@ -12,7 +12,7 @@ import.and.discard.metadata(x, extraCols)
 \item{extraCols}{The names and types of the extra columns.}
 }
 \value{
-A GRanges object representing the regions of x, without the metadata.
+A \linkS4class{GRanges} object representing the regions of x, without the metadata.
 }
 \description{
 Import a bed file and discards its metadata.

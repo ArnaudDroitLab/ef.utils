@@ -2,24 +2,24 @@
 % Please edit documentation in R/IntersectionHelper.R
 \name{annotate.venn.exclusive}
 \alias{annotate.venn.exclusive}
-\title{Annotate the outer groups of an intersect.object.}
+\title{Annotate the outer groups of an \code{intersect.object}.}
 \usage{
 annotate.venn.exclusive(intersect.object, annotations.list,
   file.prefix = NULL)
 }
 \arguments{
-\item{intersect.object}{An intersect object returned by build.intersect.}
+\item{intersect.object}{An intersect object returned by \code{\link{build.intersect}}.}
 
-\item{annotations.list}{A list of annotation objects returned by select.annotations}
+\item{annotations.list}{A list of annotation objects returned by \code{\link{select.annotations}}}
 
 \item{file.prefix}{A prefix for the names of the output files where the
-annotations will be written. Pass NULL to skip saving to a file.}
+annotations will be written. Pass \code{NULL} to skip saving to a file.}
 }
 \value{
 A list with the generated annotations.
 }
 \description{
-Given an intersect.object, generate annotations for the regions
+Given an \code{intersect.object}, generate annotations for the regions
 where only one factor is present. One annotation per factor is generated.
 }
 

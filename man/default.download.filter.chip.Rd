@@ -2,24 +2,24 @@
 % Please edit documentation in R/EncodeHelper.R
 \name{default.download.filter.chip}
 \alias{default.download.filter.chip}
-\title{Default filtering function for download.encode.chip.}
+\title{Default filtering function for \code{\link{download.encode.chip}}.}
 \usage{
 default.download.filter.chip(query.results, genome.assembly)
 }
 \arguments{
-\item{query.results}{A partial data.frame obtained from the queryEncode
+\item{query.results}{A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
 function.The biosample identifier from ENCODE. Valid examples are}
 
 \item{genome.assembly}{Which genome assembly should the results come from?}
 }
 \value{
-A filtered data frame.
+A filtered \code{data frame}.
 }
 \description{
-The filtering function does three things:
-  - It removes all files which do not have the correct genome assembly.
-  - It removes broad marks chips, such as histones and Pol II.
-  - If the provided results have been re-analyzed by the ENCODE Consortium,
-    the ENCODE results are kept and the original ones discarded.
+The filtering function does three things: \enumerate{
+  \item It removes all files which do not have the correct genome assembly.
+  \item It removes broad marks chips, such as histones and Pol II.
+  \item If the provided results have been re-analyzed by the ENCODE Consortium,
+    the ENCODE results are kept and the original ones discarded.}
 }
 

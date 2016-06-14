@@ -7,21 +7,21 @@
 inclusive.overlap.internal(all.regions, overlap.matrix, which.factors)
 }
 \arguments{
-\item{all.regions}{A GRanges object with the regions represented}
+\item{all.regions}{A \linkS4class{GRanges} object with the regions represented}
 
 \item{overlap.matrix}{A matrix, with rows corresponding to regions
-in all.rgions, and columns corresponding to proteins/factors. A
+in \code{all.rgions}, and columns corresponding to proteins/factors. A
 non-zero value in the matrix indicates the protein/factor of interest
 is present at this region.}
 
 \item{which.factors}{Indices of columns where the factor should be present.}
 }
 \value{
-A GRanges object with the regions matching the given criteria.
+A \linkS4class{GRanges} object with the regions matching the given criteria.
 }
 \description{
-Returns the set of regions within all.regions where all
-conditions/proteins at indices which.factors are present, 
+Returns the set of regions within \code{all.regions} where all
+conditions/proteins at indices which.factors are present,
 regardless of whether or not other factors are. Presence/absence
 at a given locus is obtained from the overlap.matrix parameter.
 }

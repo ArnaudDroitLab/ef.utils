@@ -18,14 +18,14 @@ output, as the very first columns.}
 each file. The values from each file will be added to the output.}
 
 \item{file.labels}{A vector of labels for the imported files. This must be of
-the of same length as file.names. The label is prefixed to column names
+the of same length as \code{file.names}. The label is prefixed to column names
 in the resulting data frame.}
 }
 \value{
-A data-frame with the concatenated information from all files.
+A \code{data-frame} with the concatenated information from all files.
 }
 \description{
-Given a set of files with identical row names and column names, this 
+Given a set of files with identical row names and column names, this
 function reads all files and concatenate the requested columns from each.
 }
 

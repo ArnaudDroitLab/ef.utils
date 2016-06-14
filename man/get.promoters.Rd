@@ -10,13 +10,13 @@ get.promoters(selected.genes, annotations.list, flank.size = 1000)
 \item{selected.genes}{A vector of ENTREZ gene ids whose promoters should be
 retrieved.}
 
-\item{annotations.list}{A list of annotation databases returned by 
-select.annotations.}
+\item{annotations.list}{A list of annotation databases returned by
+\code{\link{select.annotations}}.}
 
 \item{flank.size}{How many base pairs upstream of the TSS should we retrieve?}
 }
 \value{
-A GRanges objects representing the promoters of the given genes.
+A \linkS4class{GRanges} objects representing the promoters of the given genes.
 }
 \description{
 Given a set of Entrez IDS, retrieve the coordinates of those genes' promoters.

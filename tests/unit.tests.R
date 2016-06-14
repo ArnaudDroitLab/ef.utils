@@ -335,7 +335,6 @@ intersect.overlap.test <- intersect.overlap(intersect.test)
       
 # Specific tests
       
-      
 ####################################
 # Test import.into.grl
 ####################################
@@ -345,9 +344,37 @@ intersect.overlap.test <- intersect.overlap(intersect.test)
 # Specific tests
       test_that("import.into.grl_nrow", expect_equal(length(plain.bed@unlistData@seqnames), 100*3))
       
+####################################
+# Test default.download.filter
+####################################
+# General tests
       
-      
-      
-        
-      
+
+# Specific tests
+
+####################################
+# Test default.download.filter.rna
+####################################
+# General tests
+
+
+# Specific tests
+
+####################################
+# Test download.encode.chip
+####################################
+# General tests
+      download.encode.chip.test <- download.encode.chip("MCF-7", "hg19")
+
+# Specific tests
+
+####################################
+# Test download.encode.rna
+####################################
+# General tests
+      download.encode.rna.test <- download.encode.rna("MCF-7", "hg19")
+      test_that("download.encode.rna_type", expect_type(download.encode.rna.test))
+      test_that("download.encode.rna_values", expect_equal(0, sum(apply(download.encode.rna.test, 1, sum))))
+
+# Specific tests
 

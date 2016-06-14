@@ -2,20 +2,20 @@
 % Please edit documentation in R/IntersectionHelper.R
 \name{plot.intersect.venn}
 \alias{plot.intersect.venn}
-\title{Generates a venn diagram from an intersect.object.}
+\title{Generates a venn diagram from an \code{intersect.object}.}
 \usage{
 plot.intersect.venn(intersect.object, filename = NULL)
 }
 \arguments{
-\item{intersect.object}{An intersect object returned by build.intersect.}
+\item{intersect.object}{An intersect object returned by \code{\link{build.intersect}}.}
 
-\item{filename}{A filename for the resulting venn diagram. Pass NULL
+\item{filename}{A filename for the resulting venn diagram. Pass \code{NULL}
 to skip saving to a file.}
 }
 \value{
 The grid object representing the venn.diagram.
 }
 \description{
-Generates a venn diagram from an intersect.object.
+Generates a venn diagram from an \code{intersect.object}.
 }
 

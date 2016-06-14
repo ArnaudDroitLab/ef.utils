@@ -2,7 +2,7 @@
 % Please edit documentation in R/ImportHelper.R
 \name{import.into.grl}
 \alias{import.into.grl}
-\title{Import a set of bed files in a directory into a GRangesList.}
+\title{Import a set of bed files in a directory into a \linkS4class{GRangesList}.}
 \usage{
 import.into.grl(input.dir = ".", file.format = "bed", file.ext = NULL,
   discard.metadata = FALSE, dir.type = "plain")
@@ -15,16 +15,16 @@ import.into.grl(input.dir = ".", file.format = "bed", file.ext = NULL,
 
 \item{file.ext}{The extension of the files to be imported.}
 
-\item{discard.metadata}{If TRUE, metadata will be discarded after importing.}
+\item{discard.metadata}{If \code{TRUE}, metadata will be discarded after importing.}
 
 \item{dir.type}{The architecture of the directory from which the files are to
 be imported. If "plain", files are sought directly within the directory. If
 "mugqic", the output structure of the MUGQIC pipeline is searched for.}
 }
 \value{
-A GRanges object representing the regions of the files in input.dir.
+A \linkS4class{GRanges} object representing the regions of the files in input.dir.
 }
 \description{
-Import a set of bed files in a directory into a GRangesList.
+Import a set of bed files in a directory into a \linkS4class{GRangesList}.
 }
 

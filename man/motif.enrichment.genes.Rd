@@ -11,18 +11,18 @@ motif.enrichment.genes(selected.genes, annotations.list, flank.size = 1000,
 \item{selected.genes}{A vector of ENTREZ gene ids whose promoters should be
 subjected to motif enrichment.}
 
-\item{annotations.list}{A list of annotation databases returned by 
-select.annotations.}
+\item{annotations.list}{A list of annotation databases returned by
+\code{\link{select.annotations}}.}
 
 \item{flank.size}{How many base pairs upstream of the TSS should we retrieve?}
 
-\item{...}{Additional arguments for motif.enrichment.}
+\item{...}{Additional arguments for \code{\link{motif.enrichment}}.}
 }
 \value{
-A list with the following elements:
-  - *Region*: The subset of regions where motifs were sought.
-  - *Enrichment*: The result of the PWMEnrich motifEnrichment call.
-  - *Report*: The result of the PWMEnrich groupReport call.
+A list with the following elements: \describe{
+  \item{Region} {The subset of regions where motifs were sought.}
+  \item{Enrichment} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{motifEnrichment call.}}}
+  \item{Report} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{groupReport call.}}}}
 }
 \description{
 Utility function which performs the same operations as motif.enrichment,

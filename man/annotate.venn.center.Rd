@@ -2,23 +2,23 @@
 % Please edit documentation in R/IntersectionHelper.R
 \name{annotate.venn.center}
 \alias{annotate.venn.center}
-\title{Annotate the inner group of an intersect.object.}
+\title{Annotate the inner group of an \code{intersect.object}.}
 \usage{
 annotate.venn.center(intersect.object, annotations.list, filename = NULL)
 }
 \arguments{
-\item{intersect.object}{An intersect object returned by build.intersect.}
+\item{intersect.object}{An intersect object returned by \code{\link{build.intersect}}.}
 
-\item{annotations.list}{A list of annotation objects returned by select.annotations}
+\item{annotations.list}{A list of annotation objects returned by \code{\link{select.annotations}}}
 
-\item{filename}{A filename for the resulting annotations. Pass NULL
+\item{filename}{A filename for the resulting annotations. Pass \code{NULL}
 to skip saving to a file.}
 }
 \value{
 The annotations for the intersect's inner regions.
 }
 \description{
-Given an intersect.object, generate annotations for the regions
+Given an \code{intersect.object}, generate annotations for the regions
 where all factors are present.
 }
 

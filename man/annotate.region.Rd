@@ -9,10 +9,11 @@ annotate.region(region, annotations.list, filename = NULL)
 \arguments{
 \item{region}{The regions to annotate.}
 
-\item{annotations.list}{A list of annotation databases returned by 
-select.annotations.}
+\item{annotations.list}{A list of annotation databases returned by
+\code{\link{select.annotations}}.}
 
-\item{filename}{The name of the file where the results should be saved.}
+\item{filename}{The name of the file where the results should be saved.
+If \code{NULL}, results are not saved to disk.}
 }
 \value{
 An annotation object.

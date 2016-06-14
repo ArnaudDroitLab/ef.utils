@@ -2,29 +2,24 @@
 % Please edit documentation in R/AnnotationHelper.R
 \name{kegg.enrichment.regions}
 \alias{kegg.enrichment.regions}
-\title{Perform KEGG enrichment on a set of regions.
- 
-Conveniance function. Regions are converted to genes with 
-gene.from.regions using default parameters.}
+\title{Perform KEGG enrichment on a set of regions.}
 \usage{
 kegg.enrichment.regions(regions, annotations.list, ...)
 }
 \arguments{
-\item{regions}{A GRanges object with regions to enriched for KEGG pathways.}
+\item{regions}{A \linkS4class{GRanges} object with regions to enriched for KEGG pathways.}
 
-\item{annotations.list}{A list of annotation databases returned by 
-select.annotations.}
+\item{annotations.list}{A list of annotation databases returned by
+\code{\link{select.annotations}}.}
 
-\item{...}{Parameters to be passed to kegg.enrichment.}
+\item{...}{Parameters to be passed to \code{\link{kegg.enrichment}}.}
 }
 \value{
-A vector of Entrez gene ids containing a non-redundant list of the 
+A vector of Entrez gene ids containing a non-redundant list of the
   genes represented by the given regions.
 }
 \description{
-Perform KEGG enrichment on a set of regions.
- 
-Conveniance function. Regions are converted to genes with 
-gene.from.regions using default parameters.
+Conveniance function. Regions are converted to genes with
+\code{\link{gene.from.regions}} using default parameters.
 }
 

@@ -2,20 +2,21 @@
 % Please edit documentation in R/IntersectionHelper.R
 \name{pairwise.overlap}
 \alias{pairwise.overlap}
-\title{Calculate the pairwise overlaps of all factors within an intersect.object.}
+\title{Calculate the pairwise overlaps of all factors within an \code{intersect.object}.}
 \usage{
 pairwise.overlap(intersect.object, filename = NULL)
 }
 \arguments{
-\item{intersect.object}{An intersect object returned by build.intersect.}
+\item{intersect.object}{An intersect object returned by \code{\link{build.intersect}}.}
 
 \item{filename}{A name for prefix for the names of the output files where the
-annotations will be written. Pass NULL to skip saving to a file.}
+annotations will be written. Pass \code{NULL} to skip saving to a file.}
 }
 \value{
 A matrix containing the pairwise overlaps of all factors in
+\code{intersect.object}. The row's factor is used as a denominator. Therefore, the
 }
 \description{
-Calculate the pairwise overlaps of all factors within an intersect.object.
+Calculate the pairwise overlaps of all factors within an \code{intersect.object}.
 }
 

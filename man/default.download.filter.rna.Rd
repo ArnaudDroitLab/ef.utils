@@ -2,23 +2,23 @@
 % Please edit documentation in R/EncodeHelper.R
 \name{default.download.filter.rna}
 \alias{default.download.filter.rna}
-\title{Default filtering function for download.encode.rna.}
+\title{Default filtering function for \code{\link{download.encode.rna}}.}
 \usage{
 default.download.filter.rna(query.results, genome.assembly)
 }
 \arguments{
-\item{query.results}{A partial data.frame obtained from the queryEncode
+\item{query.results}{A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
 function.The biosample identifier from ENCODE. Valid examples are}
 
 \item{genome.assembly}{Which genome assembly should the results come from?}
 }
 \value{
-A filtered data frame.
+A filtered \code{data frame}.
 }
 \description{
-The filtering function does three things:
-  - It removes all files which do not have the correct genome assembly.
-  - It only keeps files with counts for genes, not transcripts or isoforms.
-  - If removes any file where treatment is not NA.
+The filtering function does three things: \enumerate{
+  \item It removes all files which do not have the correct genome assembly.
+  \item It only keeps files with counts for genes, not transcripts or isoforms.
+  \item If removes any file where treatment is not NA.}
 }
 

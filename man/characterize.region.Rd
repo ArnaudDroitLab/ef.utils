@@ -8,19 +8,19 @@ characterize.region(region, annotations.list, skip.motif = FALSE,
   skip.kegg = FALSE, output.dir = "output/")
 }
 \arguments{
-\item{region}{A GRanges object with regions to be characterized.}
+\item{region}{A \linkS4class{GRanges} object with regions to be characterized.}
 
-\item{annotations.list}{A list of annotation databases returned by 
-select.annotations.}
+\item{annotations.list}{A list of annotation databases returned by
+\code{\link{select.annotations}}.}
 
-\item{skip.motif}{If TRUE, motif enrichment is skipped.}
+\item{skip.motif}{If \code{TRUE}, motif enrichment is skipped.}
 
-\item{skip.kegg}{If TRUE, KEGG pathway enrichment is skipped.}
+\item{skip.kegg}{If \code{TRUE}, KEGG pathway enrichment is skipped.}
 
 \item{output.dir}{The directory where output should be stored.A directory for storing output.}
 
-\item{file.label}{A label for generating file names to save the results. 
-If NULL, results are not saved to disk.}
+\item{file.label}{A label for generating file names to save the results.
+If \code{NULL}, results are not saved to disk.}
 }
 \value{
 A list containing the characterization results.

@@ -2,32 +2,32 @@
 % Please edit documentation in R/IntersectionHelper.R
 \name{build.intersect}
 \alias{build.intersect}
-\title{Given a GRangesList object, determine which items overlap each others.}
+\title{Given a \linkS4class{GRangesList} object, determine which items overlap each others.}
 \usage{
 build.intersect(grl)
 }
 \arguments{
-\item{grl}{The GRangesList object whose elements need to be overlapped with
+\item{grl}{The \linkS4class{GRangesList} object whose elements need to be overlapped with
 each others.}
 }
 \value{
-A list with the following elements:
-  Regions: A GRanges object with all genomic ranges occupied by at least one item.
-           All ranges are "flattened", so if two of the initial ranges overlapped each other
-           imperfectly, they are combined into a single region spanning both of them.
-  Matrix:  A matrix, with ncol= the number of items in the initial GRangesList and nrow=
-           the total number of loci, which is equal to the length of Regions. A value of 1 or more
-           within the matrix indicates that the regions described by the column overlapped
-           the region defined by the row.
-  List:    A list of length(grl) numeric vectors indicating which indices of Regions overlap
-           with the given condition/protein. Useful to translate the regions into unique names
-           for drawing venn diagrams.
-  Names:   The names of the initial grl items, corresponding to the column names of Matrix and the names
-           of the element of List.
-  Length:  The number of items in the initial GRangesList, corresponding to the number of columns in Matrix
-           and the number of elements in List.
+A list with the following elements: \describe{
+  \item{Regions} {A \linkS4class{GRanges} object with all genomic ranges occupied by at least one item.
+  All ranges are "flattened", so if two of the initial ranges overlapped each other
+  imperfectly, they are combined into a single region spanning both of them.}
+  \item{Matrix} {A matrix, with \code{ncol=} the number of items in the initial \linkS4class{GRangesList} and \code{nrow=}
+  the total number of loci, which is equal to the length of \code{Regions}. A value of 1 or more
+  within the matrix indicates that the regions described by the column overlapped
+  the region defined by the row.}
+  \item{List} {A list of \code{length(grl)} numeric vectors indicating which indices of \code{Regions} overlap
+  with the given condition/protein. Useful to translate the regions into unique names
+  for drawing venn diagrams.}
+  \item{Names} {The names of the initial grl items, corresponding to the column names of \code{Matrix} and the names
+  of the element of \code{List}.}
+  \item{Length} {The number of items in the initial \linkS4class{GRangesList}, corresponding to the number of columns in \code{Matrix}
+  and the number of elements in \code{List}}.}
 }
 \description{
-Given a GRangesList object, determine which items overlap each others.
+Given a \linkS4class{GRangesList} object, determine which items overlap each others.
 }
 
