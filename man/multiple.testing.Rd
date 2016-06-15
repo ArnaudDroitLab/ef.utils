@@ -2,7 +2,7 @@
 % Please edit documentation in R/CsawAnalysis.R
 \name{multiple.testing}
 \alias{multiple.testing}
-\title{Makes corrections for multiple testing}
+\title{Make corrections for multiple testing}
 \usage{
 multiple.testing(filtered.counted.reads, results, txdb)
 }
@@ -17,6 +17,6 @@ A list with the following elements: \describe{
   \item{[[2]]} {A data frame returned by \code{\link[csaw]{combineTests}}}}
 }
 \description{
-Makes corrections for multiple testing
+Make corrections for multiple testing
 }
 

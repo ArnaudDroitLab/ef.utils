@@ -1,4 +1,4 @@
-#' Converts reads from bam files to counts
+#' Convert reads from bam files to counts
 #'
 #' @param bam.files A vector with the path to bam files.
 #' @param param A vector with the list of parameters to give to the functions.
@@ -42,7 +42,7 @@ reads.to.counts <- function(bam.files, param){
   return (list(counted.reads, correlate.reads, plot.df))
 }
 
-#' Filters out unintersing windows, by global enrichment method.
+#' Filter out unintersing windows, by global enrichment method.
 #'
 #' @param bam.files A vector with the path to bam files.
 #' @param param A vector with the list of parameters to give to the functions.
@@ -65,7 +65,7 @@ filter.reads.to.counts <- function(bam.files, param, counted.reads, threshold){
   return(list(filtered.counted.reads, filter.stat))
 }
 
-#' Calculates normalization factors, by using TMM method.
+#' Calculate normalization factors, by using TMM method.
 #'
 #' @param bam.files A vector with the path to bam files.
 #' @param param A vector with the list of parameters to give to the functions.
@@ -85,7 +85,7 @@ normalization.factors <- function(bam.files, param){
   return(list(norm.factors, binned.normalize))
 }
 
-#' Tests the differential binding.
+#' Test the differential binding.
 #'
 #' @param bam.files A vector with the path to bam files.
 #' @param filtered.counted.reads A filtered \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.
@@ -125,7 +125,8 @@ test.diff.binding <- function(bam.files, filtered.counted.reads, norm.factors, c
   return(results)
 }
 
-#' Makes corrections for multiple testing
+#' Make corrections for multiple testing
+#'
 #' @param filtered.counted.reads A filtered \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.
 #' @param results A \linkS4class{DGELRT} object returned as results by \code{\link[edgeR]{glmQLFTest}}.
 #'
@@ -190,7 +191,7 @@ multiple.testing <- function(filtered.counted.reads, results, txdb){
   return(list(merged, tabcom, table.best, logFC.best.windows, table.best.broad, logFC.best.windows.broads))
 }
 
-#' Saves results of \code{\link{multiple.testing}} with annotations
+#' Save results of \code{\link{multiple.testing}} with annotations
 #' @param merged A \linkS4class{GRanges} object returned by \code{\link[csaw]{mergeWindows}}
 #' @param tabcom A data frame returned by \code{\link[csaw]{combineTests}}
 #'
@@ -204,7 +205,7 @@ post.processing <- function(merged, tabcom, txdb, orgdb){
   return(annotations)
 }
 
-#' Analyzes bam files with csaw and produces corresponding graphs.
+#' Analyze bam files with csaw and produces corresponding graphs.
 #'
 #' @param correspondances A data frame with two columns: \describe{
 #'   \item{$Name} {Name (with the path) of the bam files.}
@@ -293,7 +294,8 @@ csaw.analyze <- function(correspondances, reference, genome.build, output.dir = 
                     results, list.multiple.testing, annotations, output.dir)
   }
 }
-
+#' Output of csaw analysis
+#'
 #' Creates and saves plots and tables for csaw analysis: \describe{
 #'   \item{Fragements lengths.pdf} {A plot of fragments (reads) lengths in all bam files.}
 #'   \item{Window size.pdf} {A cross-correlation plot of the efficiency of the ChIP-seq data.}

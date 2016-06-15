@@ -2,7 +2,7 @@
 % Please edit documentation in R/CsawAnalysis.R
 \name{reads.to.counts}
 \alias{reads.to.counts}
-\title{Converts reads from bam files to counts}
+\title{Convert reads from bam files to counts}
 \usage{
 reads.to.counts(bam.files, param)
 }
@@ -18,6 +18,6 @@ A list with the following elements: \describe{
   \item{[[3]]} {A vector with correlated reads.}}
 }
 \description{
-Converts reads from bam files to counts
+Convert reads from bam files to counts
 }
 

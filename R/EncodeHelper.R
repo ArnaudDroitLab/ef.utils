@@ -30,6 +30,38 @@ default.download.filter.chip <- function(query.results, genome.assembly) {
     return(filtered.results)
 }
 
+#' Alternative filtering function for \code{\link{download.encode.chip}}.
+#'
+#' The filtering function does three things: \enumerate{
+#'   \item It removes all files which do not have the correct genome assembly.
+#'   \item It removes all marks chips, except histone marks chips.
+#'   \item If the provided results have been re-analyzed by the ENCODE Consortium,
+#'     the ENCODE results are kept and the original ones discarded.}
+#'
+#' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
+#'   function.The biosample identifier from ENCODE. Valid examples are
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @return A filtered \code{data frame}.
+#' @importFrom plyr ddply
+#' @export
+histone.download.filter.chip <- function(query.results, genome.assembly) {
+  filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
+    x = subset(x, assembly==genome.assembly)
+    
+    if(!grepl("^H\\d", x$target[1])) {
+      return(NULL)
+    }
+    
+    if(sum(x$lab=="ENCODE Consortium Analysis Working Group") > 0) {
+      return(subset(x, lab=="ENCODE Consortium Analysis Working Group"))
+    } else {
+      return(x)
+    }
+  }, genome.assembly=genome.assembly)
+  
+  return(filtered.results)
+}
+
 #' Default filtering function for \code{\link{download.encode.rna}}.
 #'
 #' The filtering function does three things: \enumerate{
@@ -73,7 +105,8 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
 #' @importFrom ENCODExplorer downloadEncode
 #' @importFrom GenomicRanges GRangesList
 #' @export
-download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter.chip, download.dir=file.path("input/ENCODE", biosample, "chip-seq")) {
+download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter.chip,
+                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq")) {
     # Query ENCODE to obtain appropriate files.
     query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", status="released")
 
@@ -104,6 +137,7 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
         gr.subset = accession.replicates[names(accession.replicates) %in% x$accession]
         return(intersect.overlap(build.intersect(gr.subset)))
     }))
+    
 
     return(list(Metadata=query.results$experiment,
                 Downloaded=downloaded.files,

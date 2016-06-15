@@ -2,7 +2,7 @@
 % Please edit documentation in R/CsawAnalysis.R
 \name{filter.reads.to.counts}
 \alias{filter.reads.to.counts}
-\title{Filters out unintersing windows, by global enrichment method.}
+\title{Filter out unintersing windows, by global enrichment method.}
 \usage{
 filter.reads.to.counts(bam.files, param, counted.reads, threshold)
 }
@@ -21,6 +21,6 @@ A list with the following elements: \describe{
   \item{[[2]]} {filter.stat, list, statistics of windows aboundances and their filter}}
 }
 \description{
-Filters out unintersing windows, by global enrichment method.
+Filter out unintersing windows, by global enrichment method.
 }
 

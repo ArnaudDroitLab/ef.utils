@@ -416,7 +416,7 @@ gene.from.regions <- function(regions, annotations.list, flank.size=c(-3000, 300
                                                    TxDb=annotations.list$TxDb,
                                                    annoDb=annotations.list$OrgDbStr)
 
-    if("All" %in% regions.types) {
+    if("All" %in% region.types) {
         region.types=c("Promoter", "Gene body", "Downstream", "Distal")
     }
 

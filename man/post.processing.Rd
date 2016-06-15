@@ -2,7 +2,7 @@
 % Please edit documentation in R/CsawAnalysis.R
 \name{post.processing}
 \alias{post.processing}
-\title{Saves results of \code{\link{multiple.testing}} with annotations}
+\title{Save results of \code{\link{multiple.testing}} with annotations}
 \usage{
 post.processing(merged, tabcom, txdb, orgdb)
 }
@@ -15,6 +15,6 @@ post.processing(merged, tabcom, txdb, orgdb)
 annotations, list, annotation of considered regions
 }
 \description{
-Saves results of \code{\link{multiple.testing}} with annotations
+Save results of \code{\link{multiple.testing}} with annotations
 }
 

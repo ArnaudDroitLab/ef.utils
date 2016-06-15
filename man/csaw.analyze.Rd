@@ -2,7 +2,7 @@
 % Please edit documentation in R/CsawAnalysis.R
 \name{csaw.analyze}
 \alias{csaw.analyze}
-\title{Analyzes bam files with csaw and produces corresponding graphs.}
+\title{Analyze bam files with csaw and produces corresponding graphs.}
 \usage{
 csaw.analyze(correspondances, reference, genome.build,
   output.dir = "csaw_output/", threshold = 3, save.plots = TRUE)
@@ -23,6 +23,6 @@ csaw.analyze(correspondances, reference, genome.build,
 \item{save.plots}{Should plots and files created by \code{\link{csaw.save.plots}} be saved?}
 }
 \description{
-Analyzes bam files with csaw and produces corresponding graphs.
+Analyze bam files with csaw and produces corresponding graphs.
 }
 

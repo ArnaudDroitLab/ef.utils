@@ -2,7 +2,7 @@
 % Please edit documentation in R/CsawAnalysis.R
 \name{normalization.factors}
 \alias{normalization.factors}
-\title{Calculates normalization factors, by using TMM method.}
+\title{Calculate normalization factors, by using TMM method.}
 \usage{
 normalization.factors(bam.files, param)
 }
@@ -17,6 +17,6 @@ A list with the following elements: \describe{
   \item{[[2]]} {A \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}} to consider as a "bin".}}
 }
 \description{
-Calculates normalization factors, by using TMM method.
+Calculate normalization factors, by using TMM method.
 }
 

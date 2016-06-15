@@ -2,7 +2,7 @@
 % Please edit documentation in R/CsawAnalysis.R
 \name{test.diff.binding}
 \alias{test.diff.binding}
-\title{Tests the differential binding.}
+\title{Test the differential binding.}
 \usage{
 test.diff.binding(bam.files, filtered.counted.reads, norm.factors,
   correspondances, reference)
@@ -18,6 +18,6 @@ test.diff.binding(bam.files, filtered.counted.reads, norm.factors,
 A \linkS4class{DGELRT} object returned as results by \code{\link[edgeR]{glmQLFTest}}.
 }
 \description{
-Tests the differential binding.
+Test the differential binding.
 }
 
