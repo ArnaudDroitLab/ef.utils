@@ -1,6 +1,18 @@
-#' Default filtering function for \code{\link{download.encode.chip}}.
+
+#' Import HMM chromatin states for the right cell type
 #'
-#' The filtering function does three things: \enumerate{
+#' @param biosample
+#'
+#' @return
+#'
+#' @importFrom
+import.chrom.states <- function(biosample){
+
+
+}
+
+
+#' Default filtering function for \code{\link{download.encode.chip}}.
 #'   \item It removes all files which do not have the correct genome assembly.
 #'   \item It removes broad marks chips, such as histones and Pol II.
 #'   \item If the provided results have been re-analyzed by the ENCODE Consortium,
@@ -47,18 +59,18 @@ default.download.filter.chip <- function(query.results, genome.assembly) {
 histone.download.filter.chip <- function(query.results, genome.assembly) {
   filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
     x = subset(x, assembly==genome.assembly)
-    
+
     if(!grepl("^H\\d", x$target[1])) {
       return(NULL)
     }
-    
+
     if(sum(x$lab=="ENCODE Consortium Analysis Working Group") > 0) {
       return(subset(x, lab=="ENCODE Consortium Analysis Working Group"))
     } else {
       return(x)
     }
   }, genome.assembly=genome.assembly)
-  
+
   return(filtered.results)
 }
 
@@ -137,7 +149,7 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
         gr.subset = accession.replicates[names(accession.replicates) %in% x$accession]
         return(intersect.overlap(build.intersect(gr.subset)))
     }))
-    
+
 
     return(list(Metadata=query.results$experiment,
                 Downloaded=downloaded.files,
