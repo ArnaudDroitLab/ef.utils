@@ -85,7 +85,7 @@ load.chia <- function(input.chia) {
 #'
 #' @export
 annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          cell.type = c("hct116", "hela", "gbm", "rpe1", "dld1", "a375_GeCKo", "hct116_shRNA"), biosample = "MCF-7", histone = FALSE, output.dir) {
+                          biosample = "MCF-7", histone = FALSE, output.dir) {
     single.set = chia.obj$Regions
     genome.build <- match.arg(genome.build)
     cell.type <- match.arg(cell.type)
@@ -110,7 +110,7 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, expression.le
 
     if(genome.build=="hg19" || genome.build=="hg38") {
         chia.obj = associate.tissue.specificity.human(chia.obj)
-        chia.obj = associate.fitness.genes(chia.obj, cell.type)
+        chia.obj = associate.fitness.genes(chia.obj)
         if (histone){
           associate.histone.marks(chia.obj, genome.build, biosample)
         }
@@ -123,7 +123,7 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, expression.le
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by load.chia.
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
-#' @param biosampleThe biosample identifier from ENCODE. Valid examples are
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562 or MCF-7.
 #'
 #' @return "\code{chia.obj}" with associated histone overlap percentage.
@@ -299,18 +299,16 @@ associate.tissue.specificity.human <- function(chia.obj) {
 #' Identify essential genes of the \code{Regions} of "chia.obj".
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param cell.type The type of the considered cell.
 #'
 #' @return "\code{chia.obj}" with identified essential genes.
-associate.fitness.genes <- function(chia.obj, cell.type){
+associate.fitness.genes <- function(chia.obj){
   # Load fitness genes data.
   essential.genes = read.table("input/essential_genes.txt", sep="\t", header=TRUE, as.is=TRUE)
 
-  # Select the right column, corresponding to given cell type
-  column <- paste0("BF_", cell.type)
+  # Add the "essential ratio" to the data
   fitness.match <- match(chia.obj$Regions$SYMBOL, essential.genes$Gene)
-  chia.obj$Regions$Fitness <- essential.genes[fitness.match, column] > 0
-  chia.obj$Regions$Fitness <- ifelse(is.na(chia.obj$Regions$Fitness), FALSE, chia.obj$Regions$Fitness)
+  chia.obj$Regions$Fitness <- essential.genes$numTKOHits[fitness.match]
+  chia.obj$Regions$Fitness <- ifelse(is.na(chia.obj$Regions$Fitness), 0, (chia.obj$Regions$Fitness / 6))
 
   return(chia.obj)
 }

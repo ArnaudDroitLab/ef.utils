@@ -11,7 +11,7 @@ associate.histone.marks(chia.obj, genome.build, biosample)
 
 \item{genome.build}{The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").}
 
-\item{biosampleThe}{biosample identifier from ENCODE. Valid examples are
+\item{biosample}{The biosample identifier from ENCODE. Valid examples are
 GM12878, K562 or MCF-7.}
 }
 \value{

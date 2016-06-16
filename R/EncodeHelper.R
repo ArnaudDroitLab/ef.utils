@@ -1,18 +1,38 @@
+#' Import HMM chromatin states for the right cell type.
+#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#' @param download.dir The folder where the downloaded files should be stored.
+#'
+#' @importFrom utils download.file
+import.chrom.states <- function(biosample, download.dir){
 
-#' Import HMM chromatin states for the right cell type
-#'
-#' @param biosample
-#'
-#' @return
-#'
-#' @importFrom
-import.chrom.states <- function(biosample){
+  if(biosample == "GM12878"){
+    number <- "E115"
+  } else if (biosample == "HeLa"){
+    number <- "E117"
+  } else if (biosample == "K562"){
+    number <- "E123"
+  }
 
+  url.18 <- paste0("http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/core_K27ac/jointModel/final/",
+                   number, "_18_core_K27ac_mnemonics.bed.gz")
+  if (file.exists(url.18)){
+    download.file(url.18, download.dir)
+  } else {
+    url.15 <- paste0("http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/",
+                     number, "_15_coreMarks_mnemonics.bed.gz")
+    download.file(url.15, dowload.dir)
+  }
+
+  system(paste0("gzip -d -k ", download.dir, "/*.gz"))
 
 }
 
 
 #' Default filtering function for \code{\link{download.encode.chip}}.
+#'
+#' The filtering function does three things: \enumerate{
 #'   \item It removes all files which do not have the correct genome assembly.
 #'   \item It removes broad marks chips, such as histones and Pol II.
 #'   \item If the provided results have been re-analyzed by the ENCODE Consortium,

@@ -4,12 +4,10 @@
 \alias{associate.fitness.genes}
 \title{Identify essential genes of the \code{Regions} of "chia.obj".}
 \usage{
-associate.fitness.genes(chia.obj, cell.type)
+associate.fitness.genes(chia.obj)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
-
-\item{cell.type}{The type of the considered cell.}
 }
 \value{
 "\code{chia.obj}" with identified essential genes.
