@@ -77,6 +77,9 @@ load.chia <- function(input.chia) {
 #' @param tf.regions A data frame containing the TF data.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562.
+#' @param histone Should the overlap percentage of histone marks be added?
 #' @param output.dir The name of the directory where to write the selected annotations.
 #'
 #' @return The annotated "\code{chia.obj}".
@@ -85,7 +88,7 @@ load.chia <- function(input.chia) {
 #'
 #' @export
 annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          biosample = "MCF-7", histone = FALSE, output.dir) {
+                          biosample = "GM12878", histone = FALSE, output.dir) {
     single.set = chia.obj$Regions
     genome.build <- match.arg(genome.build)
     cell.type <- match.arg(cell.type)
@@ -99,7 +102,7 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, expression.le
     chia.obj <- associate.genomic.region(chia.obj, genome.build, output.dir)
 
     if(!is.null(input.chrom.state)) {
-        chia.obj = associate.chrom.state(chia.obj, input.chrom.state)
+        chia.obj = associate.chrom.state(chia.obj, biosample)
     }
 
     if(!is.null(tf.regions)) {
@@ -223,12 +226,15 @@ associate.gene <- function(chia.obj, expression.data=NULL) {
 #' Associate chromatin sates with the \code{Regions} of "chia.obj".
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param input.chrom.sates The name of the file containing the information about chromatin states.
-#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562.
 #' @return "\code{chia.obj}" with associated chromatin states.
 #' @importFrom rtracklayer import
 #' @importMethodsFrom GenomicRanges findOverlaps
-associate.chrom.state <- function(chia.obj, input.chrom.states) {
+associate.chrom.state <- function(chia.obj, biosample) {
+    # Download chromatin states
+    input.chrom.states <- import.chrom.states(biosample, file.path("input/chrom_states", biosample))
+
     # Annotate with chromatin states
     # Load and rename chromatin states (for easier lexical ordering)
     chrom.states = rtracklayer::import(input.chrom.state)
@@ -275,8 +281,6 @@ associate.tf <- function(chia.obj, tf.regions) {
 #'
 #' @return "\code{chia.obj}" with associated tissue scpecificity.
 associate.tissue.specificity.human <- function(chia.obj) {
-    # Load tissue expression data.
-    tissue.expression = read.table("input/tissue_specificity.txt", sep="\t", header=TRUE, as.is=TRUE)
 
     # Annotate chia.obj$Regions with Tau, Expression category.
     calculate.tau <- function(x) {
@@ -302,8 +306,6 @@ associate.tissue.specificity.human <- function(chia.obj) {
 #'
 #' @return "\code{chia.obj}" with identified essential genes.
 associate.fitness.genes <- function(chia.obj){
-  # Load fitness genes data.
-  essential.genes = read.table("input/essential_genes.txt", sep="\t", header=TRUE, as.is=TRUE)
 
   # Add the "essential ratio" to the data
   fitness.match <- match(chia.obj$Regions$SYMBOL, essential.genes$Gene)

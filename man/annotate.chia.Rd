@@ -5,7 +5,7 @@
 \title{Annotate "chia.obj", given as parameter.}
 \usage{
 annotate.chia(chia.obj, input.chrom.state, tf.regions, expression.levels,
-  genome.build = c("hg19", "mm9", "mm10", "hg38"), biosample = "MCF-7",
+  genome.build = c("hg19", "mm9", "mm10", "hg38"), biosample = "GM12878",
   histone = FALSE, output.dir)
 }
 \arguments{
@@ -18,6 +18,11 @@ annotate.chia(chia.obj, input.chrom.state, tf.regions, expression.levels,
 \item{expression.levels}{A data frame containing the levels of expression of genes. according to their EMSEMBL id.}
 
 \item{genome.build}{The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").}
+
+\item{biosample}{The biosample identifier from ENCODE. Valid examples are
+GM12878, K562.}
+
+\item{histone}{Should the overlap percentage of histone marks be added?}
 
 \item{output.dir}{The name of the directory where to write the selected annotations.}
 }

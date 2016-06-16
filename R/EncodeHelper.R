@@ -1,19 +1,15 @@
 #' Import HMM chromatin states for the right cell type.
 #'
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
-#'   GM12878, K562 or MCF-7.
+#'   GM12878, K562 or HeLa.
 #' @param download.dir The folder where the downloaded files should be stored.
+#'
+#' @return The name and path of the downloaded and unzipped files.
 #'
 #' @importFrom utils download.file
 import.chrom.states <- function(biosample, download.dir){
 
-  if(biosample == "GM12878"){
-    number <- "E115"
-  } else if (biosample == "HeLa"){
-    number <- "E117"
-  } else if (biosample == "K562"){
-    number <- "E123"
-  }
+  number <- biosample.code$EID[grep(biosample, biosample.code$E.Mnemonic, ignore.case = TRUE)]
 
   url.18 <- paste0("http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/core_K27ac/jointModel/final/",
                    number, "_18_core_K27ac_mnemonics.bed.gz")
@@ -26,6 +22,8 @@ import.chrom.states <- function(biosample, download.dir){
   }
 
   system(paste0("gzip -d -k ", download.dir, "/*.gz"))
+
+  return (file.path(download.dir, "/*_mnemonics.bed"))
 
 }
 

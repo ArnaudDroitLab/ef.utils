@@ -4,12 +4,13 @@
 \alias{associate.chrom.state}
 \title{Associate chromatin sates with the \code{Regions} of "chia.obj".}
 \usage{
-associate.chrom.state(chia.obj, input.chrom.states)
+associate.chrom.state(chia.obj, biosample)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
 
-\item{input.chrom.sates}{The name of the file containing the information about chromatin states.}
+\item{biosample}{The biosample identifier from ENCODE. Valid examples are
+GM12878, K562.}
 }
 \value{
 "\code{chia.obj}" with associated chromatin states.
