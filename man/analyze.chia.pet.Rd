@@ -4,11 +4,11 @@
 \alias{analyze.chia.pet}
 \title{Analyze ChIA-PET data and produce graphs.}
 \usage{
-analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
-  genome.build = NULL, output.dir = "output/")
+analyze.chia.pet(input.chia, biosample = NULL, genome.build = NULL,
+  output.dir = "output/", reset.cache = TRUE)
 }
 \arguments{
-\item{input.chrom.state}{The name of the file containing the information about chromatin states.}
+\item{input.chia}{The path of the file containing the ChIA-PET data.}
 
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.}
 
@@ -16,7 +16,7 @@ analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
 
 \item{output.dir}{The name of the directory where to save the graphs.}
 
-\item{chia.obj}{A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}}
+\item{input.chrom.state}{The name of the file containing the information about chromatin states.}
 }
 \description{
 Analyze ChIA-PET data and produce graphs.

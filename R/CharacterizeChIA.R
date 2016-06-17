@@ -65,7 +65,8 @@ load.chia <- function(input.chia) {
 
     # Create iGraph object.
     chia.graph = make_graph(c(rbind(chia.left.indices, chia.right.indices)))
-
+    E(chia.graph)$NoReads = chia.raw[,7]
+    
     return(list(Left=chia.left.ranges, Right=chia.right.ranges, Regions=single.set, Graph=chia.graph))
 }
 
@@ -430,20 +431,20 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
     component.out <- components(chia.obj$Graph)
 
     # Create interactions table
-    ids <- data.frame(left.df$ID, right.df$ID, chia.raw[,7])
+    ids <- data.frame(left.df$Left.ID, right.df$Right.ID, E(chia.obj$Graph)$NoReads)
     colnames(ids) <- c("Source", "Target", "Reads")
-    dir.create(output, recursive = TRUE)
+    dir.create(output.dir, recursive = TRUE)
     write.table(ids, file = paste0(file.path, "all.csv"), sep=",", row.names = FALSE)
 
     # Export networks in csv files
     reorder.components <- components.out$membership[ids$Source]
     ids.components <- cbind(ids, reorder.components)
     colnames(ids.components) <- c(colnames(ids), "Component")
-    dir.create(file.path(output, "Size of 5 nodes and less"), recursive = TRUE)
-    dir.create(file.path(output, "Size between 6 and 20 nodes (incl)"), recursive = TRUE)
-    dir.create(file.path(output, "Size between 21 and 50 nodes (incl)"), recursive = TRUE)
-    dir.create(file.path(output, "Size between 51 and 100 nodes (incl)"), recursive = TRUE)
-    dir.create(file.path(output,"Size over 100 nodes"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size of 5 nodes and less"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 6 and 20 nodes (incl)"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 21 and 50 nodes (incl)"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 51 and 100 nodes (incl)"), recursive = TRUE)
+    dir.create(file.path(output.dir,"Size over 100 nodes"), recursive = TRUE)
     for (i in 1:components.out$no){
       network <- ids[ids.components$Component == i,]
       if (components.out$csize[i] < 6){
@@ -743,6 +744,7 @@ analyze.chia.pet <- function(input.chia, biosample = NULL, genome.build = NULL, 
                                                  genome.build = genome.build, 
                                                  output.dir=output.dir), dir=output.dir, prefix="")
     
+    output.annotated.chia(chia.obj, output.dir)
     analyze.generic.topology(chia.obj, output.dir)
 	analyze.annotation(chia.obj, output.dir)
 
