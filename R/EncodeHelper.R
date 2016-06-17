@@ -8,23 +8,40 @@
 #'
 #' @importFrom utils download.file
 import.chrom.states <- function(biosample, download.dir){
+    # Grab the ENCODE identifier for the cell line. If there are more than
+    # one (IE the biosample is ambiguous), we'll use the first.
+    number <- biosample.code$EID[grep(biosample, biosample.code$E.Mnemonic, ignore.case = TRUE)]
+    if(length(number) > 1) {
+        warning("biosample is ambiguous: the first matchign entry will be used.")
+    }
+    
+    if(length(number) > 0) {
+        base.url.18 = "http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/core_K27ac/jointModel/final/"
+        base.url.15 = "http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/"
+        file.18 = paste0(number, "_18_core_K27ac_mnemonics.bed.gz")
+        file.15 = paste0(number, "_15_coreMarks_mnemonics.bed.gz")
+        
+        url.18 <- paste0(base.url.18, file.18)
+        url.15 <- paste0(base.url.15, file.15)
 
-  number <- biosample.code$EID[grep(biosample, biosample.code$E.Mnemonic, ignore.case = TRUE)]
-
-  url.18 <- paste0("http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/core_K27ac/jointModel/final/",
-                   number, "_18_core_K27ac_mnemonics.bed.gz")
-  if (file.exists(url.18)){
-    download.file(url.18, download.dir)
-  } else {
-    url.15 <- paste0("http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/",
-                     number, "_15_coreMarks_mnemonics.bed.gz")
-    download.file(url.15, dowload.dir)
-  }
-
-  system(paste0("gzip -d -k ", download.dir, "/*.gz"))
-
-  return (file.path(download.dir, "/*_mnemonics.bed"))
-
+        if (file.exists(url.18)) {
+            download.file(url.18, download.dir)
+            downloaded.file = url.18
+        } else if (file.exists(url.15)) {
+            download.file(url.15, download.dir)
+            downloaded.file = url.15
+        } else {
+            warning("No chromatin state segmentation were found for the given biosample.")
+            return(NULL)        
+        }
+        
+        system(paste0("gzip -d -k ", download.dir, "/*.gz"))
+        
+        return (file.path(download.dir, downloaded.file))
+    } else {
+        warning("No ENCODE tissue match the given biosample.")
+        return(NULL)
+    }
 }
 
 

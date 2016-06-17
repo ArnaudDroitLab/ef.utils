@@ -5,14 +5,14 @@
 \title{Analyze ChIA-PET data and produce graphs.}
 \usage{
 analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
-  genome.assembly = NULL, output.dir = "output/")
+  genome.build = NULL, output.dir = "output/")
 }
 \arguments{
 \item{input.chrom.state}{The name of the file containing the information about chromatin states.}
 
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.}
 
-\item{genome.assembly}{The name of the chosen annotation ("hg38", "hg19").}
+\item{genome.build}{The name of the chosen annotation ("hg38", "hg19").}
 
 \item{output.dir}{The name of the directory where to save the graphs.}
 
