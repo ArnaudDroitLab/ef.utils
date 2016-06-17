@@ -12,7 +12,8 @@ Imports:
     MotifDb,
     ChIPseeker,
     plyr,
-    ENCODExplorer
+    ENCODExplorer,
+    ggplot2
 Suggests:
     BSgenome.Hsapiens.UCSC.hg38,
     TxDb.Hsapiens.UCSC.hg38.knownGene,

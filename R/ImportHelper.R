@@ -95,7 +95,7 @@ read.identical <- function(file.names, header.columns, data.columns, file.labels
         file.name = file.names[i]
         file.label = file.labels[i]
 
-        file.data = read.table(file.name, sep="\t", header=TRUE)
+        file.data = read.table(file.name, sep="\t", header=TRUE, stringsAsFactors=FALSE)
         if(is.null(results)) {
             results = file.data[, header.columns]
         }

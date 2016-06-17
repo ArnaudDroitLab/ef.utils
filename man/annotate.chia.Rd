@@ -4,9 +4,9 @@
 \alias{annotate.chia}
 \title{Annotate "chia.obj", given as parameter.}
 \usage{
-annotate.chia(chia.obj, input.chrom.state, tf.regions, expression.levels,
-  genome.build = c("hg19", "mm9", "mm10", "hg38"), biosample = "GM12878",
-  histone = FALSE, output.dir)
+annotate.chia(chia.obj, input.chrom.state, tf.regions, histone.regions,
+  expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
+  biosample = "GM12878", histone = FALSE, output.dir)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
