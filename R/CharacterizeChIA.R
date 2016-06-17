@@ -717,7 +717,7 @@ load.and.annotate <- function(input.chia, biosample = NULL, genome.build = NULL,
                               histone.regions=histone.regions,
                               expression.levels=expression.data,
                               genome.build = genome.build,
-                              output.dir = output.dir), dir=output.dir, prefix="")
+                              output.dir = output.dir)
                               
     return(chia.obj)
 }
