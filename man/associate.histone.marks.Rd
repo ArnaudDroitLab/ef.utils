@@ -4,7 +4,7 @@
 \alias{associate.histone.marks}
 \title{Associate histone marks with the \code{Regions} of "chia.obj".}
 \usage{
-associate.histone.marks(chia.obj, genome.build, biosample)
+associate.histone.marks(chia.obj, histone.regions)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by load.chia.}

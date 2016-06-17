@@ -87,11 +87,10 @@ load.chia <- function(input.chia) {
 #' @importFrom igraph degree
 #'
 #' @export
-annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
+annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
                           biosample = "GM12878", histone = FALSE, output.dir) {
     single.set = chia.obj$Regions
     genome.build <- match.arg(genome.build)
-    cell.type <- match.arg(cell.type)
 
     # Add an ID to every region.
     chia.obj$Regions$ID = 1:length(chia.obj$Regions)
@@ -102,21 +101,22 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, expression.le
     chia.obj <- associate.genomic.region(chia.obj, genome.build, output.dir)
 
     if(!is.null(input.chrom.state)) {
-        chia.obj = associate.chrom.state(chia.obj, biosample)
+        chia.obj = associate.chrom.state(chia.obj, input.chrom.state)
     }
 
     if(!is.null(tf.regions)) {
         chia.obj = associate.tf(chia.obj, tf.regions)
     }
 
+    if(!is.null(histone.regions)) {
+        chia.obj = associate.histone.marks(chia.obj, histone.regions)
+    }
+    
     chia.obj = associate.gene(chia.obj, expression.levels)
 
     if(genome.build=="hg19" || genome.build=="hg38") {
         chia.obj = associate.tissue.specificity.human(chia.obj)
         chia.obj = associate.fitness.genes(chia.obj)
-        if (histone){
-          associate.histone.marks(chia.obj, genome.build, biosample)
-        }
     }
 
     return(chia.obj)
@@ -133,20 +133,17 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, expression.le
 #' @importMethodsFrom GenomicRanges findOverlaps range
 #' @importMethodsFrom BSgenome width
 #' @importFrom stats aggregate
-associate.histone.marks <- function(chia.obj, genome.build, biosample){
-
-  histone.marks <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip)$Regions
-
+associate.histone.marks <- function(chia.obj, histone.regions){
   # find overlaps
-  overlap.index <- findOverlaps(chia.obj$Regions, unlist(histone.marks))
+  overlap.index <- findOverlaps(chia.obj$Regions, unlist(histone.regions))
 
   # to get the overlap length
-  overlap.length <- width(ranges(overlap.index, ranges(chia.obj$Regions), ranges(unlist(histone.marks))))
+  overlap.length <- width(ranges(overlap.index, ranges(chia.obj$Regions), ranges(unlist(histone.regions))))
 
   # correspondances between idexes from chia.obj$Regions and the lengths
-  overlap.length.df <- data.frame(cbind(overlap.index@from, overlap.length))
+  overlap.length.df <- data.frame(index=overlap.index@from, length=overlap.length)
   # addition of the rows with repeated indices
-  overlap.length.df <- aggregate(overlap.length.df$length, list(overlap.length.df[,1]), sum)
+  overlap.length.df <- aggregate(overlap.length.df$length, list(overlap.length.df$index), sum)
   colnames(overlap.length.df) <- c("index", "length")
 
   # create the new vector
@@ -155,7 +152,6 @@ associate.histone.marks <- function(chia.obj, genome.build, biosample){
   chia.obj$Regions$Histone.overlap.percentage <- histone.overlap.percentage / width(chia.obj$Regions)
 
   return(chia.obj)
-
 }
 
 
@@ -195,17 +191,17 @@ associate.genomic.region <- function(chia.obj, genome.build, output.dir) {
 #' @param expression.data A data frame containing the levels of expression of genes, according to their EMSEMBL id.
 #'
 #' @return "\code{chia.obj}" with associated genes.
-#' @importFrom plyr ddply
+#' @importFrom plyr ddply mutate
 associate.gene <- function(chia.obj, expression.data=NULL) {
     # Associate a gene to a contact only if it's in the promoter.
     promoter.subset = chia.obj$Regions$Simple.annotation == "Promoter"
 
     # Subset the promoter contacts to only keep the highest degrees
-    degree.info = ddply(as.data.frame(chia.obj$Regions[promoter.subset]), "ENSEMBL", mutate, max.degree=max(Degree))
+    degree.info = ddply(as.data.frame(chia.obj$Regions[promoter.subset]), "ENSEMBL", plyr::mutate, max.degree=max(Degree))
     degree.subset = subset(degree.info, Degree == max.degree)
 
     # Further subset to keep the one closest to the TSS
-    distance.info = ddply(degree.subset, "ENSEMBL", mutate, min.distance=min(abs(distanceToTSS)))
+    distance.info = ddply(degree.subset, "ENSEMBL", plyr::mutate, min.distance=min(abs(distanceToTSS)))
     distance.subset = subset(distance.info, distanceToTSS == min.distance)
 
     # If there are still more than one row, just pick the first one.
@@ -226,15 +222,12 @@ associate.gene <- function(chia.obj, expression.data=NULL) {
 #' Associate chromatin sates with the \code{Regions} of "chia.obj".
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param biosample The biosample identifier from ENCODE. Valid examples are
-#'   GM12878, K562.
+#' @param input.chrom.state The path to a bed file representing a genome 
+#'   segmentation by chromatin state.
 #' @return "\code{chia.obj}" with associated chromatin states.
 #' @importFrom rtracklayer import
 #' @importMethodsFrom GenomicRanges findOverlaps
-associate.chrom.state <- function(chia.obj, biosample) {
-    # Download chromatin states
-    input.chrom.states <- import.chrom.states(biosample, file.path("input/chrom_states", biosample))
-
+associate.chrom.state <- function(chia.obj, input.chrom.state) {
     # Annotate with chromatin states
     # Load and rename chromatin states (for easier lexical ordering)
     chrom.states = rtracklayer::import(input.chrom.state)
@@ -496,9 +489,9 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
 #' @importFrom grDevices pdf
 #' @importFrom grDevices dev.off
 #' @importFrom graphics hist
-#' @importFrom ggplot2 ggplot
-#' @importFrom ggplot2 ggsave
+#' @import ggplot2
 #' @importFrom igraph components
+#' @importFrom igraph get.data.frame
 #' @importFrom utils write.table
 analyze.generic.topology <- function(chia.obj, output.dir="output") {
     # Plot an histogram of the number of edges.
@@ -634,9 +627,9 @@ analyze.expression <- function(chia.obj, output.dir="output") {
 analyze.gene.specificity <- function(chia.obj, output.dir="output") {
     # Plot Tau and category vs degree
     tissue.specificity.df = with(chia.obj$Regions[chia.obj$Regions$Gene.Representative],
-                                data.frame(Degree=Degree,
-                                            Tau=Expression.Tau,
-                                            Category=Expression.Category))
+                                data.frame(Degree=chia.obj$Regions$Degree,
+                                            Tau=chia.obj$Regions$Expression.Tau,
+                                            Category=chia.obj$Regions$Expression.Category))
     tissue.specificity.df$Category = factor(tissue.specificity.df$Category,
                                             levels=c("Not detected",
                                                     "Mixed low", "Mixed high",
@@ -703,27 +696,44 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
-#' @param genome.assembly The name of the chosen annotation ("hg38", "hg19").
+#' @param genome.build The name of the chosen annotation ("hg38", "hg19").
 #' @param output.dir The name of the directory where to save the graphs.
-#'
+#' @importFrom Biobase cache
 #' @export
-analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.assembly = NULL, output.dir="output/") {
+analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, output.dir="output/") {
     dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
 
     chia.obj = load.chia(input.chia)
 
     tf.regions = NULL
+    histone.regions = NULL
     expression.data = NULL
-    if(!is.null(biosample) && !is.null(genome.assembly)) {
-        tf.regions = download.encode.chip(biosample, genome.assembly)$Regions
-        expression.data = download.encode.rna(biosample, genome.assembly)$Expression
+    if(!is.null(biosample) && !is.null(genome.build)) {
+        tf.regions = download.encode.chip(biosample, genome.build)$Regions
+        histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip)$Regions
+
+        expression.data = download.encode.rna(biosample, genome.build)$Expression
         expression.data$ENSEMBL = gsub("\\.\\d+$", "", expression.data$gene_id)
         expression.data$FPKM = log2(expression.data$Mean.FPKM + 1)
-
     }
 
-    chia.obj = annotate.chia(chia.obj, input.chrom.state, tf.regions, expression.data, genome.assembly, output.dir)
-
+    # Download chromatin states
+    if(!is.null(biosample) && is.null(input.chrom.state)) {
+        input.chrom.state <- import.chrom.states(biosample, file.path("input/chrom_states", biosample))
+    }
+    
+    Biobase::cache(chia.obj <- annotate.chia(chia.obj, 
+                                             input.chrom.state = input.chrom.state,
+                                             tf.regions = tf.regions,
+                                             histone.regions=histone.regions,
+                                             expression.levels=expression.data,
+                                             genome.build = genome.build,
+                                             biosample=biosample,
+                                             histone=TRUE,
+                                             output.dir = output.dir), dir=output.dir, prefix="cached_objects")
+    
+    
+    
     analyze.generic.topology(chia.obj, output.dir)
 	analyze.annotation(chia.obj, output.dir)
 
@@ -739,7 +749,7 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
       analyze.tf(chia.obj, tf.regions, output.dir)
   }
 
-	if(genome.assembly %in% c("hg19", "hg38")) {
+	if(genome.build %in% c("hg19", "hg38")) {
         analyze.gene.specificity(chia.obj, output.dir)
     }
 
@@ -747,12 +757,12 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
 
 # analyze.chia.pet(input.chia="input/ChIA-PET/GSM1872887_GM12878_RNAPII_PET_clusters.txt",
 #                  input.chrom.state="input/E116_18_core_K27ac_mnemonics.bed",
-#                  biosample="GM12878", genome.assembly="hg19",
+#                  biosample="GM12878", genome.build="hg19",
 #                  output.dir="output/GM12878 PolII Ruan")
 #
 # analyze.chia.pet(input.chia="input/ChIA-PET/MCF7 Ruan 2012.txt",
 #                  input.chrom.state=NULL,
-#                  biosample="MCF-7", genome.assembly="hg19",
+#                  biosample="MCF-7", genome.build="hg19",
 #                  output.dir="output/MCF-7 PolII Ruan")
 
 
@@ -761,5 +771,5 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
 # input.chia="input/ChIA-PET/GSM1872887_GM12878_RNAPII_PET_clusters.txt"
 # input.chrom.state="input/E116_18_core_K27ac_mnemonics.bed"
 # biosample="GM12878"
-# genome.assembly="hg19"
+# genome.build="hg19"
 # output.dir="output/GM12878 PolII Ruan"
