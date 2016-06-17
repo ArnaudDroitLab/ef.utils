@@ -126,6 +126,7 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
 #'   \code{data-frame} containing only the files which should be downloaded.
 #' @param download.dir The folder where the downloaded files should be stored.
 #'   defaults to \code{file.path("input/ENCODE", biosample, "chip-seq")}.
+#' @param signal.value Should the signalValue from the ChIP-seq be kept?
 #' @return A list containing three elements: \describe{
 #'   \item{Metadata} {The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
 #'     about all files which matched the query.}
@@ -134,9 +135,11 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
 #' @importFrom ENCODExplorer queryEncode
 #' @importFrom ENCODExplorer downloadEncode
 #' @importFrom GenomicRanges GRangesList
+#' @importFrom stats aggregate
+#' @importMethodsFrom GenomicRanges findOverlaps
 #' @export
 download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter.chip,
-                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq")) {
+                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq"), signal.value = FALSE) {
     # Query ENCODE to obtain appropriate files.
     query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", status="released")
 
@@ -154,7 +157,7 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
     write.table(query.results$experiment, file=file.path(download.dir, "metadata.txt"))
 
     # Import the downloaded files.
-    all.gr = import.into.grl(download.dir, file.format="narrow", file.ext="bed", discard.metadata=TRUE, dir.type="plain")
+    all.gr = import.into.grl(download.dir, file.format="narrow", file.ext="bed", discard.metadata=(!signal.value), dir.type="plain")
 
     # Combine biological/technical replicates using consensus regions.
     accession.replicates = GenomicRanges::GRangesList(plyr::dlply(query.results$experiment, ~accession, function(x) {
@@ -167,6 +170,15 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
         gr.subset = accession.replicates[names(accession.replicates) %in% x$accession]
         return(intersect.overlap(build.intersect(gr.subset)))
     }))
+
+    if(signal.value){
+        indices <- findOverlaps(unlist(target.replicates), unlist(all.gr))
+        signal.value.df <- cbind(indices@from, all.gr@unlistData@elementMetadata@listData$signalValue[indices@to])
+        signal.value.sum.df <- aggregate(signal.value.df, list(signal.value.df[,1]), sum, na.rm = TRUE)
+        signal.value.mean.df <- aggregate(signal.value.df, list(signal.value.df[,1]), mean, na.rm = TRUE)
+        target.replicates@unlistData@elementMetadata@listData$SignalValueSum <- signal.value.sum.df[,3]
+        target.replicates@unlistData@elementMetadata@listData$SignalValueMean <- signal.value.mean.df[,3]
+    }
 
 
     return(list(Metadata=query.results$experiment,
