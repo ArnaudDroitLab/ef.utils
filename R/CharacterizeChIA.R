@@ -75,11 +75,9 @@ load.chia <- function(input.chia) {
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param tf.regions A data frame containing the TF data.
+#' @param histone.regions A \linkS4class{GRangesList} object defining histone regions.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
-#' @param biosample The biosample identifier from ENCODE. Valid examples are
-#'   GM12878, K562.
-#' @param histone Should the overlap percentage of histone marks be added?
 #' @param output.dir The name of the directory where to write the selected annotations.
 #'
 #' @return The annotated "\code{chia.obj}".
@@ -87,8 +85,9 @@ load.chia <- function(input.chia) {
 #' @importFrom igraph degree
 #'
 #' @export
-annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          biosample = "GM12878", histone = FALSE, output.dir) {
+annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions,
+                          expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
+                          output.dir) {
     single.set = chia.obj$Regions
     genome.build <- match.arg(genome.build)
 
@@ -689,20 +688,13 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
     ggsave(file.path(output.dir, "TF presence on contact point by connectivity.pdf"), width=14, height=14)
 
 }
-
-
-#' Analyze ChIA-PET data and produce graphs.
+#' Load anad annotate ChIA-PET data.
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}
-#' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
 #' @param genome.build The name of the chosen annotation ("hg38", "hg19").
 #' @param output.dir The name of the directory where to save the graphs.
-#' @importFrom Biobase cache
-#' @export
-analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, output.dir="output/") {
-    dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
-
+load.and.annotate <- function(input.chia, biosample = NULL, genome.build = NULL, output.dir="output/") {
     chia.obj = load.chia(input.chia)
 
     tf.regions = NULL
@@ -715,24 +707,41 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
         expression.data = download.encode.rna(biosample, genome.build)$Expression
         expression.data$ENSEMBL = gsub("\\.\\d+$", "", expression.data$gene_id)
         expression.data$FPKM = log2(expression.data$Mean.FPKM + 1)
-    }
-
-    # Download chromatin states
-    if(!is.null(biosample) && is.null(input.chrom.state)) {
+        
         input.chrom.state <- import.chrom.states(biosample, file.path("input/chrom_states", biosample))
     }
+
+    chia.obj <- annotate.chia(chia.obj, 
+                              input.chrom.state = input.chrom.state,
+                              tf.regions = tf.regions,
+                              histone.regions=histone.regions,
+                              expression.levels=expression.data,
+                              genome.build = genome.build,
+                              output.dir = output.dir), dir=output.dir, prefix="")
+                              
+    return(chia.obj)
+}
+
+#' Analyze ChIA-PET data and produce graphs.
+#'
+#' @param input.chia The path of the file containing the ChIA-PET data.
+#' @param input.chrom.state The name of the file containing the information about chromatin states.
+#' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
+#' @param genome.build The name of the chosen annotation ("hg38", "hg19").
+#' @param output.dir The name of the directory where to save the graphs.
+#' @importFrom Biobase cache
+#' @export
+analyze.chia.pet <- function(input.chia, biosample = NULL, genome.build = NULL, output.dir="output/", reset.cache=TRUE) {
+    dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
+
+    if(reset.cache) {
+        file.remove(file.path(output.dir, "chia.obj.RData"))
+    }
     
-    Biobase::cache(chia.obj <- annotate.chia(chia.obj, 
-                                             input.chrom.state = input.chrom.state,
-                                             tf.regions = tf.regions,
-                                             histone.regions=histone.regions,
-                                             expression.levels=expression.data,
-                                             genome.build = genome.build,
-                                             biosample=biosample,
-                                             histone=TRUE,
-                                             output.dir = output.dir), dir=output.dir, prefix="cached_objects")
-    
-    
+    Biobase::cache(chia.obj <- load.and.annotate(input.chia=input.chia,
+                                                 biosample = biosample, 
+                                                 genome.build = genome.build, 
+                                                 output.dir=output.dir), dir=output.dir, prefix="")
     
     analyze.generic.topology(chia.obj, output.dir)
 	analyze.annotation(chia.obj, output.dir)
@@ -745,14 +754,15 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
         analyze.expression(chia.obj, output.dir)
     }
 
-  if(!is.null(tf.regions)) {
-      analyze.tf(chia.obj, tf.regions, output.dir)
-  }
+    if(!is.null(tf.regions)) {
+        analyze.tf(chia.obj, tf.regions, output.dir)
+    }
 
 	if(genome.build %in% c("hg19", "hg38")) {
         analyze.gene.specificity(chia.obj, output.dir)
     }
 
+    return(chia.obj)
 }
 
 # analyze.chia.pet(input.chia="input/ChIA-PET/GSM1872887_GM12878_RNAPII_PET_clusters.txt",
