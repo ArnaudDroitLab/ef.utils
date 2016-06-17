@@ -216,6 +216,8 @@ post.processing <- function(merged, tabcom, txdb, orgdb){
 #' @param threshold The threshold to consider while filtering data.
 #' @param save.plots Should plots and files created by \code{\link{csaw.save.plots}} be saved?
 #'
+#' @importFrom Biobase cache
+#'
 #' @export
 csaw.analyze <- function(correspondances, reference, genome.build, output.dir = "csaw_output/", threshold = 3, save.plots = TRUE) {
   correspondances <- read.table(correspondances, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
@@ -227,7 +229,8 @@ csaw.analyze <- function(correspondances, reference, genome.build, output.dir = 
 
   param <- readParam(pe="none", minq = 50)
   dir.create(output.dir, recursive = TRUE)
-  dir.create("csaw_cache")
+  cache.dir <- file.path(output.dir, "csaw_cache")
+  dir.create(cache.dir, recursive = TRUE)
 
   #Load appropriate libraries
   install.annotations(genome.build)
@@ -236,52 +239,22 @@ csaw.analyze <- function(correspondances, reference, genome.build, output.dir = 
   orgdb <- annotations$OrgDb
 
   # reads.to.counts
-  if (!file.exists("csaw_cache/reads.to.counts.RData")){
-    list.reads.to.counts <- reads.to.counts(bam.files, param)
-    # Saving data
-    save(list.reads.to.counts, file = "csaw_cache/reads.to.counts.RData")
-  } else {
-    load("csaw_cache/reads.to.counts.RData")
-  }
+  cache(list.reads.to.counts <- reads.to.counts(bam.files, param), cache.dir)
   counted.reads <- list.reads.to.counts[[1]]
 
   # filter.reads.to.counts
-  if (!file.exists("csaw_cache/filter.RData")){
-    list.filter <- filter.reads.to.counts(bam.files, param, counted.reads, threshold)
-    # Saving data
-    save(list.filter, file = "csaw_cache/filter.RData")
-  } else {
-    load("csaw_cache/filter.RData")
-  }
+  cache(list.filter <- filter.reads.to.counts(bam.files, param, counted.reads, threshold), cache.dir)
   filtered.counted.reads <- list.filter[[1]]
 
   # normalization.factors
-  if (!file.exists("csaw_cache/normalization.factors.RData")){
-    list.normalization.factors <- normalization.factors(bam.files, param)
-    # Saving data
-    save(list.normalization.factors, file = "csaw_cache/normalization.factors.RData")
-  } else {
-    load("csaw_cache/normalization.factors.RData")
-  }
+  cache(list.normalization.factors <- normalization.factors(bam.files, param), cache.dir)
   norm.factors <- list.normalization.factors[[1]]
 
   # test.diff.binding
-  if (!file.exists("csaw_cache/test.diff.binding.RData")){
-    results <- test.diff.binding(bam.files, filtered.counted.reads, norm.factors, correspondances, reference)
-    # Saving data
-    save(results, file="csaw_cache/test.diff.binding.RData")
-  } else {
-    load("csaw_cache/test.diff.binding.RData")
-  }
+  cache(results <- test.diff.binding(bam.files, filtered.counted.reads, norm.factors, correspondances, reference), cache.dir)
 
   # multiple.testing
-  if (!file.exists("csaw_cache/multiple.testing.RData")){
-    list.multiple.testing <- multiple.testing(filtered.counted.reads, results, txdb)
-    # Saving data
-    save(list.multiple.testing, file = "csaw_cache/multiple.testing.RData")
-  } else {
-    load("csaw_cache/multiple.testing.RData")
-  }
+  cache(list.multiple.testing <- multiple.testing(filtered.counted.reads, results, txdb), cache.dir)
   merged <- list.multiple.testing[[1]]
   tabcom <- list.multiple.testing[[2]]
 
