@@ -8,7 +8,7 @@ default.download.filter.rna(query.results, genome.assembly)
 }
 \arguments{
 \item{query.results}{A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
-function.The biosample identifier from ENCODE. Valid examples are}
+function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.}
 
 \item{genome.assembly}{Which genome assembly should the results come from?}
 }

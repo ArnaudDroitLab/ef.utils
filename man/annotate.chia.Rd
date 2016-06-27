@@ -6,7 +6,7 @@
 \usage{
 annotate.chia(chia.obj, input.chrom.state, tf.regions, histone.regions,
   expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-  biosample = "GM12878", histone = FALSE, output.dir)
+  biosample = "GM12878", output.dir)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
@@ -15,14 +15,14 @@ annotate.chia(chia.obj, input.chrom.state, tf.regions, histone.regions,
 
 \item{tf.regions}{A data frame containing the TF data.}
 
+\item{histone.regions}{A data frame containing the histone data.}
+
 \item{expression.levels}{A data frame containing the levels of expression of genes. according to their EMSEMBL id.}
 
 \item{genome.build}{The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").}
 
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are
 GM12878, K562.}
-
-\item{histone}{Should the overlap percentage of histone marks be added?}
 
 \item{output.dir}{The name of the directory where to write the selected annotations.}
 }

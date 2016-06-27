@@ -75,11 +75,11 @@ load.chia <- function(input.chia) {
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param tf.regions A data frame containing the TF data.
+#' @param histone.regions A data frame containing the histone data.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562.
-#' @param histone Should the overlap percentage of histone marks be added?
 #' @param output.dir The name of the directory where to write the selected annotations.
 #'
 #' @return The annotated "\code{chia.obj}".
@@ -88,7 +88,8 @@ load.chia <- function(input.chia) {
 #'
 #' @export
 annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          biosample = "GM12878", histone = FALSE, output.dir) {
+                          biosample = "GM12878", output.dir) {
+    dir.create(output.dir, recursive = TRUE)
     single.set = chia.obj$Regions
     genome.build <- match.arg(genome.build)
 
@@ -98,214 +99,28 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
     # Add degree count to chia.obj$Regions
     chia.obj$Regions$Degree = degree(chia.obj$Graph)
 
-    chia.obj <- associate.genomic.region(chia.obj, genome.build, output.dir)
+    chia.obj$Regions <- associate.genomic.region(chia.obj$Regions, genome.build, output.dir)
 
     if(!is.null(input.chrom.state)) {
-        chia.obj = associate.chrom.state(chia.obj, input.chrom.state)
+        chia.obj$Regions = associate.chrom.state(chia.obj$Regions, input.chrom.state)
     }
 
     if(!is.null(tf.regions)) {
-        chia.obj = associate.tf(chia.obj, tf.regions)
+        chia.obj$Regions = associate.tf(chia.obj$Regions, tf.regions)
     }
 
     if(!is.null(histone.regions)) {
-        chia.obj = associate.histone.marks(chia.obj, histone.regions)
+        chia.obj$Regions = associate.histone.marks(chia.obj$Regions, histone.regions)
     }
-    
-    chia.obj = associate.gene(chia.obj, expression.levels)
+
+    chia.obj$Regions = associate.gene(chia.obj$Regions, expression.levels)
 
     if(genome.build=="hg19" || genome.build=="hg38") {
-        chia.obj = associate.tissue.specificity.human(chia.obj)
-        chia.obj = associate.fitness.genes(chia.obj)
+        chia.obj$Regions = associate.tissue.specificity.human(chia.obj$Regions)
+        chia.obj$Regions = associate.fitness.genes(chia.obj$Regions)
     }
 
     return(chia.obj)
-}
-
-#' Associate histone marks with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by load.chia.
-#' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
-#' @param biosample The biosample identifier from ENCODE. Valid examples are
-#'   GM12878, K562 or MCF-7.
-#'
-#' @return "\code{chia.obj}" with associated histone overlap percentage.
-#' @importMethodsFrom GenomicRanges findOverlaps range
-#' @importMethodsFrom BSgenome width
-#' @importFrom stats aggregate
-associate.histone.marks <- function(chia.obj, histone.regions){
-  # find overlaps
-  overlap.index <- findOverlaps(chia.obj$Regions, unlist(histone.regions))
-
-  # to get the overlap length
-  overlap.length <- width(ranges(overlap.index, ranges(chia.obj$Regions), ranges(unlist(histone.regions))))
-
-  # correspondances between idexes from chia.obj$Regions and the lengths
-  overlap.length.df <- data.frame(index=overlap.index@from, length=overlap.length)
-  # addition of the rows with repeated indices
-  overlap.length.df <- aggregate(overlap.length.df$length, list(overlap.length.df$index), sum)
-  colnames(overlap.length.df) <- c("index", "length")
-
-  # create the new vector
-  histone.overlap.percentage <- vector(length = length(chia.obj$Regions@seqnames))
-  histone.overlap.percentage[overlap.length.df$index] <- overlap.length.df$length
-  chia.obj$Regions$Histone.overlap.percentage <- histone.overlap.percentage / width(chia.obj$Regions)
-
-  return(chia.obj)
-}
-
-
-#' Associate genomic regions with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by load.chia.
-#' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
-#' @param output.dir The name of the directory where to write the selected annotations.
-#'
-#' @return "\code{chia.obj}" with associated genomic regions.
-#' @importFrom GenomicRanges mcols
-associate.genomic.region <- function(chia.obj, genome.build, output.dir) {
-    # Annotate with proximity to gene regions
-    annotations.list = select.annotations(genome.build)
-    annotations = annotate.region(chia.obj$Regions, annotations.list, file.path(output.dir, "CHIA-PET annotation.txt"))
-    annotations.df = as.data.frame(annotations)
-    mcols(chia.obj$Regions) = annotations.df[, 6:ncol(annotations.df)]
-
-    # Write porportions of annotated region types.
-    write.table(annotations@annoStat, file.path(output.dir, "Annotation summary.txt"), sep="\t", col.names=TRUE, row.names=TRUE, quote=FALSE)
-
-    # Simplify genomic region annotation
-    simplified.annotation = mcols(chia.obj$Regions)$annotation
-    simplified.annotation[grepl("Promoter", simplified.annotation)] <- "Promoter"
-    simplified.annotation[grepl("Exon", simplified.annotation)] <- "Exon"
-    simplified.annotation[grepl("Intron", simplified.annotation)] <- "Intron"
-    simplified.annotation[grepl("Downstream", simplified.annotation)] <- "Downstream"
-    chia.obj$Regions$Simple.annotation = factor(simplified.annotation, levels=c("Distal Intergenic", "Promoter", "Intron", "Exon", "Downstream", "3' UTR", "5' UTR"))
-
-    return(chia.obj)
-}
-
-
-#' Associate genes with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param expression.data A data frame containing the levels of expression of genes, according to their EMSEMBL id.
-#'
-#' @return "\code{chia.obj}" with associated genes.
-#' @importFrom plyr ddply mutate
-associate.gene <- function(chia.obj, expression.data=NULL) {
-    # Associate a gene to a contact only if it's in the promoter.
-    promoter.subset = chia.obj$Regions$Simple.annotation == "Promoter"
-
-    # Subset the promoter contacts to only keep the highest degrees
-    degree.info = ddply(as.data.frame(chia.obj$Regions[promoter.subset]), "ENSEMBL", plyr::mutate, max.degree=max(Degree))
-    degree.subset = subset(degree.info, Degree == max.degree)
-
-    # Further subset to keep the one closest to the TSS
-    distance.info = ddply(degree.subset, "ENSEMBL", plyr::mutate, min.distance=min(abs(distanceToTSS)))
-    distance.subset = subset(distance.info, distanceToTSS == min.distance)
-
-    # If there are still more than one row, just pick the first one.
-    gene.subset = ddply(distance.subset, "ENSEMBL", function(x) { return(x[1,]) })
-
-    # Add the gene marker to the annotations.
-    chia.obj$Regions$Gene.Representative = chia.obj$Regions$ID %in% gene.subset$ID
-
-    if(!is.null(expression.data)) {
-        index.match = match(chia.obj$Regions$ENSEMBL, expression.data$ENSEMBL)
-        chia.obj$Regions$Expr.mean = expression.data$Mean.FPKM[index.match]
-    }
-
-    return(chia.obj)
-}
-
-
-#' Associate chromatin sates with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param input.chrom.state The path to a bed file representing a genome 
-#'   segmentation by chromatin state.
-#' @return "\code{chia.obj}" with associated chromatin states.
-#' @importFrom rtracklayer import
-#' @importMethodsFrom GenomicRanges findOverlaps
-associate.chrom.state <- function(chia.obj, input.chrom.state) {
-    # Annotate with chromatin states
-    # Load and rename chromatin states (for easier lexical ordering)
-    chrom.states = rtracklayer::import(input.chrom.state)
-    chrom.states$name = gsub("^(.)_", "0\\1_", chrom.states$name)
-
-    # Sort according to name, which will cause the first match to also be the
-    # most relevant states (01_TSS first, 18_Quies last)
-    chrom.states = chrom.states[order(chrom.states$name)]
-    unique.states = sort(unique(chrom.states$name))
-
-    # Add state annotation to chia.obj$Regions
-    state.overlap.indices = findOverlaps(chia.obj$Regions, chrom.states, select="first")
-    chia.obj$Regions$Chrom.State = factor(chrom.states$name[state.overlap.indices], levels=unique.states)
-
-    return(chia.obj)
-}
-
-
-#' Associate TF overlaps with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param tf.regions A data frame containing the TF data.
-#'
-#' @return "\code{chia.obj}" with associated TF overlaps.
-#' @importMethodsFrom GenomicRanges countOverlaps
-#' @importFrom GenomicRanges mcols
-associate.tf <- function(chia.obj, tf.regions) {
-    # Calculate TF overlap with contact regions
-    overlap.matrix = matrix(0, nrow=length(chia.obj$Regions), ncol=length(tf.regions))
-    colnames(overlap.matrix) <- paste0("TF.overlap.", names(tf.regions))
-    for(i in 1:length(tf.regions)) {
-        overlap.matrix[,i] <- countOverlaps(chia.obj$Regions, tf.regions[[i]])
-    }
-
-    mcols(chia.obj$Regions) = cbind(mcols(chia.obj$Regions), as.data.frame(overlap.matrix))
-
-    return(chia.obj)
-}
-
-
-#' Associate tissue specificity of genes with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return "\code{chia.obj}" with associated tissue scpecificity.
-associate.tissue.specificity.human <- function(chia.obj) {
-
-    # Annotate chia.obj$Regions with Tau, Expression category.
-    calculate.tau <- function(x) {
-        return(sum(1 - (x/max(x))) / (length(x) - 1))
-    }
-    tissue.expression$Tau = apply(tissue.expression[,c(-1, -ncol(tissue.expression))], 1, calculate.tau)
-
-    tissue.match = match(chia.obj$Regions$ENSEMBL, tissue.expression$Ensembl.gene.id)
-    chia.obj$Regions$Expression.Category = factor(tissue.expression$Category[tissue.match],
-                                            levels=c("Not detected",
-                                                    "Mixed low", "Mixed high",
-                                                    "Moderately tissue enriched", "Highly tissue enriched", "Group enriched",
-                                                    "Expressed in all low", "Expressed in all high"))
-
-    chia.obj$Regions$Expression.Tau = tissue.expression$Tau[tissue.match]
-
-    return(chia.obj)
-}
-
-#' Identify essential genes of the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return "\code{chia.obj}" with identified essential genes.
-associate.fitness.genes <- function(chia.obj){
-
-  # Add the "essential ratio" to the data
-  fitness.match <- match(chia.obj$Regions$SYMBOL, essential.genes$Gene)
-  chia.obj$Regions$Fitness <- essential.genes$numTKOHits[fitness.match]
-  chia.obj$Regions$Fitness <- ifelse(is.na(chia.obj$Regions$Fitness), 0, (chia.obj$Regions$Fitness / 6))
-
-  return(chia.obj)
 }
 
 
@@ -408,13 +223,14 @@ contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
 #'        \item{$Componend.Size} {Number of nodes of the component in which the node is found.}}}
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param chia.raw The raw ChIA-PET data, before annotation.
 #' @param output.dir The name of the directory where to save the files.
 #'
 #' @importFrom utils write.table
 #' @importFrom igraph components
 #'
 #' @export
-output.annotated.chia <- function(chia.obj, output.dir="output") {
+output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
 
     # Write out annotated interactionsleft.df = as.data.frame(chia.left.merged)
     left.df = as.data.frame(chia.left(chia.obj))
@@ -428,23 +244,23 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
     # Output Cytoscape components
 
     # Generate components
-    component.out <- components(chia.obj$Graph)
+    components.out <- components(chia.obj$Graph)
 
     # Create interactions table
-    ids <- data.frame(left.df$ID, right.df$ID, chia.raw[,7])
+    ids <- data.frame(left.df$Left.ID, right.df$Right.ID, chia.raw[,7])
     colnames(ids) <- c("Source", "Target", "Reads")
-    dir.create(output, recursive = TRUE)
-    write.table(ids, file = paste0(file.path, "all.csv"), sep=",", row.names = FALSE)
+    dir.create(output.dir, recursive = TRUE)
+    write.table(ids, file = file.path(output.dir, "all.csv"), sep=",", row.names = FALSE)
 
     # Export networks in csv files
     reorder.components <- components.out$membership[ids$Source]
     ids.components <- cbind(ids, reorder.components)
     colnames(ids.components) <- c(colnames(ids), "Component")
-    dir.create(file.path(output, "Size of 5 nodes and less"), recursive = TRUE)
-    dir.create(file.path(output, "Size between 6 and 20 nodes (incl)"), recursive = TRUE)
-    dir.create(file.path(output, "Size between 21 and 50 nodes (incl)"), recursive = TRUE)
-    dir.create(file.path(output, "Size between 51 and 100 nodes (incl)"), recursive = TRUE)
-    dir.create(file.path(output,"Size over 100 nodes"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size of 5 nodes and less"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 6 and 20 nodes (incl)"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 21 and 50 nodes (incl)"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 51 and 100 nodes (incl)"), recursive = TRUE)
+    dir.create(file.path(output.dir,"Size over 100 nodes"), recursive = TRUE)
     for (i in 1:components.out$no){
       network <- ids[ids.components$Component == i,]
       if (components.out$csize[i] < 6){
@@ -493,6 +309,8 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
 #' @importFrom igraph components
 #' @importFrom igraph get.data.frame
 #' @importFrom utils write.table
+#'
+#' @export
 analyze.generic.topology <- function(chia.obj, output.dir="output") {
     # Plot an histogram of the number of edges.
     pdf(file.path(output.dir, "Histogram of number of edges.pdf"))
@@ -721,8 +539,8 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
     if(!is.null(biosample) && is.null(input.chrom.state)) {
         input.chrom.state <- import.chrom.states(biosample, file.path("input/chrom_states", biosample))
     }
-    
-    Biobase::cache(chia.obj <- annotate.chia(chia.obj, 
+
+    Biobase::cache(chia.obj <- annotate.chia(chia.obj,
                                              input.chrom.state = input.chrom.state,
                                              tf.regions = tf.regions,
                                              histone.regions=histone.regions,
@@ -731,9 +549,9 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
                                              biosample=biosample,
                                              histone=TRUE,
                                              output.dir = output.dir), dir=output.dir, prefix="cached_objects")
-    
-    
-    
+
+
+
     analyze.generic.topology(chia.obj, output.dir)
 	analyze.annotation(chia.obj, output.dir)
 

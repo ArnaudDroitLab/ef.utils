@@ -4,10 +4,12 @@
 \alias{output.annotated.chia}
 \title{Save annotated ChIA-PET data.}
 \usage{
-output.annotated.chia(chia.obj, output.dir = "output")
+output.annotated.chia(chia.obj, chia.raw, output.dir = "output")
 }
 \arguments{
 \item{chia.obj}{A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.}
+
+\item{chia.raw}{The raw ChIA-PET data, before annotation.}
 
 \item{output.dir}{The name of the directory where to save the files.}
 }

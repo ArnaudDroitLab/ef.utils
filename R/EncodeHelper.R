@@ -14,13 +14,13 @@ import.chrom.states <- function(biosample, download.dir){
     if(length(number) > 1) {
         warning("biosample is ambiguous: the first matchign entry will be used.")
     }
-    
+
     if(length(number) > 0) {
         base.url.18 = "http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/core_K27ac/jointModel/final/"
         base.url.15 = "http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/"
         file.18 = paste0(number, "_18_core_K27ac_mnemonics.bed.gz")
         file.15 = paste0(number, "_15_coreMarks_mnemonics.bed.gz")
-        
+
         url.18 <- paste0(base.url.18, file.18)
         url.15 <- paste0(base.url.15, file.15)
 
@@ -32,11 +32,11 @@ import.chrom.states <- function(biosample, download.dir){
             downloaded.file = url.15
         } else {
             warning("No chromatin state segmentation were found for the given biosample.")
-            return(NULL)        
+            return(NULL)
         }
-        
+
         system(paste0("gzip -d -k ", download.dir, "/*.gz"))
-        
+
         return (file.path(download.dir, downloaded.file))
     } else {
         warning("No ENCODE tissue match the given biosample.")
@@ -54,7 +54,7 @@ import.chrom.states <- function(biosample, download.dir){
 #'     the ENCODE results are kept and the original ones discarded.}
 #'
 #' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
-#'   function.The biosample identifier from ENCODE. Valid examples are
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
 #' @param genome.assembly Which genome assembly should the results come from?
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
@@ -86,7 +86,7 @@ default.download.filter.chip <- function(query.results, genome.assembly) {
 #'     the ENCODE results are kept and the original ones discarded.}
 #'
 #' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
-#'   function.The biosample identifier from ENCODE. Valid examples are
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
 #' @param genome.assembly Which genome assembly should the results come from?
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
@@ -109,6 +109,39 @@ histone.download.filter.chip <- function(query.results, genome.assembly) {
   return(filtered.results)
 }
 
+#' Alternative filtering function for \code{\link{download.encode.chip}}.
+#'
+#' The filtering function does three things: \enumerate{
+#'   \item It removes all files which do not have the correct genome assembly.
+#'   \item It removes all marks chips, except Pol II marks chips.
+#'   \item If the provided results have been re-analyzed by the ENCODE Consortium,
+#'     the ENCODE results are kept and the original ones discarded.}
+#'
+#' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @return A filtered \code{data frame}.
+#' @importFrom plyr ddply
+#' @export
+pol2.download.filter.chip <- function(query.results, genome.assembly) {
+  filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
+    x = subset(x, assembly==genome.assembly)
+
+    if(!grepl("^POL", x$target[1])) {
+      return(NULL)
+    }
+
+    if(sum(x$lab=="ENCODE Consortium Analysis Working Group") > 0) {
+      return(subset(x, lab=="ENCODE Consortium Analysis Working Group"))
+    } else {
+      return(x)
+    }
+  }, genome.assembly=genome.assembly)
+
+  return(filtered.results)
+
+}
+
 #' Default filtering function for \code{\link{download.encode.rna}}.
 #'
 #' The filtering function does three things: \enumerate{
@@ -117,7 +150,7 @@ histone.download.filter.chip <- function(query.results, genome.assembly) {
 #'   \item If removes any file where treatment is not NA.}
 #'
 #' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
-#'   function.The biosample identifier from ENCODE. Valid examples are
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
 #' @param genome.assembly Which genome assembly should the results come from?
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
@@ -128,6 +161,27 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
     }, genome.assembly=genome.assembly)
 
     return(filtered.results)
+}
+
+#' Alternative filtering function for \code{\link{download.encode.rna}}.
+#'
+#' The filtering function does three things: \enumerate{
+#'   \item It removes all files which do not have the correct genome assembly.
+#'   \item It only keeps files with counts for isoforms, not transcripts or genes.
+#'   \item If removes any file where treatment is not NA.}
+#'
+#' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @return A filtered \code{data frame}.
+#' @importFrom plyr ddply
+#' @export
+isoform.download.filter.rna <- function(query.results, genome.assembly) {
+  filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
+    return(subset(x, grepl("isoform", x$submitted_file_name) & assembly==genome.assembly & is.na(treatment)))
+  }, genome.assembly=genome.assembly)
+
+  return(filtered.results)
 }
 
 #' Obtains and process transcription factor data from ENCODE.
@@ -189,12 +243,11 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
     }))
 
     if(signal.value){
-        indices <- findOverlaps(unlist(target.replicates), unlist(all.gr))
-        signal.value.df <- cbind(indices@from, all.gr@unlistData@elementMetadata@listData$signalValue[indices@to])
-        signal.value.sum.df <- aggregate(signal.value.df, list(signal.value.df[,1]), sum, na.rm = TRUE)
-        signal.value.mean.df <- aggregate(signal.value.df, list(signal.value.df[,1]), mean, na.rm = TRUE)
-        target.replicates@unlistData@elementMetadata@listData$SignalValueSum <- signal.value.sum.df[,3]
-        target.replicates@unlistData@elementMetadata@listData$SignalValueMean <- signal.value.mean.df[,3]
+        target.replicates <- unlist(target.replicates)
+        all.gr <- unlist(all.gr)
+        indices <- findOverlaps(target.replicates, all.gr)
+        target.replicates@elementMetadata@listData$SignalValue <- aggregate(all.gr@elementMetadata@listData$signalValue[indices@to],
+                                                                            by = list(indices@from), mean, na.rm = TRUE)
     }
 
 
