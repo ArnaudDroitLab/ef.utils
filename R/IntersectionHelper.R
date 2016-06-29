@@ -99,6 +99,7 @@ intersect.overlap <- function(intersect.object, indices=NULL, names=NULL, exclus
 #'   \item{Length} {The number of items in the initial \linkS4class{GRangesList}, corresponding to the number of columns in \code{Matrix}
 #'   and the number of elements in \code{List}}.}
 #' @importFrom GenomicRanges reduce
+#' @importFrom GenomicRanges mcols
 #' @importMethodsFrom GenomicRanges countOverlaps findOverlaps
 #' @export
 build.intersect <- function(grl, keep.signal = FALSE) {

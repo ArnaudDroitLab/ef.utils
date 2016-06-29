@@ -224,10 +224,11 @@ annotate.region <- function(region, annotations.list, filename=NULL) {
 #'   GM12878, K562 or MCF-7.
 #'
 #' @return The \linkS4class{GRanges} object with associated histone overlap percentage.
-#' @importMethodsFrom GenomicRanges findOverlaps range mcols
+#' @importMethodsFrom GenomicRanges findOverlaps range
 #' @importMethodsFrom BSgenome width
 #' @importFrom stats aggregate
 #' @importFrom GenomicRanges reduce
+#' @importFrom GenomicRanges mcols
 associate.histone.marks <- function(regions, histone.regions){
   all.columns <- data.frame(matrix(nrow = length(regions@seqnames), ncol = length(names(histone.regions))))
   column = 1

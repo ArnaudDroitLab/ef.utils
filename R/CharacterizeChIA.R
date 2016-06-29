@@ -283,7 +283,8 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
     chia.obj$Regions$Component.Id <- components.out$membership
     chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]
     # Output region annotation.
-    write.table(as.data.frame(chia.obj$Regions), file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), sep = "\t", row.names = FALSE, quote = FALSE)
+    annotations.df <- as.data.frame(chia.obj$Regions)
+    write.table(cbind(ID = annotations.df$ID, annotations.df[,-6]), file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), sep = "\t", row.names = FALSE, quote = FALSE)
 
 }
 
@@ -309,8 +310,6 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
 #' @importFrom igraph components
 #' @importFrom igraph get.data.frame
 #' @importFrom utils write.table
-#'
-#' @export
 analyze.generic.topology <- function(chia.obj, output.dir="output") {
     # Plot an histogram of the number of edges.
     pdf(file.path(output.dir, "Histogram of number of edges.pdf"))
@@ -515,22 +514,30 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
 #' @param genome.build The name of the chosen annotation ("hg38", "hg19").
+#' @param tf.regions A data frame containing the TF data.
+#' @param histone.regions A data frame containing the histone data.
+#' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param output.dir The name of the directory where to save the graphs.
 #' @importFrom Biobase cache
 #' @export
-analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, output.dir="output/") {
+analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL,
+                             tf.regions = NULL, histone.regions = NULL, expression.data = NULL, output.dir="output/") {
     dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
 
     chia.obj = load.chia(input.chia)
+    chia.raw = read.table(input.chia)
 
-    tf.regions = NULL
-    histone.regions = NULL
-    expression.data = NULL
     if(!is.null(biosample) && !is.null(genome.build)) {
-        tf.regions = download.encode.chip(biosample, genome.build)$Regions
-        histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip)$Regions
-
-        expression.data = download.encode.rna(biosample, genome.build)$Expression
+      if (is.null(tf.regions)){
+        cache(tf.regions <- download.encode.chip(biosample, genome.build)$Regions, dir=output.dir, prefix="cached_objects")
+      }
+      if (is.null(histone.regions)){
+        cache(histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip)$Regions,
+              dir=output.dir, prefix="cached_objects")
+      }
+      if (is.null(expression.data)){
+        cache(expression.data <- download.encode.rna(biosample, genome.build)$Expression, dir=output.dir, prefix="cached_objects")
+      }
         expression.data$ENSEMBL = gsub("\\.\\d+$", "", expression.data$gene_id)
         expression.data$FPKM = log2(expression.data$Mean.FPKM + 1)
     }
@@ -547,10 +554,10 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
                                              expression.levels=expression.data,
                                              genome.build = genome.build,
                                              biosample=biosample,
-                                             histone=TRUE,
                                              output.dir = output.dir), dir=output.dir, prefix="cached_objects")
 
 
+    output.annotated.chia(chia.obj, chia.raw, output.dir)
 
     analyze.generic.topology(chia.obj, output.dir)
 	analyze.annotation(chia.obj, output.dir)

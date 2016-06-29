@@ -206,6 +206,7 @@ isoform.download.filter.rna <- function(query.results, genome.assembly) {
 #' @importFrom ENCODExplorer queryEncode
 #' @importFrom ENCODExplorer downloadEncode
 #' @importFrom GenomicRanges GRangesList
+#' @importFrom GenomicRanges mcols
 #' @importFrom stats aggregate
 #' @importMethodsFrom GenomicRanges findOverlaps
 #' @export
