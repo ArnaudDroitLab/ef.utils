@@ -7,7 +7,7 @@
 download.encode.chip(biosample, assembly,
   download.filter = default.download.filter.chip,
   download.dir = file.path("input/ENCODE", biosample, "chip-seq"),
-  signal.value = FALSE)
+  keep.signal = FALSE)
 }
 \arguments{
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are
@@ -20,7 +20,7 @@ data-frame returned by \code{\link[ENCODExplorer]{queryEncode}}. The function sh
 \item{download.dir}{The folder where the downloaded files should be stored.
 defaults to \code{file.path("input/ENCODE", biosample, "chip-seq")}.}
 
-\item{signal.value}{Should the signalValue from the ChIP-seq be kept?}
+\item{keep.signal}{Should the signalValue from the ChIP-seq be kept?}
 
 \item{genome.assembly}{Which genome assembly should the results come from?}
 }

@@ -4,11 +4,13 @@
 \alias{build.intersect}
 \title{Given a \linkS4class{GRangesList} object, determine which items overlap each others.}
 \usage{
-build.intersect(grl)
+build.intersect(grl, keep.signal = FALSE)
 }
 \arguments{
 \item{grl}{The \linkS4class{GRangesList} object whose elements need to be overlapped with
 each others.}
+
+\item{keep.signal}{Should the values of signal be kept?}
 }
 \value{
 A list with the following elements: \describe{

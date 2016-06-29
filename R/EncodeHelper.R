@@ -197,7 +197,7 @@ isoform.download.filter.rna <- function(query.results, genome.assembly) {
 #'   \code{data-frame} containing only the files which should be downloaded.
 #' @param download.dir The folder where the downloaded files should be stored.
 #'   defaults to \code{file.path("input/ENCODE", biosample, "chip-seq")}.
-#' @param signal.value Should the signalValue from the ChIP-seq be kept?
+#' @param keep.signal Should the signalValue from the ChIP-seq be kept?
 #' @return A list containing three elements: \describe{
 #'   \item{Metadata} {The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
 #'     about all files which matched the query.}
@@ -210,45 +210,57 @@ isoform.download.filter.rna <- function(query.results, genome.assembly) {
 #' @importMethodsFrom GenomicRanges findOverlaps
 #' @export
 download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter.chip,
-                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq"), signal.value = FALSE) {
+                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq"), keep.signal = FALSE) {
     # Query ENCODE to obtain appropriate files.
     query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", status="released")
 
     # Filter the ENCODE files using the supplied functions.  Only download relevant files.
     query.results$experiment = download.filter(query.results$experiment, assembly)
     dir.create(download.dir, recursive=TRUE, showWarnings=FALSE)
-    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results, resultOrigin="queryEncode", dir=download.dir, force=FALSE)
+
+    # Separate narrow and broad peaks
+    narrow.dir = file.path(download.dir, "narrow")
+    broad.dir = file.path(download.dir, "broad")
+    dir.create(narrow.dir, recursive = TRUE)
+    dir.create(broad.dir, recursive = TRUE)
+    query.results.narrow = query.results
+    query.results.narrow$experiment = query.results$experiment[query.results$experiment$file_format_type == "narrowPeak",]
+    query.results.broad = query.results
+    query.results.broad$experiment = query.results$experiment[query.results$experiment$file_format_type == "broadPeak",]
+
+    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.narrow, resultOrigin="queryEncode", dir=narrow.dir, force=FALSE)
+    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.broad, resultOrigin="queryEncode", dir=broad.dir, force=FALSE)
 
     # Unzip the files. Use gzip -d since on windows, gunzip is not installed by default.
-    # Also, use -k to keep the original file so that future calls to downloadEncode will not
-    # redownload the files.
-    system(paste0("gzip -d -k ", download.dir, "/*.gz"))
+    system(paste0("gzip -d -k ", narrow.dir, "/*.gz"))
+    system(paste0("gzip -d -k ", broad.dir, "/*.gz"))
 
     # Write the metadata about the downloaded files.
     write.table(query.results$experiment, file=file.path(download.dir, "metadata.txt"))
 
     # Import the downloaded files.
-    all.gr = import.into.grl(download.dir, file.format="narrow", file.ext="bed", discard.metadata=(!signal.value), dir.type="plain")
+    narrow.gr = import.into.grl(narrow.dir, file.format="narrow", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
+    broad.gr = import.into.grl(broad.dir, file.format="broad", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
+    narrow.gr@unlistData@elementMetadata@listData$peak <- NULL
+    all.gr = c(narrow.gr, broad.gr)
 
     # Combine biological/technical replicates using consensus regions.
     accession.replicates = GenomicRanges::GRangesList(plyr::dlply(query.results$experiment, ~accession, function(x) {
         gr.subset = all.gr[names(all.gr) %in% x$file_accession]
-        return(unlist(intersect.overlap(build.intersect(gr.subset))))
+        overlap.results = intersect.overlap(build.intersect(gr.subset, keep.signal = keep.signal))
+        mcols(overlap.results) <- rowMeans(as.data.frame(mcols(overlap.results)), na.rm = TRUE)
+        names(mcols(overlap.results)) <- "signalValue"
+        return(unlist(overlap.results))
     }))
 
     # Combine all same-target replicates using consensus regions.
     target.replicates = GenomicRanges::GRangesList(plyr::dlply(query.results$experiment, ~target, function(x) {
         gr.subset = accession.replicates[names(accession.replicates) %in% x$accession]
-        return(intersect.overlap(build.intersect(gr.subset)))
+        overlap.results = intersect.overlap(build.intersect(gr.subset, keep.signal = keep.signal))
+        mcols(overlap.results) <- rowMeans(as.data.frame(mcols(overlap.results)), na.rm = TRUE)
+        names(mcols(overlap.results)) <- "signalValue"
+        return(overlap.results)
     }))
-
-    if(signal.value){
-        target.replicates <- unlist(target.replicates)
-        all.gr <- unlist(all.gr)
-        indices <- findOverlaps(target.replicates, all.gr)
-        target.replicates@elementMetadata@listData$SignalValue <- aggregate(all.gr@elementMetadata@listData$signalValue[indices@to],
-                                                                            by = list(indices@from), mean, na.rm = TRUE)
-    }
 
 
     return(list(Metadata=query.results$experiment,
