@@ -150,12 +150,13 @@ select.annotations <- function(genome.build) {
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562.
 #' @param output.dir The name of the directory where to write the selected annotations.
+#' @param label The name of the file containing all annotation.
 #'
 #' @return The annotated "\code{chip.data}".
 #'
 #' @export
 annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          biosample = "GM12878", output.dir) {
+                          biosample = "GM12878", output.dir, label) {
   dir.create(output.dir, recursive = TRUE)
   genome.build <- match.arg(genome.build)
 
@@ -182,6 +183,8 @@ annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regi
     chip.data = associate.tissue.specificity.human(chip.data)
     chip.data = associate.fitness.genes(chip.data)
   }
+
+  write.table(chip.data, file.path(output.dir, label), sep = "\t", row.names = FALSE)
 
   return(chip.data)
 }

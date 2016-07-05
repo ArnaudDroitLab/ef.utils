@@ -510,7 +510,7 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
 
 #' Analyze ChIA-PET data and produce graphs.
 #'
-#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}
+#' @param input.chia The file containing processed ChIA-PET data.
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
 #' @param genome.build The name of the chosen annotation ("hg38", "hg19").
@@ -518,6 +518,7 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
 #' @param histone.regions A data frame containing the histone data.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param output.dir The name of the directory where to save the graphs.
+#' @return The annotated chia.obj.
 #' @importFrom Biobase cache
 #' @export
 analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL,
@@ -578,6 +579,98 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
         analyze.gene.specificity(chia.obj, output.dir)
     }
 
+	return(chia.obj)
+}
+
+#' Produces boxplots for every transcription factor, in relation to its 3D connectivity
+#' For every transcription factor in the ChIP data, creates a boxplot of the force of the ChIP-seq signal
+#' in function of the contact frequence of the region.
+#'
+#' @param chip.data A \links4class{GRangesList} containing the regions of the ChIp-seq data, with signal values.
+#' @param hist.data A \links4class{GRangesList} containing the regions of the ChIP-seq data of histone marks.
+#' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
+#' @param genome.build The name of the chosen annotation ("hg38", "hg19").
+#' @param chia.obj Annotated ChIA-PET data, as returned by \link{analyze.chia.pet} or \linl{annotate.chia}.
+#' @param output.dir The directory where to write the boxplots.
+#' @param TSS Should only the TSS regions be kept?
+#'
+#' @importFrom ggplot2 ggplot
+#' @importFrom ggplot2 geom_boxplot
+#' @importFrom ggplot2 geom_bar
+#' @importFrom ggplot2 ylab
+#' @importFrom ggplot2 xlab
+#' @importFrom ggplot2 ggtitle
+#' @importFrom ggplot2 ggsave
+#' @importFrom cowplot plot_grid
+#' @importFrom GenomicRanges flank
+#' @importFrom GenomicFeatures genes
+#' @export
+boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.obj, output.dir, TSS = TRUE) {
+
+  # Extract ChIA-PET regions
+  chia.data <- chia.obj$Regions
+  
+  # Exctract all TF
+  TxDb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+  tss.regions <- genes(TxDb)
+  tss.regions <- promoters(tss.regions, 3000, 3000)
+  
+  
+  # Function to create boxplot with histogram
+  create.boxplot <- function(chip.data, chia.data, label, label.x, label.y, output.dir, tss.regions, TSS=TRUE){
+    if (TSS){
+      chip.data <- chip.data[chip.data@elementMetadata@listData$distanceToTSS == 0]
+      chia.data <- chia.data[chia.data$distanceToTSS == 0]
+    }
+    indices <- GenomicRanges::findOverlaps(chip.data, chia.data)
+    if (length(indices) != 0){
+      signal.degree.df <- data.frame(Signal = log2(chip.data@elementMetadata@listData$signalValue[indices@from]),
+                                     Degree = chia.data$Degree[indices@to])
+      signal.degree.df$CutDegree <- cut(signal.degree.df$Degree, breaks = c(1, 5, 10, 20, 40, Inf), right = FALSE)
+    }
+    if (length(chip.data@elementMetadata@listData$signalValue[-indices@from]) != 0){
+      signal.degree.df <- rbind(data.frame(Signal = log2(chip.data@elementMetadata@listData$signalValue[-indices@from]),
+                                           Degree = 0, CutDegree = "0"), signal.degree.df)
+    }
+    box <- ggplot(signal.degree.df) + geom_boxplot(aes(CutDegree, Signal)) + ylab(label.y) + xlab(label.x) + ggtitle(label)
+    
+    
+    if (TSS) {
+      tss.indices <- findOverlaps(tss.regions, chia.data)
+      tss.degree.df <- data.frame(Region = tss.indices@from, Degree = chia.data$Degree[tss.indices@to])
+      tss.degree.df$CutDegree <- cut(tss.degree.df$Degree, breaks = c(1, 5, 10, 20, 40, Inf), right = FALSE)
+      if (length(chip.data@elementMetadata@listData$signalValue[-indices@from]) != 0){
+        tss.degree.df <- rbind(data.frame(Region = c(1:length(tss.regions))[-tss.indices@from],
+                                          Degree = 0, CutDegree = "0"), tss.degree.df)
+      }
+      mapping.df <- data.frame(x.pos = levels(tss.degree.df$CutDegree), y.pos = as.vector(table(signal.degree.df$CutDegree)),
+                               label = paste0(round(as.vector(table(signal.degree.df$CutDegree) / table(tss.degree.df$CutDegree))*100, digits = 1), "%"))
+      hist <- ggplot() +
+              geom_bar(aes(CutDegree), data = tss.degree.df, fill = "light blue") +
+              geom_bar(aes(CutDegree), data = signal.degree.df) +
+              geom_text(data = mapping.df, aes(x = x.pos, y = y.pos, label = label), vjust = -1) +
+              xlab(label.x) +
+              ggtitle(paste("Histogram of ", label.x))
+                    
+    } else {
+      hist <- ggplot(signal.degree.df) + geom_bar(aes(CutDegree)) + xlab(label.x) + ggtitle(paste("Histogram of ", label.x))
+    }
+    
+    plot_grid(box, hist, nrow = 2, align = "v")
+    ggsave(file.path(output.dir, label), height = 14, width = 7)
+  }
+
+  # Create plot for every TF
+  dir.create(file.path(output.dir, biosample), recursive = TRUE)
+  for (tf in names(chip.data)){
+    cat("Factor : ", tf, "\n")
+    chip.subset <- chip.data[tf][[1]]
+    chip.subset <- annotate.chip(chip.subset, input.chrom.state = NULL, tf.regions = NULL, histone.regions = hist.data$Regions,
+                                 genome.build = genome.build, biosample = biosample, output.dir = "output/annotations")
+    create.boxplot(chip.subset, chia.data,
+                   paste0("Boxplot of log2(Signal) in fct of Degree of ", tf ," at TSS.pdf"),
+                   "Contact frequency at TSS", "log2(Signal)", file.path(output.dir, biosample), tss.regions, TSS = TSS)
+  }
 }
 
 # analyze.chia.pet(input.chia="input/ChIA-PET/GSM1872887_GM12878_RNAPII_PET_clusters.txt",
