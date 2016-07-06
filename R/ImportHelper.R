@@ -89,13 +89,13 @@ import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, dis
 #'   in the resulting data frame.
 #' @return A \code{data-frame} with the concatenated information from all files.
 #' @export
-read.identical <- function(file.names, header.columns, data.columns, file.labels=basename(file.names)) {
+read.identical <- function(file.names, header.columns, data.columns, file.labels=basename(file.names), sep="\t", header=TRUE, ...) {
     results=NULL
     for(i in 1:length(file.names)) {
         file.name = file.names[i]
         file.label = file.labels[i]
 
-        file.data = read.table(file.name, sep="\t", header=TRUE, stringsAsFactors=FALSE)
+        file.data = read.table(file.name, sep=sep, header=header, stringsAsFactors=FALSE, ...)
         if(is.null(results)) {
             results = file.data[, header.columns]
         }
