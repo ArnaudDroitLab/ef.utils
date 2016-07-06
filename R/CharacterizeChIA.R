@@ -609,13 +609,13 @@ boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.o
 
   # Extract ChIA-PET regions
   chia.data <- chia.obj$Regions
-  
+
   # Exctract all TF
   TxDb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
   tss.regions <- genes(TxDb)
   tss.regions <- promoters(tss.regions, 3000, 3000)
-  
-  
+
+
   # Function to create boxplot with histogram
   create.boxplot <- function(chip.data, chia.data, label, label.x, label.y, output.dir, tss.regions, TSS=TRUE){
     if (TSS){
@@ -623,41 +623,44 @@ boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.o
       chia.data <- chia.data[chia.data$distanceToTSS == 0]
     }
     indices <- GenomicRanges::findOverlaps(chip.data, chia.data)
-    if (length(indices) != 0){
+    if (length(indices) != 0) {
+
       signal.degree.df <- data.frame(Signal = log2(chip.data@elementMetadata@listData$signalValue[indices@from]),
                                      Degree = chia.data$Degree[indices@to])
       signal.degree.df$CutDegree <- cut(signal.degree.df$Degree, breaks = c(1, 5, 10, 20, 40, Inf), right = FALSE)
-    }
-    if (length(chip.data@elementMetadata@listData$signalValue[-indices@from]) != 0){
-      signal.degree.df <- rbind(data.frame(Signal = log2(chip.data@elementMetadata@listData$signalValue[-indices@from]),
-                                           Degree = 0, CutDegree = "0"), signal.degree.df)
-    }
-    box <- ggplot(signal.degree.df) + geom_boxplot(aes(CutDegree, Signal)) + ylab(label.y) + xlab(label.x) + ggtitle(label)
-    
-    
-    if (TSS) {
-      tss.indices <- findOverlaps(tss.regions, chia.data)
-      tss.degree.df <- data.frame(Region = tss.indices@from, Degree = chia.data$Degree[tss.indices@to])
-      tss.degree.df$CutDegree <- cut(tss.degree.df$Degree, breaks = c(1, 5, 10, 20, 40, Inf), right = FALSE)
       if (length(chip.data@elementMetadata@listData$signalValue[-indices@from]) != 0){
-        tss.degree.df <- rbind(data.frame(Region = c(1:length(tss.regions))[-tss.indices@from],
-                                          Degree = 0, CutDegree = "0"), tss.degree.df)
+        signal.degree.df <- rbind(data.frame(Signal = log2(chip.data@elementMetadata@listData$signalValue[-indices@from]),
+                                             Degree = 0, CutDegree = "0"), signal.degree.df)
       }
-      mapping.df <- data.frame(x.pos = levels(tss.degree.df$CutDegree), y.pos = as.vector(table(signal.degree.df$CutDegree)),
-                               label = paste0(round(as.vector(table(signal.degree.df$CutDegree) / table(tss.degree.df$CutDegree))*100, digits = 1), "%"))
-      hist <- ggplot() +
-              geom_bar(aes(CutDegree), data = tss.degree.df, fill = "light blue") +
-              geom_bar(aes(CutDegree), data = signal.degree.df) +
-              geom_text(data = mapping.df, aes(x = x.pos, y = y.pos, label = label), vjust = -1) +
-              xlab(label.x) +
-              ggtitle(paste("Histogram of ", label.x))
-                    
-    } else {
-      hist <- ggplot(signal.degree.df) + geom_bar(aes(CutDegree)) + xlab(label.x) + ggtitle(paste("Histogram of ", label.x))
+      box <- ggplot(signal.degree.df) + geom_boxplot(aes(CutDegree, Signal)) + ylab(label.y) + xlab(label.x) + ggtitle(label)
+
+
+      if (TSS) {
+        tss.indices <- findOverlaps(tss.regions, chia.data)
+        tss.degree.df <- data.frame(Region = tss.indices@from, Degree = chia.data$Degree[tss.indices@to])
+        tss.degree.df$CutDegree <- cut(tss.degree.df$Degree, breaks = c(1, 5, 10, 20, 40, Inf), right = FALSE)
+        if (length(chip.data@elementMetadata@listData$signalValue[-indices@from]) != 0){
+          tss.degree.df <- rbind(data.frame(Region = c(1:length(tss.regions))[-tss.indices@from],
+                                            Degree = 0, CutDegree = "0"), tss.degree.df)
+        }
+
+        mapping.df <- data.frame(x.pos = levels(tss.degree.df$CutDegree), y.pos = as.vector(table(signal.degree.df$CutDegree)),
+                                 label = paste0(round(as.vector(table(signal.degree.df$CutDegree) / table(tss.degree.df$CutDegree))*100, digits = 1), "%"))
+        hist <- ggplot() +
+          geom_bar(aes(CutDegree), data = tss.degree.df, fill = "light blue") +
+          geom_bar(aes(CutDegree), data = signal.degree.df) +
+          geom_text(data = mapping.df, aes(x = x.pos, y = y.pos, label = label), vjust = -1) +
+          xlab(label.x) +
+          ggtitle(paste("Histogram of ", label.x))
+
+
+      } else {
+        hist <- ggplot(signal.degree.df) + geom_bar(aes(CutDegree)) + xlab(label.x) + ggtitle(paste("Histogram of ", label.x))
+      }
+
+      plot_grid(box, hist, nrow = 2, align = "v")
+      ggsave(file.path(output.dir, label), height = 14, width = 7)
     }
-    
-    plot_grid(box, hist, nrow = 2, align = "v")
-    ggsave(file.path(output.dir, label), height = 14, width = 7)
   }
 
   # Create plot for every TF
