@@ -111,7 +111,7 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
     if(!is.null(histone.regions)) {
         chia.obj = associate.histone.marks(chia.obj, histone.regions)
     }
-    
+
     chia.obj = associate.gene(chia.obj, expression.levels)
 
     if(genome.build=="hg19" || genome.build=="hg38") {
@@ -222,7 +222,7 @@ associate.gene <- function(chia.obj, expression.data=NULL) {
 #' Associate chromatin sates with the \code{Regions} of "chia.obj".
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param input.chrom.state The path to a bed file representing a genome 
+#' @param input.chrom.state The path to a bed file representing a genome
 #'   segmentation by chromatin state.
 #' @return "\code{chia.obj}" with associated chromatin states.
 #' @importFrom rtracklayer import
@@ -721,8 +721,8 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
     if(!is.null(biosample) && is.null(input.chrom.state)) {
         input.chrom.state <- import.chrom.states(biosample, file.path("input/chrom_states", biosample))
     }
-    
-    Biobase::cache(chia.obj <- annotate.chia(chia.obj, 
+
+    Biobase::cache(chia.obj <- annotate.chia(chia.obj,
                                              input.chrom.state = input.chrom.state,
                                              tf.regions = tf.regions,
                                              histone.regions=histone.regions,
@@ -731,9 +731,9 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
                                              biosample=biosample,
                                              histone=TRUE,
                                              output.dir = output.dir), dir=output.dir, prefix="cached_objects")
-    
-    
-    
+
+
+
     analyze.generic.topology(chia.obj, output.dir)
 	analyze.annotation(chia.obj, output.dir)
 
@@ -753,6 +753,49 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
         analyze.gene.specificity(chia.obj, output.dir)
     }
 
+}
+
+#' Separetes a large networks into communities and saves the sub-netwoks in cytoscape-friendly format
+#'
+#' @param network.input The csv file containing the network to divide.
+#' @param network The id of the network.
+#' @param annotated.chia The txt file containing all information about the networks.
+#' @param output.dir The directory where to save the files.
+#' @param method The algorithm to use to divide the graph.
+#' @importFrom igraph make_graph
+#' @export
+separate.into.communities <- function(network.input, network, annotated.chia, output.dir, method = igraph::cluster_fast_greedy){
+  # Separate the network into smaller ones
+  network.df <- read.table(network.input, header = TRUE, sep = ",")
+  network.df <- aggregate(Reads~(Source + Target), data = network.df, sum)
+  whole.graph <- make_graph(c(rbind(network.df$Source, network.df$Target)), directed = FALSE)
+
+  communities <- method(whole.graph, weights = NULL)
+  communities.df <- data.frame(cbind(unique(c(network.df$Source, network.df$Target)),
+                                     communities$membership[unique(c(network.df$Source, network.df$Target))]))
+  colnames(communities.df) <- c("Node.Id", "Group")
+  simplify.group.id <- data.frame(Old = unique(communities.df$Group), New = 1:length(unique(communities.df$Group)))
+  communities.df$Group <- simplify.group.id$New[match(communities.df$Group, simplify.group.id$Old)]
+  communities.df$Size <- 1
+  communities.df$Size <- aggregate(Size~Group, data = communities.df, FUN = sum)$Size[communities.df$Group]
+
+  # Change the annotation
+  annotated.chia <- read.csv(annotated.chia, header = TRUE, sep = "\t")
+  annotated.chia$Component.size[annotated.chia$Component.Id == network] <- communities.df[order(communities.df$Node.Id),"Size"]
+  annotated.chia$Component.Id[annotated.chia$Component.Id == network] <-
+    paste0(network, ".", communities.df[order(communities.df$Node.Id),"Group"])
+
+  # Write the new annotation and the new network tables
+  dir.create(output.dir, recursive = TRUE)
+  write.table(communities.df, file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), sep = "\t", row.names = FALSE)
+  for (group in simplify.group.id$New) {
+    nodes.to.keep <- communities.df$Node.Id[communities.df$Group == group]
+    sub.network.df <- network.df[network.df$Source %in% nodes.to.keep & network.df$Target %in% nodes.to.keep,]
+    file.name <- file.path(output.dir, paste0("Create network for component", network, ".", group, "(",
+                                              communities.df$Size[communities.df$Group == group][1], " nodes).csv"))
+    write.table(sub.network.df, file = file.name, sep = ",", row.names = FALSE)
+  }
+  return(paste0(group, " sub-networks were found."))
 }
 
 # analyze.chia.pet(input.chia="input/ChIA-PET/GSM1872887_GM12878_RNAPII_PET_clusters.txt",

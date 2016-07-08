@@ -9,7 +9,7 @@ associate.chrom.state(chia.obj, input.chrom.state)
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
 
-\item{input.chrom.state}{The path to a bed file representing a genome 
+\item{input.chrom.state}{The path to a bed file representing a genome
 segmentation by chromatin state.}
 }
 \value{
