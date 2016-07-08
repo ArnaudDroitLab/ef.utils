@@ -7,7 +7,7 @@ For every transcription factor in the ChIP data, creates a boxplot of the force 
 in function of the contact frequence of the region.}
 \usage{
 boxplot.per.tf(chip.data, hist.data, biosample, genome.build, chia.obj,
-  output.dir, TSS = TRUE)
+  output.dir, TSS = TRUE, tssRegion = c(-3000, 3000))
 }
 \arguments{
 \item{chip.data}{A \links4class{GRangesList} containing the regions of the ChIp-seq data, with signal values.}
@@ -23,6 +23,8 @@ boxplot.per.tf(chip.data, hist.data, biosample, genome.build, chia.obj,
 \item{output.dir}{The directory where to write the boxplots.}
 
 \item{TSS}{Should only the TSS regions be kept?}
+
+\item{tssRegion}{tssRegion A vector with the region range to TSS.}
 }
 \description{
 Produces boxplots for every transcription factor, in relation to its 3D connectivity

@@ -65,8 +65,7 @@ load.chia <- function(input.chia) {
 
     # Create iGraph object.
     chia.graph = make_graph(c(rbind(chia.left.indices, chia.right.indices)))
-    E(chia.graph)$NoReads = chia.raw[,7]
-    
+
     return(list(Left=chia.left.ranges, Right=chia.right.ranges, Regions=single.set, Graph=chia.graph))
 }
 
@@ -76,17 +75,12 @@ load.chia <- function(input.chia) {
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param tf.regions A data frame containing the TF data.
-<<<<<<< HEAD
 #' @param histone.regions A data frame containing the histone data.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562.
-=======
-#' @param histone.regions A \linkS4class{GRangesList} object defining histone regions.
-#' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
-#' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
->>>>>>> 0eca4f25f233ad486ade10b9943ede4f990067af
+#' @param tssRegion A vector with the region range to TSS.
 #' @param output.dir The name of the directory where to write the selected annotations.
 #'
 #' @return The annotated "\code{chia.obj}".
@@ -94,15 +88,9 @@ load.chia <- function(input.chia) {
 #' @importFrom igraph degree
 #'
 #' @export
-<<<<<<< HEAD
 annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          biosample = "GM12878", output.dir) {
+                          biosample = "GM12878", tssRegion, output.dir) {
     dir.create(output.dir, recursive = TRUE)
-=======
-annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions,
-                          expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          output.dir) {
->>>>>>> 0eca4f25f233ad486ade10b9943ede4f990067af
     single.set = chia.obj$Regions
     genome.build <- match.arg(genome.build)
 
@@ -112,7 +100,7 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
     # Add degree count to chia.obj$Regions
     chia.obj$Regions$Degree = degree(chia.obj$Graph)
 
-    chia.obj$Regions <- associate.genomic.region(chia.obj$Regions, genome.build, output.dir)
+    chia.obj$Regions <- associate.genomic.region(chia.obj$Regions, genome.build, tssRegion = tssRegion, output.dir)
 
     if(!is.null(input.chrom.state)) {
         chia.obj$Regions = associate.chrom.state(chia.obj$Regions, input.chrom.state)
@@ -260,17 +248,10 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
     components.out <- components(chia.obj$Graph)
 
     # Create interactions table
-<<<<<<< HEAD
     ids <- data.frame(left.df$Left.ID, right.df$Right.ID, chia.raw[,7])
     colnames(ids) <- c("Source", "Target", "Reads")
     dir.create(output.dir, recursive = TRUE)
     write.table(ids, file = file.path(output.dir, "all.csv"), sep=",", row.names = FALSE)
-=======
-    ids <- data.frame(left.df$Left.ID, right.df$Right.ID, E(chia.obj$Graph)$NoReads)
-    colnames(ids) <- c("Source", "Target", "Reads")
-    dir.create(output.dir, recursive = TRUE)
-    write.table(ids, file = paste0(file.path, "all.csv"), sep=",", row.names = FALSE)
->>>>>>> 0eca4f25f233ad486ade10b9943ede4f990067af
 
     # Export networks in csv files
     reorder.components <- components.out$membership[ids$Source]
@@ -526,31 +507,26 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
     ggsave(file.path(output.dir, "TF presence on contact point by connectivity.pdf"), width=14, height=14)
 
 }
-#' Load anad annotate ChIA-PET data.
+
+
+#' Analyze ChIA-PET data and produce graphs.
 #'
-<<<<<<< HEAD
 #' @param input.chia The file containing processed ChIA-PET data.
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
-=======
-#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}
->>>>>>> 0eca4f25f233ad486ade10b9943ede4f990067af
 #' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
 #' @param genome.build The name of the chosen annotation ("hg38", "hg19").
 #' @param tf.regions A data frame containing the TF data.
 #' @param histone.regions A data frame containing the histone data.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
+#' @param tssRegion A vector with the region range to TSS.
 #' @param output.dir The name of the directory where to save the graphs.
-<<<<<<< HEAD
 #' @return The annotated chia.obj.
 #' @importFrom Biobase cache
 #' @export
-analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL,
-                             tf.regions = NULL, histone.regions = NULL, expression.data = NULL, output.dir="output/") {
+analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, tf.regions = NULL,
+                             histone.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000), output.dir="output/") {
     dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
 
-=======
-load.and.annotate <- function(input.chia, biosample = NULL, genome.build = NULL, output.dir="output/") {
->>>>>>> 0eca4f25f233ad486ade10b9943ede4f990067af
     chia.obj = load.chia(input.chia)
     chia.raw = read.table(input.chia)
 
@@ -567,37 +543,12 @@ load.and.annotate <- function(input.chia, biosample = NULL, genome.build = NULL,
       }
         expression.data$ENSEMBL = gsub("\\.\\d+$", "", expression.data$gene_id)
         expression.data$FPKM = log2(expression.data$Mean.FPKM + 1)
-        
+    }
+
+    # Download chromatin states
+    if(!is.null(biosample) && is.null(input.chrom.state)) {
         input.chrom.state <- import.chrom.states(biosample, file.path("input/chrom_states", biosample))
     }
-
-    chia.obj <- annotate.chia(chia.obj, 
-                              input.chrom.state = input.chrom.state,
-                              tf.regions = tf.regions,
-                              histone.regions=histone.regions,
-                              expression.levels=expression.data,
-                              genome.build = genome.build,
-                              output.dir = output.dir)
-                              
-    return(chia.obj)
-}
-
-#' Analyze ChIA-PET data and produce graphs.
-#'
-#' @param input.chia The path of the file containing the ChIA-PET data.
-#' @param input.chrom.state The name of the file containing the information about chromatin states.
-#' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
-#' @param genome.build The name of the chosen annotation ("hg38", "hg19").
-#' @param output.dir The name of the directory where to save the graphs.
-#' @importFrom Biobase cache
-#' @export
-analyze.chia.pet <- function(input.chia, biosample = NULL, genome.build = NULL, output.dir="output/", reset.cache=TRUE) {
-    dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
-
-    if(reset.cache) {
-        file.remove(file.path(output.dir, "chia.obj.RData"))
-    }
-<<<<<<< HEAD
 
     Biobase::cache(chia.obj <- annotate.chia(chia.obj,
                                              input.chrom.state = input.chrom.state,
@@ -606,20 +557,12 @@ analyze.chia.pet <- function(input.chia, biosample = NULL, genome.build = NULL, 
                                              expression.levels=expression.data,
                                              genome.build = genome.build,
                                              biosample=biosample,
+                                             tssRegion = tssRegion,
                                              output.dir = output.dir), dir=output.dir, prefix="cached_objects")
 
 
     output.annotated.chia(chia.obj, chia.raw, output.dir)
 
-=======
-    
-    Biobase::cache(chia.obj <- load.and.annotate(input.chia=input.chia,
-                                                 biosample = biosample, 
-                                                 genome.build = genome.build, 
-                                                 output.dir=output.dir), dir=output.dir, prefix="")
-    
-    output.annotated.chia(chia.obj, output.dir)
->>>>>>> 0eca4f25f233ad486ade10b9943ede4f990067af
     analyze.generic.topology(chia.obj, output.dir)
 	analyze.annotation(chia.obj, output.dir)
 
@@ -631,15 +574,14 @@ analyze.chia.pet <- function(input.chia, biosample = NULL, genome.build = NULL, 
         analyze.expression(chia.obj, output.dir)
     }
 
-    if(!is.null(tf.regions)) {
-        analyze.tf(chia.obj, tf.regions, output.dir)
-    }
+  if(!is.null(tf.regions)) {
+      analyze.tf(chia.obj, tf.regions, output.dir)
+  }
 
 	if(genome.build %in% c("hg19", "hg38")) {
         analyze.gene.specificity(chia.obj, output.dir)
     }
 
-<<<<<<< HEAD
 	return(chia.obj)
 }
 
@@ -654,6 +596,7 @@ analyze.chia.pet <- function(input.chia, biosample = NULL, genome.build = NULL, 
 #' @param chia.obj Annotated ChIA-PET data, as returned by \link{analyze.chia.pet} or \linl{annotate.chia}.
 #' @param output.dir The directory where to write the boxplots.
 #' @param TSS Should only the TSS regions be kept?
+#' @param tssRegion tssRegion A vector with the region range to TSS.
 #'
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 geom_boxplot
@@ -666,7 +609,7 @@ analyze.chia.pet <- function(input.chia, biosample = NULL, genome.build = NULL, 
 #' @importFrom GenomicRanges flank
 #' @importFrom GenomicFeatures genes
 #' @export
-boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.obj, output.dir, TSS = TRUE) {
+boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.obj, output.dir, TSS = TRUE, tssRegion = c(-3000, 3000)) {
 
   # Extract ChIA-PET regions
   chia.data <- chia.obj$Regions
@@ -730,14 +673,11 @@ boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.o
     cat("Factor : ", tf, "\n")
     chip.subset <- chip.data[tf][[1]]
     chip.subset <- annotate.chip(chip.subset, input.chrom.state = NULL, tf.regions = NULL, histone.regions = hist.data$Regions,
-                                 genome.build = genome.build, biosample = biosample, output.dir = "output/annotations")
+                                 genome.build = genome.build, biosample = biosample, output.dir = "output/annotations", tssRegion = tssRegion)
     create.boxplot(chip.subset, chia.data,
                    paste0("Boxplot of log2(Signal) in fct of Degree of ", tf ," at TSS.pdf"),
                    "Contact frequency at TSS", "log2(Signal)", file.path(output.dir, biosample), tss.regions, TSS = TSS)
   }
-=======
-    return(chia.obj)
->>>>>>> 0eca4f25f233ad486ade10b9943ede4f990067af
 }
 
 # analyze.chia.pet(input.chia="input/ChIA-PET/GSM1872887_GM12878_RNAPII_PET_clusters.txt",

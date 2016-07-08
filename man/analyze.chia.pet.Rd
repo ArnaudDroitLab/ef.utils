@@ -4,22 +4,15 @@
 \alias{analyze.chia.pet}
 \title{Analyze ChIA-PET data and produce graphs.}
 \usage{
-<<<<<<< HEAD
 analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
   genome.build = NULL, tf.regions = NULL, histone.regions = NULL,
-  expression.data = NULL, output.dir = "output/")
+  expression.data = NULL, tssRegion = c(-3000, 3000),
+  output.dir = "output/")
 }
 \arguments{
 \item{input.chia}{The file containing processed ChIA-PET data.}
 
 \item{input.chrom.state}{The name of the file containing the information about chromatin states.}
-=======
-analyze.chia.pet(input.chia, biosample = NULL, genome.build = NULL,
-  output.dir = "output/", reset.cache = TRUE)
-}
-\arguments{
-\item{input.chia}{The path of the file containing the ChIA-PET data.}
->>>>>>> 0eca4f25f233ad486ade10b9943ede4f990067af
 
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.}
 
@@ -29,16 +22,14 @@ analyze.chia.pet(input.chia, biosample = NULL, genome.build = NULL,
 
 \item{histone.regions}{A data frame containing the histone data.}
 
+\item{tssRegion}{A vector with the region range to TSS.}
+
 \item{output.dir}{The name of the directory where to save the graphs.}
 
-<<<<<<< HEAD
 \item{expression.levels}{A data frame containing the levels of expression of genes. according to their EMSEMBL id.}
 }
 \value{
 The annotated chia.obj.
-=======
-\item{input.chrom.state}{The name of the file containing the information about chromatin states.}
->>>>>>> 0eca4f25f233ad486ade10b9943ede4f990067af
 }
 \description{
 Analyze ChIA-PET data and produce graphs.

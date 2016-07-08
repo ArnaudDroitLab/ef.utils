@@ -149,6 +149,7 @@ select.annotations <- function(genome.build) {
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562.
+#' @param tssRegion A vector with the region range to TSS.
 #' @param output.dir The name of the directory where to write the selected annotations.
 #' @param label The name of the file containing all annotation.
 #'
@@ -156,14 +157,14 @@ select.annotations <- function(genome.build) {
 #'
 #' @export
 annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          biosample = "GM12878", output.dir, label) {
+                          biosample = "GM12878", tssRegion = c(-3000, 3000), output.dir, label) {
   dir.create(output.dir, recursive = TRUE)
   genome.build <- match.arg(genome.build)
 
   # Add an ID to every region.
   chip.data$ID = 1:length(chip.data)
 
-  chip.data <- associate.genomic.region(chip.data, genome.build, output.dir)
+  chip.data <- associate.genomic.region(chip.data, genome.build, tssRegion = tssRegion, output.dir)
 
   if(!is.null(input.chrom.state)) {
     chip.data = associate.chrom.state(chip.data, input.chrom.state)
@@ -197,16 +198,17 @@ annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regi
 #' @param region The regions to annotate.
 #' @param annotations.list A list of annotation databases returned by
 #' \code{\link{select.annotations}}.
+#' @param tssRegion A vector with the region range to TSS.
 #' @param filename The name of the file where the results should be saved.
 #' If \code{NULL}, results are not saved to disk.
 #' @return An annotation object.
 #' @importFrom ChIPseeker annotatePeak
 #' @export
-annotate.region <- function(region, annotations.list, filename=NULL) {
+annotate.region <- function(region, annotations.list, tssRegion = c(-3000, 3000), filename=NULL) {
     tfAnnotation = NULL
     if(length(region) > 0) {
         tfAnnotation <- ChIPseeker::annotatePeak(region,
-                                                 tssRegion=c(-3000, 3000),
+                                                 tssRegion=tssRegion,
                                                  TxDb=annotations.list$TxDb,
                                                  annoDb=annotations.list$OrgDbStr)
 
@@ -274,14 +276,15 @@ associate.histone.marks <- function(regions, histone.regions){
 #'
 #' @param regions A \linkS4class{GRanges} object to annotate.
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
+#' @param tssRegion A vector with the region range to TSS.
 #' @param output.dir The name of the directory where to write the selected annotations.
 #'
 #' @return The \linkS4class{GRanges} object with associated genomic regions.
 #' @importFrom GenomicRanges mcols
-associate.genomic.region <- function(regions, genome.build, output.dir) {
+associate.genomic.region <- function(regions, genome.build, tssRegion = c(-3000, 3000), output.dir) {
   # Annotate with proximity to gene regions
   annotations.list = select.annotations(genome.build)
-  annotations = annotate.region(regions, annotations.list, file.path(output.dir, "CHIA-PET annotation.txt"))
+  annotations = annotate.region(regions, annotations.list, tssRegion = tssRegion, file.path(output.dir, "CHIA-PET annotation.txt"))
   annotations.df = as.data.frame(annotations)
   mcols(regions) = annotations.df[, 6:ncol(annotations.df)]
 

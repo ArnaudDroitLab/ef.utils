@@ -4,7 +4,8 @@
 \alias{associate.genomic.region}
 \title{Associate genomic regions to a \linkS4class{GRanges} object.}
 \usage{
-associate.genomic.region(regions, genome.build, output.dir)
+associate.genomic.region(regions, genome.build, tssRegions = c(-3000, 3000),
+  output.dir)
 }
 \arguments{
 \item{regions}{A \linkS4class{GRanges} object to annotate.}
@@ -12,6 +13,8 @@ associate.genomic.region(regions, genome.build, output.dir)
 \item{genome.build}{The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").}
 
 \item{output.dir}{The name of the directory where to write the selected annotations.}
+
+\item{tssRegion}{A vector with the region range to TSS.}
 }
 \value{
 The \linkS4class{GRanges} object with associated genomic regions.

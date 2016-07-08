@@ -5,7 +5,7 @@
 \title{Import a set of identically structured files.}
 \usage{
 read.identical(file.names, header.columns, data.columns,
-  file.labels = basename(file.names))
+  file.labels = basename(file.names), sep = "\\t", header = TRUE, ...)
 }
 \arguments{
 \item{file.names}{The files to be read.}
