@@ -7,7 +7,8 @@
 analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
   genome.build = NULL, tf.regions = NULL, histone.regions = NULL,
   expression.data = NULL, tssRegion = c(-3000, 3000),
-  output.dir = "output/")
+  output.dir = "output/", split = TRUE,
+  method = igraph::cluster_fast_greedy)
 }
 \arguments{
 \item{input.chia}{The file containing processed ChIA-PET data.}
@@ -25,6 +26,10 @@ analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
 \item{tssRegion}{A vector with the region range to TSS.}
 
 \item{output.dir}{The name of the directory where to save the graphs.}
+
+\item{split}{Should the networks be divided into communities?}
+
+\item{method}{Which function should be used to separate the data into communities?}
 
 \item{expression.levels}{A data frame containing the levels of expression of genes. according to their EMSEMBL id.}
 }

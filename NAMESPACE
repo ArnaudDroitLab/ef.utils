@@ -31,14 +31,10 @@ export(motif.enrichment.genes)
 export(output.annotated.chia)
 export(pairwise.overlap)
 export(plot.intersect.venn)
-<<<<<<< HEAD
-=======
 export(pol2.download.filter.chip)
->>>>>>> Projet_Gaelle
 export(post.processing)
 export(read.identical)
 export(select.annotations)
-export(separate.into.communities)
 import(GenomicRanges)
 import(csaw)
 import(edgeR)

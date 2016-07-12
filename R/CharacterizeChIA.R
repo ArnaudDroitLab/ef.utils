@@ -113,7 +113,6 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
     if(!is.null(histone.regions)) {
         chia.obj$Regions = associate.histone.marks(chia.obj$Regions, histone.regions)
     }
-<<<<<<< HEAD
 
     chia.obj = associate.gene(chia.obj, expression.levels)
 
@@ -269,18 +268,6 @@ associate.tf <- function(chia.obj, tf.regions) {
 
     return(chia.obj)
 }
-=======
->>>>>>> Projet_Gaelle
-
-    chia.obj$Regions = associate.gene(chia.obj$Regions, expression.levels)
-
-    if(genome.build=="hg19" || genome.build=="hg38") {
-        chia.obj$Regions = associate.tissue.specificity.human(chia.obj$Regions)
-        chia.obj$Regions = associate.fitness.genes(chia.obj$Regions)
-    }
-
-    return(chia.obj)
-}
 
 
 #' Perform enrichments by connectivity group.
@@ -384,12 +371,14 @@ contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
 #' @param chia.raw The raw ChIA-PET data, before annotation.
 #' @param output.dir The name of the directory where to save the files.
+#' @param split Should the networks be divided into communities?
+#' @param method Which function should be used to separate the data into communities?
 #'
 #' @importFrom utils write.table
 #' @importFrom igraph components
 #'
 #' @export
-output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
+output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output", split = TRUE, method = igraph::cluster_fast_greedy) {
 
     # Write out annotated interactionsleft.df = as.data.frame(chia.left.merged)
     left.df = as.data.frame(chia.left(chia.obj))
@@ -415,32 +404,48 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
     reorder.components <- components.out$membership[ids$Source]
     ids.components <- cbind(ids, reorder.components)
     colnames(ids.components) <- c(colnames(ids), "Component")
-    dir.create(file.path(output.dir, "Size of 5 nodes and less"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 3 and 5 nodes (incl)"), recursive = TRUE)
     dir.create(file.path(output.dir, "Size between 6 and 20 nodes (incl)"), recursive = TRUE)
     dir.create(file.path(output.dir, "Size between 21 and 50 nodes (incl)"), recursive = TRUE)
     dir.create(file.path(output.dir, "Size between 51 and 100 nodes (incl)"), recursive = TRUE)
     dir.create(file.path(output.dir,"Size over 100 nodes"), recursive = TRUE)
-    for (i in 1:components.out$no){
-      network <- ids[ids.components$Component == i,]
-      if (components.out$csize[i] < 6){
-        dir <- "Size of 5 nodes and less"
-      } else if (components.out$csize[i] < 21){
-        dir <- "Size between 6 and 20 nodes (incl)"
-      } else if (components.out$csize[i] < 51){
-        dir <- "Size between 21 and 50 nodes (incl)"
-      } else if (components.out$csize[i] < 101){
-        dir <- "Size between 51 and 100 nodes (incl)"
-      } else {
-        dir <- "Size over 100 nodes"
-      }
-      write.table(network,
-                  file = file.path(output.dir, dir, paste0("Create network for components ", i, "(", components.out$csize[i], " nodes)", ".csv")),
-                  sep = ",", row.names = FALSE)
-    }
 
     # Export data on nodes
     chia.obj$Regions$Component.Id <- components.out$membership
     chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]
+
+    if (split){
+      new.network <- data.frame()
+      for (i in 1:components.out$no){
+        network <- ids[ids.components$Component == i,]
+        list <- separate.into.communities(network, i, chia.obj, method = method)
+        chia.obj <- list[[1]]
+        new.network <- rbind(new.network, list[[2]])
+      }
+      ids.components <- new.network
+    }
+
+    for (i in unique(ids.components$Component)){
+      network <- ids.components[ids.components$Component == i]
+      size <- nrow(ids.components[ids.components$Component == i,])
+      if (size > 2){
+        if (size < 6){
+          dir <- "Size between 3 and 5 nodes (incl)"
+        } else if (size < 21){
+          dir <- "Size between 6 and 20 nodes (incl)"
+        } else if (size < 51){
+          dir <- "Size between 21 and 50 nodes (incl)"
+        } else if (size < 101){
+          dir <- "Size between 51 and 100 nodes (incl)"
+        } else {
+          dir <- "Size over 100 nodes"
+        }
+        write.table(network,
+                    file = file.path(output.dir, dir, paste0("Create network for components ", i, "(", size, " nodes)", ".csv")),
+                    sep = ",", row.names = FALSE)
+      }
+    }
+
     # Output region annotation.
     annotations.df <- as.data.frame(chia.obj$Regions)
     write.table(cbind(ID = annotations.df$ID, annotations.df[,-6]), file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), sep = "\t", row.names = FALSE, quote = FALSE)
@@ -678,11 +683,14 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param tssRegion A vector with the region range to TSS.
 #' @param output.dir The name of the directory where to save the graphs.
+#' @param split Should the networks be divided into communities?
+#' @param method Which function should be used to separate the data into communities?
 #' @return The annotated chia.obj.
 #' @importFrom Biobase cache
 #' @export
 analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, tf.regions = NULL,
-                             histone.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000), output.dir="output/") {
+                             histone.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000), output.dir="output",
+                             split = TRUE, method = igraph::cluster_fast_greedy) {
     dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
 
     chia.obj = load.chia(input.chia)
@@ -719,10 +727,8 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
                                              output.dir = output.dir), dir=output.dir, prefix="cached_objects")
 
 
-<<<<<<< HEAD
-=======
-    output.annotated.chia(chia.obj, chia.raw, output.dir)
->>>>>>> Projet_Gaelle
+    output.annotated.chia(chia.obj, chia.raw, output.dir, split = split, method = method)
+
 
     analyze.generic.topology(chia.obj, output.dir)
 	analyze.annotation(chia.obj, output.dir)
@@ -848,40 +854,44 @@ boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.o
 #' @param annotated.chia The txt file containing all information about the networks.
 #' @param output.dir The directory where to save the files.
 #' @param method The algorithm to use to divide the graph.
+#' @return A list with two elements: the annotated chia.obj, with changed components ids ans sizes and the new networks.
 #' @importFrom igraph make_graph
-#' @export
-separate.into.communities <- function(network.input, network, annotated.chia, output.dir, method = igraph::cluster_fast_greedy){
+separate.into.communities <- function(network.input, network, chia.obj, output.dir, method = igraph::cluster_fast_greedy){
   # Separate the network into smaller ones
-  network.df <- read.table(network.input, header = TRUE, sep = ",")
-  network.df <- aggregate(Reads~(Source + Target), data = network.df, sum)
-  whole.graph <- make_graph(c(rbind(network.df$Source, network.df$Target)), directed = FALSE)
+  network.input <- aggregate(Reads~(Source + Target), data = network.input, sum)
+  whole.graph <- make_graph(c(rbind(network.input$Source, network.input$Target)), directed = FALSE)
 
   communities <- method(whole.graph, weights = NULL)
-  communities.df <- data.frame(cbind(unique(c(network.df$Source, network.df$Target)),
-                                     communities$membership[unique(c(network.df$Source, network.df$Target))]))
+  communities.df <- data.frame(cbind(unique(c(network.input$Source, network.input$Target)),
+                                     communities$membership[unique(c(network.input$Source, network.input$Target))]))
   colnames(communities.df) <- c("Node.Id", "Group")
   simplify.group.id <- data.frame(Old = unique(communities.df$Group), New = 1:length(unique(communities.df$Group)))
   communities.df$Group <- simplify.group.id$New[match(communities.df$Group, simplify.group.id$Old)]
   communities.df$Size <- 1
   communities.df$Size <- aggregate(Size~Group, data = communities.df, FUN = sum)$Size[communities.df$Group]
 
-  # Change the annotation
-  annotated.chia <- read.csv(annotated.chia, header = TRUE, sep = "\t")
-  annotated.chia$Component.size[annotated.chia$Component.Id == network] <- communities.df[order(communities.df$Node.Id),"Size"]
-  annotated.chia$Component.Id[annotated.chia$Component.Id == network] <-
-    paste0(network, ".", communities.df[order(communities.df$Node.Id),"Group"])
+  # If the network is divided...
+  if (length(unique(communities.df$Group)) > 1){
+    # ...Change the annotation
+    annotated.chia <- chia.obj$Regions@elementMetadata@listData
+    annotated.chia$Component.size[annotated.chia$Component.Id == network] <- communities.df[order(communities.df$Node.Id),"Size"]
+    annotated.chia$Component.Id[annotated.chia$Component.Id == network] <-
+      paste0(network, ".", communities.df[order(communities.df$Node.Id),"Group"])
+    chia.obj$Regions@elementMetadata@listData <- annotated.chia
 
-  # Write the new annotation and the new network tables
-  dir.create(output.dir, recursive = TRUE)
-  write.table(communities.df, file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), sep = "\t", row.names = FALSE)
-  for (group in simplify.group.id$New) {
-    nodes.to.keep <- communities.df$Node.Id[communities.df$Group == group]
-    sub.network.df <- network.df[network.df$Source %in% nodes.to.keep & network.df$Target %in% nodes.to.keep,]
-    file.name <- file.path(output.dir, paste0("Create network for component", network, ".", group, "(",
-                                              communities.df$Size[communities.df$Group == group][1], " nodes).csv"))
-    write.table(sub.network.df, file = file.name, sep = ",", row.names = FALSE)
+    # ...Write the new annotation and the new network tables
+    network.output <- data.frame()
+    for (group in simplify.group.id$New) {
+      nodes.to.keep <- communities.df$Node.Id[communities.df$Group == group]
+      sub.network.df <- network.input[network.input$Source %in% nodes.to.keep & network.input$Target %in% nodes.to.keep,]
+      sub.network.df$Component <- paste0(network, ".", group)
+      network.output <- rbind(network.output, sub.network.df)
+    }
+
+  } else {
+    network.output <- cbind(network.input, Component = network)
   }
-  return(paste0(group, " sub-networks were found."))
+  return(list(chia.obj, network.output))
 }
 
 # analyze.chia.pet(input.chia="input/ChIA-PET/GSM1872887_GM12878_RNAPII_PET_clusters.txt",

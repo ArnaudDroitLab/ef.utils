@@ -4,7 +4,7 @@
 \alias{separate.into.communities}
 \title{Separetes a large networks into communities and saves the sub-netwoks in cytoscape-friendly format}
 \usage{
-separate.into.communities(network.input, network, annotated.chia, output.dir,
+separate.into.communities(network.input, network, chia.obj, output.dir,
   method = igraph::cluster_fast_greedy)
 }
 \arguments{
@@ -12,11 +12,14 @@ separate.into.communities(network.input, network, annotated.chia, output.dir,
 
 \item{network}{The id of the network.}
 
-\item{annotated.chia}{The txt file containing all information about the networks.}
-
 \item{output.dir}{The directory where to save the files.}
 
 \item{method}{The algorithm to use to divide the graph.}
+
+\item{annotated.chia}{The txt file containing all information about the networks.}
+}
+\value{
+A list with two elements: the annotated chia.obj, with changed components ids ans sizes and the new networks.
 }
 \description{
 Separetes a large networks into communities and saves the sub-netwoks in cytoscape-friendly format

@@ -6,7 +6,7 @@
 \usage{
 annotate.chip(chip.data, input.chrom.state, tf.regions, histone.regions,
   expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-  biosample = "GM12878", tssRegions = c(-3000, 3000), output.dir, label)
+  biosample = "GM12878", tssRegion = c(-3000, 3000), output.dir, label)
 }
 \arguments{
 \item{chip.data}{A \linkS4class{GRanges} object containing the ChIp-seq data.}
@@ -24,11 +24,11 @@ annotate.chip(chip.data, input.chrom.state, tf.regions, histone.regions,
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are
 GM12878, K562.}
 
+\item{tssRegion}{A vector with the region range to TSS.}
+
 \item{output.dir}{The name of the directory where to write the selected annotations.}
 
 \item{label}{The name of the file containing all annotation.}
-
-\item{tssRegion}{A vector with the region range to TSS.}
 }
 \value{
 The annotated "\code{chip.data}".

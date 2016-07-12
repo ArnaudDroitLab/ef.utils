@@ -7,11 +7,7 @@
 download.encode.chip(biosample, assembly,
   download.filter = default.download.filter.chip,
   download.dir = file.path("input/ENCODE", biosample, "chip-seq"),
-<<<<<<< HEAD
-  signal.value = FALSE)
-=======
   keep.signal = FALSE)
->>>>>>> Projet_Gaelle
 }
 \arguments{
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are

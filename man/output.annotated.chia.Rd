@@ -4,7 +4,8 @@
 \alias{output.annotated.chia}
 \title{Save annotated ChIA-PET data.}
 \usage{
-output.annotated.chia(chia.obj, chia.raw, output.dir = "output")
+output.annotated.chia(chia.obj, chia.raw, output.dir = "output",
+  split = TRUE, method = igraph::cluster_fast_greedy)
 }
 \arguments{
 \item{chia.obj}{A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.}
@@ -12,6 +13,10 @@ output.annotated.chia(chia.obj, chia.raw, output.dir = "output")
 \item{chia.raw}{The raw ChIA-PET data, before annotation.}
 
 \item{output.dir}{The name of the directory where to save the files.}
+
+\item{split}{Should the networks be divided into communities?}
+
+\item{method}{Which function should be used to separate the data into communities?}
 }
 \description{
 Writes files: \itemize{
