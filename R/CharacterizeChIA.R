@@ -75,11 +75,12 @@ load.chia <- function(input.chia) {
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param tf.regions A data frame containing the TF data.
+#' @param histone.regions A data frame containing the histone data.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562.
-#' @param histone Should the overlap percentage of histone marks be added?
+#' @param tssRegion A vector with the region range to TSS.
 #' @param output.dir The name of the directory where to write the selected annotations.
 #'
 #' @return The annotated "\code{chia.obj}".
@@ -88,7 +89,8 @@ load.chia <- function(input.chia) {
 #'
 #' @export
 annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          biosample = "GM12878", histone = FALSE, output.dir) {
+                          biosample = "GM12878", tssRegion, output.dir) {
+    dir.create(output.dir, recursive = TRUE)
     single.set = chia.obj$Regions
     genome.build <- match.arg(genome.build)
 
@@ -98,19 +100,20 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
     # Add degree count to chia.obj$Regions
     chia.obj$Regions$Degree = degree(chia.obj$Graph)
 
-    chia.obj <- associate.genomic.region(chia.obj, genome.build, output.dir)
+    chia.obj$Regions <- associate.genomic.region(chia.obj$Regions, genome.build, tssRegion = tssRegion, output.dir)
 
     if(!is.null(input.chrom.state)) {
-        chia.obj = associate.chrom.state(chia.obj, input.chrom.state)
+        chia.obj$Regions = associate.chrom.state(chia.obj$Regions, input.chrom.state)
     }
 
     if(!is.null(tf.regions)) {
-        chia.obj = associate.tf(chia.obj, tf.regions)
+        chia.obj$Regions = associate.tf(chia.obj$Regions, tf.regions)
     }
 
     if(!is.null(histone.regions)) {
-        chia.obj = associate.histone.marks(chia.obj, histone.regions)
+        chia.obj$Regions = associate.histone.marks(chia.obj$Regions, histone.regions)
     }
+<<<<<<< HEAD
 
     chia.obj = associate.gene(chia.obj, expression.levels)
 
@@ -266,46 +269,17 @@ associate.tf <- function(chia.obj, tf.regions) {
 
     return(chia.obj)
 }
+=======
+>>>>>>> Projet_Gaelle
 
+    chia.obj$Regions = associate.gene(chia.obj$Regions, expression.levels)
 
-#' Associate tissue specificity of genes with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return "\code{chia.obj}" with associated tissue scpecificity.
-associate.tissue.specificity.human <- function(chia.obj) {
-
-    # Annotate chia.obj$Regions with Tau, Expression category.
-    calculate.tau <- function(x) {
-        return(sum(1 - (x/max(x))) / (length(x) - 1))
+    if(genome.build=="hg19" || genome.build=="hg38") {
+        chia.obj$Regions = associate.tissue.specificity.human(chia.obj$Regions)
+        chia.obj$Regions = associate.fitness.genes(chia.obj$Regions)
     }
-    tissue.expression$Tau = apply(tissue.expression[,c(-1, -ncol(tissue.expression))], 1, calculate.tau)
-
-    tissue.match = match(chia.obj$Regions$ENSEMBL, tissue.expression$Ensembl.gene.id)
-    chia.obj$Regions$Expression.Category = factor(tissue.expression$Category[tissue.match],
-                                            levels=c("Not detected",
-                                                    "Mixed low", "Mixed high",
-                                                    "Moderately tissue enriched", "Highly tissue enriched", "Group enriched",
-                                                    "Expressed in all low", "Expressed in all high"))
-
-    chia.obj$Regions$Expression.Tau = tissue.expression$Tau[tissue.match]
 
     return(chia.obj)
-}
-
-#' Identify essential genes of the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return "\code{chia.obj}" with identified essential genes.
-associate.fitness.genes <- function(chia.obj){
-
-  # Add the "essential ratio" to the data
-  fitness.match <- match(chia.obj$Regions$SYMBOL, essential.genes$Gene)
-  chia.obj$Regions$Fitness <- essential.genes$numTKOHits[fitness.match]
-  chia.obj$Regions$Fitness <- ifelse(is.na(chia.obj$Regions$Fitness), 0, (chia.obj$Regions$Fitness / 6))
-
-  return(chia.obj)
 }
 
 
@@ -408,13 +382,14 @@ contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
 #'        \item{$Componend.Size} {Number of nodes of the component in which the node is found.}}}
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param chia.raw The raw ChIA-PET data, before annotation.
 #' @param output.dir The name of the directory where to save the files.
 #'
 #' @importFrom utils write.table
 #' @importFrom igraph components
 #'
 #' @export
-output.annotated.chia <- function(chia.obj, output.dir="output") {
+output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
 
     # Write out annotated interactionsleft.df = as.data.frame(chia.left.merged)
     left.df = as.data.frame(chia.left(chia.obj))
@@ -428,23 +403,23 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
     # Output Cytoscape components
 
     # Generate components
-    component.out <- components(chia.obj$Graph)
+    components.out <- components(chia.obj$Graph)
 
     # Create interactions table
-    ids <- data.frame(left.df$ID, right.df$ID, chia.raw[,7])
+    ids <- data.frame(left.df$Left.ID, right.df$Right.ID, chia.raw[,7])
     colnames(ids) <- c("Source", "Target", "Reads")
-    dir.create(output, recursive = TRUE)
-    write.table(ids, file = paste0(file.path, "all.csv"), sep=",", row.names = FALSE)
+    dir.create(output.dir, recursive = TRUE)
+    write.table(ids, file = file.path(output.dir, "all.csv"), sep=",", row.names = FALSE)
 
     # Export networks in csv files
     reorder.components <- components.out$membership[ids$Source]
     ids.components <- cbind(ids, reorder.components)
     colnames(ids.components) <- c(colnames(ids), "Component")
-    dir.create(file.path(output, "Size of 5 nodes and less"), recursive = TRUE)
-    dir.create(file.path(output, "Size between 6 and 20 nodes (incl)"), recursive = TRUE)
-    dir.create(file.path(output, "Size between 21 and 50 nodes (incl)"), recursive = TRUE)
-    dir.create(file.path(output, "Size between 51 and 100 nodes (incl)"), recursive = TRUE)
-    dir.create(file.path(output,"Size over 100 nodes"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size of 5 nodes and less"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 6 and 20 nodes (incl)"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 21 and 50 nodes (incl)"), recursive = TRUE)
+    dir.create(file.path(output.dir, "Size between 51 and 100 nodes (incl)"), recursive = TRUE)
+    dir.create(file.path(output.dir,"Size over 100 nodes"), recursive = TRUE)
     for (i in 1:components.out$no){
       network <- ids[ids.components$Component == i,]
       if (components.out$csize[i] < 6){
@@ -467,7 +442,8 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
     chia.obj$Regions$Component.Id <- components.out$membership
     chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]
     # Output region annotation.
-    write.table(as.data.frame(chia.obj$Regions), file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), sep = "\t", row.names = FALSE, quote = FALSE)
+    annotations.df <- as.data.frame(chia.obj$Regions)
+    write.table(cbind(ID = annotations.df$ID, annotations.df[,-6]), file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), sep = "\t", row.names = FALSE, quote = FALSE)
 
 }
 
@@ -693,26 +669,36 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
 
 #' Analyze ChIA-PET data and produce graphs.
 #'
-#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}
+#' @param input.chia The file containing processed ChIA-PET data.
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
 #' @param genome.build The name of the chosen annotation ("hg38", "hg19").
+#' @param tf.regions A data frame containing the TF data.
+#' @param histone.regions A data frame containing the histone data.
+#' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
+#' @param tssRegion A vector with the region range to TSS.
 #' @param output.dir The name of the directory where to save the graphs.
+#' @return The annotated chia.obj.
 #' @importFrom Biobase cache
 #' @export
-analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, output.dir="output/") {
+analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, tf.regions = NULL,
+                             histone.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000), output.dir="output/") {
     dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
 
     chia.obj = load.chia(input.chia)
+    chia.raw = read.table(input.chia)
 
-    tf.regions = NULL
-    histone.regions = NULL
-    expression.data = NULL
     if(!is.null(biosample) && !is.null(genome.build)) {
-        tf.regions = download.encode.chip(biosample, genome.build)$Regions
-        histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip)$Regions
-
-        expression.data = download.encode.rna(biosample, genome.build)$Expression
+      if (is.null(tf.regions)){
+        cache(tf.regions <- download.encode.chip(biosample, genome.build)$Regions, dir=output.dir, prefix="cached_objects")
+      }
+      if (is.null(histone.regions)){
+        cache(histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip)$Regions,
+              dir=output.dir, prefix="cached_objects")
+      }
+      if (is.null(expression.data)){
+        cache(expression.data <- download.encode.rna(biosample, genome.build)$Expression, dir=output.dir, prefix="cached_objects")
+      }
         expression.data$ENSEMBL = gsub("\\.\\d+$", "", expression.data$gene_id)
         expression.data$FPKM = log2(expression.data$Mean.FPKM + 1)
     }
@@ -729,10 +715,14 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
                                              expression.levels=expression.data,
                                              genome.build = genome.build,
                                              biosample=biosample,
-                                             histone=TRUE,
+                                             tssRegion = tssRegion,
                                              output.dir = output.dir), dir=output.dir, prefix="cached_objects")
 
 
+<<<<<<< HEAD
+=======
+    output.annotated.chia(chia.obj, chia.raw, output.dir)
+>>>>>>> Projet_Gaelle
 
     analyze.generic.topology(chia.obj, output.dir)
 	analyze.annotation(chia.obj, output.dir)
@@ -753,6 +743,102 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
         analyze.gene.specificity(chia.obj, output.dir)
     }
 
+	return(chia.obj)
+}
+
+#' Produces boxplots for every transcription factor, in relation to its 3D connectivity
+#' For every transcription factor in the ChIP data, creates a boxplot of the force of the ChIP-seq signal
+#' in function of the contact frequence of the region.
+#'
+#' @param chip.data A \links4class{GRangesList} containing the regions of the ChIp-seq data, with signal values.
+#' @param hist.data A \links4class{GRangesList} containing the regions of the ChIP-seq data of histone marks.
+#' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
+#' @param genome.build The name of the chosen annotation ("hg38", "hg19").
+#' @param chia.obj Annotated ChIA-PET data, as returned by \link{analyze.chia.pet} or \linl{annotate.chia}.
+#' @param output.dir The directory where to write the boxplots.
+#' @param TSS Should only the TSS regions be kept?
+#' @param tssRegion tssRegion A vector with the region range to TSS.
+#'
+#' @importFrom ggplot2 ggplot
+#' @importFrom ggplot2 geom_boxplot
+#' @importFrom ggplot2 geom_bar
+#' @importFrom ggplot2 ylab
+#' @importFrom ggplot2 xlab
+#' @importFrom ggplot2 ggtitle
+#' @importFrom ggplot2 ggsave
+#' @importFrom cowplot plot_grid
+#' @importFrom GenomicRanges flank
+#' @importFrom GenomicFeatures genes
+#' @export
+boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.obj, output.dir, TSS = TRUE, tssRegion = c(-3000, 3000)) {
+
+  # Extract ChIA-PET regions
+  chia.data <- chia.obj$Regions
+
+  # Exctract all TF
+  TxDb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+  tss.regions <- genes(TxDb)
+  tss.regions <- promoters(tss.regions, 3000, 3000)
+
+
+  # Function to create boxplot with histogram
+  create.boxplot <- function(chip.data, chia.data, label, label.x, label.y, output.dir, tss.regions, TSS=TRUE){
+    if (TSS){
+      chip.data <- chip.data[chip.data@elementMetadata@listData$distanceToTSS == 0]
+      chia.data <- chia.data[chia.data$distanceToTSS == 0]
+    }
+    indices <- GenomicRanges::findOverlaps(chip.data, chia.data)
+    if (length(indices) != 0) {
+
+      signal.degree.df <- data.frame(Signal = log2(chip.data@elementMetadata@listData$signalValue[indices@from]),
+                                     Degree = chia.data$Degree[indices@to])
+      signal.degree.df$CutDegree <- cut(signal.degree.df$Degree, breaks = c(1, 5, 10, 20, 40, Inf), right = FALSE)
+      if (length(chip.data@elementMetadata@listData$signalValue[-indices@from]) != 0){
+        signal.degree.df <- rbind(data.frame(Signal = log2(chip.data@elementMetadata@listData$signalValue[-indices@from]),
+                                             Degree = 0, CutDegree = "0"), signal.degree.df)
+      }
+      box <- ggplot(signal.degree.df) + geom_boxplot(aes(CutDegree, Signal)) + ylab(label.y) + xlab(label.x) + ggtitle(label)
+
+
+      if (TSS) {
+        tss.indices <- findOverlaps(tss.regions, chia.data)
+        tss.degree.df <- data.frame(Region = tss.indices@from, Degree = chia.data$Degree[tss.indices@to])
+        tss.degree.df$CutDegree <- cut(tss.degree.df$Degree, breaks = c(1, 5, 10, 20, 40, Inf), right = FALSE)
+        if (length(chip.data@elementMetadata@listData$signalValue[-indices@from]) != 0){
+          tss.degree.df <- rbind(data.frame(Region = c(1:length(tss.regions))[-tss.indices@from],
+                                            Degree = 0, CutDegree = "0"), tss.degree.df)
+        }
+
+        mapping.df <- data.frame(x.pos = levels(tss.degree.df$CutDegree), y.pos = as.vector(table(signal.degree.df$CutDegree)),
+                                 label = paste0(round(as.vector(table(signal.degree.df$CutDegree) / table(tss.degree.df$CutDegree))*100, digits = 1), "%"))
+        hist <- ggplot() +
+          geom_bar(aes(CutDegree), data = tss.degree.df, fill = "light blue") +
+          geom_bar(aes(CutDegree), data = signal.degree.df) +
+          geom_text(data = mapping.df, aes(x = x.pos, y = y.pos, label = label), vjust = -1) +
+          xlab(label.x) +
+          ggtitle(paste("Histogram of ", label.x))
+
+
+      } else {
+        hist <- ggplot(signal.degree.df) + geom_bar(aes(CutDegree)) + xlab(label.x) + ggtitle(paste("Histogram of ", label.x))
+      }
+
+      plot_grid(box, hist, nrow = 2, align = "v")
+      ggsave(file.path(output.dir, label), height = 14, width = 7)
+    }
+  }
+
+  # Create plot for every TF
+  dir.create(file.path(output.dir, biosample), recursive = TRUE)
+  for (tf in names(chip.data)){
+    cat("Factor : ", tf, "\n")
+    chip.subset <- chip.data[tf][[1]]
+    chip.subset <- annotate.chip(chip.subset, input.chrom.state = NULL, tf.regions = NULL, histone.regions = hist.data$Regions,
+                                 genome.build = genome.build, biosample = biosample, output.dir = "output/annotations", tssRegion = tssRegion)
+    create.boxplot(chip.subset, chia.data,
+                   paste0("Boxplot of log2(Signal) in fct of Degree of ", tf ," at TSS.pdf"),
+                   "Contact frequency at TSS", "log2(Signal)", file.path(output.dir, biosample), tss.regions, TSS = TSS)
+  }
 }
 
 #' Separetes a large networks into communities and saves the sub-netwoks in cytoscape-friendly format

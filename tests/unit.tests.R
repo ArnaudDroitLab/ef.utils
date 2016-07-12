@@ -375,7 +375,7 @@ intersect.overlap.test <- intersect.overlap(intersect.test)
 ####################################
 # General tests
       download.encode.rna.test <- download.encode.rna("MCF-7", "hg19")
-      test_that("download.encode.rna_values", expect_equal(0, sum(apply(download.encode.rna.test, 1, sum))))
+      test_that("download.encode.rna_values", expect_false(0 == sum(apply(download.encode.rna.test, 1, sum))))
 
 # Specific tests
 

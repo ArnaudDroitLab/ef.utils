@@ -82,6 +82,7 @@ intersect.overlap <- function(intersect.object, indices=NULL, names=NULL, exclus
 #'
 #' @param grl The \linkS4class{GRangesList} object whose elements need to be overlapped with
 #' each others.
+#' @param keep.signal Should the values of signal be kept?
 #' @return A list with the following elements: \describe{
 #'   \item{Regions} {A \linkS4class{GRanges} object with all genomic ranges occupied by at least one item.
 #'   All ranges are "flattened", so if two of the initial ranges overlapped each other
@@ -98,9 +99,10 @@ intersect.overlap <- function(intersect.object, indices=NULL, names=NULL, exclus
 #'   \item{Length} {The number of items in the initial \linkS4class{GRangesList}, corresponding to the number of columns in \code{Matrix}
 #'   and the number of elements in \code{List}}.}
 #' @importFrom GenomicRanges reduce
-#' @importFrom GenomicRanges countOverlaps
+#' @importFrom GenomicRanges mcols
+#' @importMethodsFrom GenomicRanges countOverlaps findOverlaps
 #' @export
-build.intersect <- function(grl) {
+build.intersect <- function(grl, keep.signal = FALSE) {
     # Flatten the GRangesList so we can get a list of all possible regions.
     #all.regions = biovizBase::flatGrl(GenomicRanges::reduce(unlist(grl)))
     all.regions = GenomicRanges::reduce(unlist(grl))
@@ -109,12 +111,30 @@ build.intersect <- function(grl) {
     overlap.matrix <- matrix(0, nrow=length(all.regions), ncol=length(grl))
     overlap.list = list()
 
+    if (keep.signal){
+      signal.df <- data.frame(matrix(nrow = length(all.regions), ncol = length(grl)))
+      colnames(signal.df) <- paste0("signal.", names(grl))
+    }
+
     # Loop over all ranges, intersecting them with the flattened list of all possible regions.
     for(i in 1:length(grl)) {
         overlap.matrix[,i] <- GenomicRanges::countOverlaps(all.regions, grl[[i]], type="any")
         overlap.list[[ names(grl)[i] ]] <- which(overlap.matrix[,i] != 0)
+
+        if (keep.signal){
+          indices <- findOverlaps(all.regions, grl[[i]])
+          signal.values.df <- data.frame(from = indices@from, signal = grl[[i]]@elementMetadata@listData$signalValue[indices@to])
+          if (nrow(signal.values.df) != 0 & sum(!is.na(signal.values.df$signal)) != 0){
+            signal.values.df <- aggregate(signal~from, data = signal.values.df, FUN = mean, na.rm = TRUE)
+            signal.df[signal.values.df$from, i] <- signal.values.df$signal
+          }
+
+        }
+
     }
     colnames(overlap.matrix) <-  names(grl)
+
+    if (keep.signal) mcols(all.regions) <- signal.df
 
     return(list(Regions = all.regions, Matrix=overlap.matrix, List=overlap.list, Names=colnames(overlap.matrix), Length=ncol(overlap.matrix)))
 }

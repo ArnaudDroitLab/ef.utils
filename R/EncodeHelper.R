@@ -14,13 +14,13 @@ import.chrom.states <- function(biosample, download.dir){
     if(length(number) > 1) {
         warning("biosample is ambiguous: the first matchign entry will be used.")
     }
-    
+
     if(length(number) > 0) {
         base.url.18 = "http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/core_K27ac/jointModel/final/"
         base.url.15 = "http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/"
         file.18 = paste0(number, "_18_core_K27ac_mnemonics.bed.gz")
         file.15 = paste0(number, "_15_coreMarks_mnemonics.bed.gz")
-        
+
         url.18 <- paste0(base.url.18, file.18)
         url.15 <- paste0(base.url.15, file.15)
 
@@ -32,11 +32,11 @@ import.chrom.states <- function(biosample, download.dir){
             downloaded.file = url.15
         } else {
             warning("No chromatin state segmentation were found for the given biosample.")
-            return(NULL)        
+            return(NULL)
         }
-        
+
         system(paste0("gzip -d -k ", download.dir, "/*.gz"))
-        
+
         return (file.path(download.dir, downloaded.file))
     } else {
         warning("No ENCODE tissue match the given biosample.")
@@ -54,7 +54,7 @@ import.chrom.states <- function(biosample, download.dir){
 #'     the ENCODE results are kept and the original ones discarded.}
 #'
 #' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
-#'   function.The biosample identifier from ENCODE. Valid examples are
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
 #' @param genome.assembly Which genome assembly should the results come from?
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
@@ -86,7 +86,7 @@ default.download.filter.chip <- function(query.results, genome.assembly) {
 #'     the ENCODE results are kept and the original ones discarded.}
 #'
 #' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
-#'   function.The biosample identifier from ENCODE. Valid examples are
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
 #' @param genome.assembly Which genome assembly should the results come from?
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
@@ -109,6 +109,39 @@ histone.download.filter.chip <- function(query.results, genome.assembly) {
   return(filtered.results)
 }
 
+#' Alternative filtering function for \code{\link{download.encode.chip}}.
+#'
+#' The filtering function does three things: \enumerate{
+#'   \item It removes all files which do not have the correct genome assembly.
+#'   \item It removes all marks chips, except Pol II marks chips.
+#'   \item If the provided results have been re-analyzed by the ENCODE Consortium,
+#'     the ENCODE results are kept and the original ones discarded.}
+#'
+#' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @return A filtered \code{data frame}.
+#' @importFrom plyr ddply
+#' @export
+pol2.download.filter.chip <- function(query.results, genome.assembly) {
+  filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
+    x = subset(x, assembly==genome.assembly)
+
+    if(!grepl("^POL", x$target[1])) {
+      return(NULL)
+    }
+
+    if(sum(x$lab=="ENCODE Consortium Analysis Working Group") > 0) {
+      return(subset(x, lab=="ENCODE Consortium Analysis Working Group"))
+    } else {
+      return(x)
+    }
+  }, genome.assembly=genome.assembly)
+
+  return(filtered.results)
+
+}
+
 #' Default filtering function for \code{\link{download.encode.rna}}.
 #'
 #' The filtering function does three things: \enumerate{
@@ -117,7 +150,7 @@ histone.download.filter.chip <- function(query.results, genome.assembly) {
 #'   \item If removes any file where treatment is not NA.}
 #'
 #' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
-#'   function.The biosample identifier from ENCODE. Valid examples are
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
 #' @param genome.assembly Which genome assembly should the results come from?
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
@@ -128,6 +161,27 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
     }, genome.assembly=genome.assembly)
 
     return(filtered.results)
+}
+
+#' Alternative filtering function for \code{\link{download.encode.rna}}.
+#'
+#' The filtering function does three things: \enumerate{
+#'   \item It removes all files which do not have the correct genome assembly.
+#'   \item It only keeps files with counts for isoforms, not transcripts or genes.
+#'   \item If removes any file where treatment is not NA.}
+#'
+#' @param query.results A partial \code{data.frame} obtained from the \code{\link[ENCODExplorer]{queryEncode}}
+#'   function.The biosample identifier from ENCODE. Valid examples are GM12878, K562.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @return A filtered \code{data frame}.
+#' @importFrom plyr ddply
+#' @export
+isoform.download.filter.rna <- function(query.results, genome.assembly) {
+  filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
+    return(subset(x, grepl("isoform", x$submitted_file_name) & assembly==genome.assembly & is.na(treatment)))
+  }, genome.assembly=genome.assembly)
+
+  return(filtered.results)
 }
 
 #' Obtains and process transcription factor data from ENCODE.
@@ -143,7 +197,7 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
 #'   \code{data-frame} containing only the files which should be downloaded.
 #' @param download.dir The folder where the downloaded files should be stored.
 #'   defaults to \code{file.path("input/ENCODE", biosample, "chip-seq")}.
-#' @param signal.value Should the signalValue from the ChIP-seq be kept?
+#' @param keep.signal Should the signalValue from the ChIP-seq be kept?
 #' @return A list containing three elements: \describe{
 #'   \item{Metadata} {The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
 #'     about all files which matched the query.}
@@ -152,50 +206,62 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
 #' @importFrom ENCODExplorer queryEncode
 #' @importFrom ENCODExplorer downloadEncode
 #' @importFrom GenomicRanges GRangesList
+#' @importFrom GenomicRanges mcols
 #' @importFrom stats aggregate
 #' @importMethodsFrom GenomicRanges findOverlaps
 #' @export
 download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter.chip,
-                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq"), signal.value = FALSE) {
+                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq"), keep.signal = FALSE) {
     # Query ENCODE to obtain appropriate files.
     query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", status="released")
 
     # Filter the ENCODE files using the supplied functions.  Only download relevant files.
     query.results$experiment = download.filter(query.results$experiment, assembly)
     dir.create(download.dir, recursive=TRUE, showWarnings=FALSE)
-    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results, resultOrigin="queryEncode", dir=download.dir, force=FALSE)
+
+    # Separate narrow and broad peaks
+    narrow.dir = file.path(download.dir, "narrow")
+    broad.dir = file.path(download.dir, "broad")
+    dir.create(narrow.dir, recursive = TRUE)
+    dir.create(broad.dir, recursive = TRUE)
+    query.results.narrow = query.results
+    query.results.narrow$experiment = query.results$experiment[query.results$experiment$file_format_type == "narrowPeak",]
+    query.results.broad = query.results
+    query.results.broad$experiment = query.results$experiment[query.results$experiment$file_format_type == "broadPeak",]
+
+    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.narrow, resultOrigin="queryEncode", dir=narrow.dir, force=FALSE)
+    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.broad, resultOrigin="queryEncode", dir=broad.dir, force=FALSE)
 
     # Unzip the files. Use gzip -d since on windows, gunzip is not installed by default.
-    # Also, use -k to keep the original file so that future calls to downloadEncode will not
-    # redownload the files.
-    system(paste0("gzip -d -k ", download.dir, "/*.gz"))
+    system(paste0("gzip -d -k ", narrow.dir, "/*.gz"))
+    system(paste0("gzip -d -k ", broad.dir, "/*.gz"))
 
     # Write the metadata about the downloaded files.
     write.table(query.results$experiment, file=file.path(download.dir, "metadata.txt"))
 
     # Import the downloaded files.
-    all.gr = import.into.grl(download.dir, file.format="narrow", file.ext="bed", discard.metadata=(!signal.value), dir.type="plain")
+    narrow.gr = import.into.grl(narrow.dir, file.format="narrow", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
+    broad.gr = import.into.grl(broad.dir, file.format="broad", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
+    narrow.gr@unlistData@elementMetadata@listData$peak <- NULL
+    all.gr = c(narrow.gr, broad.gr)
 
     # Combine biological/technical replicates using consensus regions.
     accession.replicates = GenomicRanges::GRangesList(plyr::dlply(query.results$experiment, ~accession, function(x) {
         gr.subset = all.gr[names(all.gr) %in% x$file_accession]
-        return(unlist(intersect.overlap(build.intersect(gr.subset))))
+        overlap.results = intersect.overlap(build.intersect(gr.subset, keep.signal = keep.signal))
+        mcols(overlap.results) <- rowMeans(as.data.frame(mcols(overlap.results)), na.rm = TRUE)
+        names(mcols(overlap.results)) <- "signalValue"
+        return(unlist(overlap.results))
     }))
 
     # Combine all same-target replicates using consensus regions.
     target.replicates = GenomicRanges::GRangesList(plyr::dlply(query.results$experiment, ~target, function(x) {
         gr.subset = accession.replicates[names(accession.replicates) %in% x$accession]
-        return(intersect.overlap(build.intersect(gr.subset)))
+        overlap.results = intersect.overlap(build.intersect(gr.subset, keep.signal = keep.signal))
+        mcols(overlap.results) <- rowMeans(as.data.frame(mcols(overlap.results)), na.rm = TRUE)
+        names(mcols(overlap.results)) <- "signalValue"
+        return(overlap.results)
     }))
-
-    if(signal.value){
-        indices <- findOverlaps(unlist(target.replicates), unlist(all.gr))
-        signal.value.df <- cbind(indices@from, all.gr@unlistData@elementMetadata@listData$signalValue[indices@to])
-        signal.value.sum.df <- aggregate(signal.value.df, list(signal.value.df[,1]), sum, na.rm = TRUE)
-        signal.value.mean.df <- aggregate(signal.value.df, list(signal.value.df[,1]), mean, na.rm = TRUE)
-        target.replicates@unlistData@elementMetadata@listData$SignalValueSum <- signal.value.sum.df[,3]
-        target.replicates@unlistData@elementMetadata@listData$SignalValueMean <- signal.value.mean.df[,3]
-    }
 
 
     return(list(Metadata=query.results$experiment,

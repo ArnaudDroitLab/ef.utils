@@ -139,6 +139,57 @@ select.annotations <- function(genome.build) {
     stop("ERROR: Cannot be reached!")
 }
 
+#' Annotate "chip.data", given as parameter.
+#'
+#' @param chip.data A \linkS4class{GRanges} object containing the ChIp-seq data.
+#' @param input.chrom.state The name of the file containing the information about chromatin states.
+#' @param tf.regions A data frame containing the TF data.
+#' @param histone.regions A data frame containing the histone data.
+#' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
+#' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562.
+#' @param tssRegion A vector with the region range to TSS.
+#' @param output.dir The name of the directory where to write the selected annotations.
+#' @param label The name of the file containing all annotation.
+#'
+#' @return The annotated "\code{chip.data}".
+#'
+#' @export
+annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
+                          biosample = "GM12878", tssRegion = c(-3000, 3000), output.dir, label) {
+  dir.create(output.dir, recursive = TRUE)
+  genome.build <- match.arg(genome.build)
+
+  # Add an ID to every region.
+  chip.data$ID = 1:length(chip.data)
+
+  chip.data <- associate.genomic.region(chip.data, genome.build, tssRegion = tssRegion, output.dir)
+
+  if(!is.null(input.chrom.state)) {
+    chip.data = associate.chrom.state(chip.data, input.chrom.state)
+  }
+
+  if(!is.null(tf.regions)) {
+    chip.data = associate.tf(chip.data, tf.regions)
+  }
+
+  if(!is.null(histone.regions)) {
+    chip.data = associate.histone.marks(chip.data, histone.regions)
+  }
+
+  chip.data = associate.gene.chip(chip.data, expression.data=NULL, biosample, genome.build)
+
+  if(genome.build=="hg19" || genome.build=="hg38") {
+    chip.data = associate.tissue.specificity.human(chip.data)
+    chip.data = associate.fitness.genes(chip.data)
+  }
+
+  write.table(chip.data, file.path(output.dir, label), sep = "\t", row.names = FALSE)
+
+  return(chip.data)
+}
+
 #' Annotates a set of regions with genomic features.
 #'
 #' Given a genome build identifier, creates a list of annotation databases
@@ -147,16 +198,17 @@ select.annotations <- function(genome.build) {
 #' @param region The regions to annotate.
 #' @param annotations.list A list of annotation databases returned by
 #' \code{\link{select.annotations}}.
+#' @param tssRegion A vector with the region range to TSS.
 #' @param filename The name of the file where the results should be saved.
 #' If \code{NULL}, results are not saved to disk.
 #' @return An annotation object.
 #' @importFrom ChIPseeker annotatePeak
 #' @export
-annotate.region <- function(region, annotations.list, filename=NULL) {
+annotate.region <- function(region, annotations.list, tssRegion = c(-3000, 3000), filename=NULL) {
     tfAnnotation = NULL
     if(length(region) > 0) {
         tfAnnotation <- ChIPseeker::annotatePeak(region,
-                                                 tssRegion=c(-3000, 3000),
+                                                 tssRegion=tssRegion,
                                                  TxDb=annotations.list$TxDb,
                                                  annoDb=annotations.list$OrgDbStr)
 
@@ -167,6 +219,254 @@ annotate.region <- function(region, annotations.list, filename=NULL) {
         }
     }
     return(tfAnnotation)
+}
+
+#' Associate histone marks to a \linkS4class{GRanges} object.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#'
+#' @return The \linkS4class{GRanges} object with associated histone overlap percentage.
+#' @importMethodsFrom GenomicRanges findOverlaps range
+#' @importMethodsFrom BSgenome width
+#' @importFrom stats aggregate
+#' @importFrom GenomicRanges reduce
+#' @importFrom GenomicRanges mcols
+associate.histone.marks <- function(regions, histone.regions){
+  all.columns <- data.frame(matrix(nrow = length(regions@seqnames), ncol = length(names(histone.regions))))
+  column = 1
+  for (hist.mark in names(histone.regions)) {
+    histone.regions.subset <- reduce(histone.regions[hist.mark])
+    # find overlaps
+    overlap.index <- findOverlaps(regions, unlist(histone.regions.subset))
+
+    if (length(overlap.index@to) != 0){
+      # to get the overlap length
+      overlap.length <- width(ranges(overlap.index, ranges(regions), ranges(unlist(histone.regions.subset))))
+
+      # correspondances between idexes from regions and the lengths
+      overlap.length.df <- data.frame(index=overlap.index@from, length=overlap.length)
+      # addition of the rows with repeated indices
+      overlap.length.df <- aggregate(overlap.length.df$length, list(overlap.length.df$index), sum)
+      colnames(overlap.length.df) <- c("index", "length")
+
+      # create the new vector
+      histone.overlap.percentage <- vector(length = length(regions@seqnames))
+      histone.overlap.percentage[overlap.length.df$index] <- overlap.length.df$length
+      histone.overlap.percentage <- histone.overlap.percentage / width(regions)
+      all.columns[,column] <- histone.overlap.percentage
+    }
+
+    column <- column + 1
+  }
+  colnames(all.columns) <- paste0(names(histone.regions), ".OverlapPercentage")
+  if(dim(mcols(regions))[2] == 0){
+    mcols(regions) <- all.columns
+  } else {
+    mcols(regions) <- cbind(as.data.frame(mcols(regions)), all.columns)
+  }
+
+  return(regions)
+}
+
+
+#' Associate genomic regions to a \linkS4class{GRanges} object.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
+#' @param tssRegion A vector with the region range to TSS.
+#' @param output.dir The name of the directory where to write the selected annotations.
+#'
+#' @return The \linkS4class{GRanges} object with associated genomic regions.
+#' @importFrom GenomicRanges mcols
+associate.genomic.region <- function(regions, genome.build, tssRegion = c(-3000, 3000), output.dir) {
+  # Annotate with proximity to gene regions
+  annotations.list = select.annotations(genome.build)
+  annotations = annotate.region(regions, annotations.list, tssRegion = tssRegion, file.path(output.dir, "CHIA-PET annotation.txt"))
+  annotations.df = as.data.frame(annotations)
+  mcols(regions) = annotations.df[, 6:ncol(annotations.df)]
+
+  # Write porportions of annotated region types.
+  write.table(annotations@annoStat, file.path(output.dir, "Annotation summary.txt"), sep="\t", col.names=TRUE, row.names=TRUE, quote=FALSE)
+
+  # Simplify genomic region annotation
+  simplified.annotation = mcols(regions)$annotation
+  simplified.annotation[grepl("Promoter", simplified.annotation)] <- "Promoter"
+  simplified.annotation[grepl("Exon", simplified.annotation)] <- "Exon"
+  simplified.annotation[grepl("Intron", simplified.annotation)] <- "Intron"
+  simplified.annotation[grepl("Downstream", simplified.annotation)] <- "Downstream"
+  regions$Simple.annotation = factor(simplified.annotation, levels=c("Distal Intergenic", "Promoter", "Intron", "Exon", "Downstream", "3' UTR", "5' UTR"))
+
+  return(regions)
+}
+
+
+#' Associate genes to a \linkS4class{GRanges} object from ChIA-PET data.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#' @param expression.data A data frame containing the levels of expression of genes, according to their EMSEMBL id.
+#'
+#' @return The \linkS4class{GRanges} object with associated genes.
+#' @importFrom plyr ddply mutate
+associate.gene <- function(regions, expression.data=NULL) {
+  # Associate a gene to a contact only if it's in the promoter.
+  promoter.subset = regions$Simple.annotation == "Promoter"
+
+  # Subset the promoter contacts to only keep the highest degrees
+  degree.info = ddply(as.data.frame(regions[promoter.subset]), "ENSEMBL", plyr::mutate, max.degree=max(Degree))
+  degree.subset = subset(degree.info, Degree == max.degree)
+
+  # Further subset to keep the one closest to the TSS
+  distance.info = ddply(degree.subset, "ENSEMBL", plyr::mutate, min.distance=min(abs(distanceToTSS)))
+  distance.subset = subset(distance.info, distanceToTSS == min.distance)
+
+  # If there are still more than one row, just pick the first one.
+  gene.subset = ddply(distance.subset, "ENSEMBL", function(x) { return(x[1,]) })
+
+  # Add the gene marker to the annotations.
+  regions$Gene.Representative = regions$ID %in% gene.subset$ID
+
+  if(!is.null(expression.data)) {
+    index.match = match(regions$ENSEMBL, expression.data$ENSEMBL)
+    regions$Expr.mean = expression.data$Mean.FPKM[index.match]
+  }
+
+  return(regions)
+}
+
+#' Associate genes to a \linkS4class{GRanges} object from ChIP-seq data.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#' @param expression.data A data frame containing the levels of expression of genes, according to their EMSEMBL id.
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#' @param genome.build Which genome assembly should the results come from?
+#'
+#' @return The \linkS4class{GRanges} object with associated genes.
+#' @importFrom plyr ddply mutate
+associate.gene.chip <- function(regions, expression.data=NULL, biosample, genome.build){
+  # Associate a gene to a contact only if it's in the promoter.
+  promoter.subset = regions$Simple.annotation == "Promoter"
+
+  # Load isoform data
+  downloaded.rna <- download.encode.rna(biosample, genome.build, isoform.download.filter.rna)
+
+  # Subset the rna isoforms to only keep the isoforms with the highest expression
+  promoter.subset <- as.data.frame(regions[promoter.subset])
+  promoter.subset$ENSEMBL.transcript <- ucsc.to.ensembl$ENSEMBL[match(promoter.subset$transcriptId, ucsc.to.ensembl$UCSC)]
+  promoter.subset$Mean.FPKM <- downloaded.rna$Expression$Mean.FPKM[match(promoter.subset$ENSEMBL.transcript, gsub("\\..", "", downloaded.rna$Expression$transcript_id))]
+  max.FPKM.df <- aggregate(Mean.FPKM~ENSEMBL, data = promoter.subset, max)
+  promoter.subset$Max.FPKM <- max.FPKM.df$Mean.FPKM[match(promoter.subset$ENSEMBL, max.FPKM.df$ENSEMBL)]
+  isoform.subset = subset(promoter.subset, Mean.FPKM == Max.FPKM)
+
+  # Further subset to keep the one closest to the TSS
+  distance.df <- aggregate(abs(distanceToTSS)~ENSEMBL, data = promoter.subset, min)
+  isoform.subset$min.distance <- distance.df$`abs(distanceToTSS)`[match(isoform.subset$ENSEMBL, distance.df$ENSEMBL)]
+  distance.subset = subset(isoform.subset, distanceToTSS == min.distance)
+
+  # If there are still more than one row, just pick the first one.
+  gene.subset = aggregate(min.distance~ENSEMBL, data = distance.subset, function(x) { return(x[1]) })
+
+  # Add the gene marker to the annotations.
+  regions$Gene.Representative = regions$ENSEMBL %in% gene.subset$ENSEMBL
+
+  if(!is.null(expression.data)) {
+    index.match = match(regions$ENSEMBL, expression.data$ENSEMBL)
+    regions$Expr.mean = expression.data$Mean.FPKM[index.match]
+  }
+
+  return(regions)
+}
+
+#' Associate chromatin sates to a \linkS4class{GRanges} object.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#' @param input.chrom.state The path to a bed file representing a genome
+#'   segmentation by chromatin state.
+#' @return The \linkS4class{GRanges} object with associated chromatin states.
+#' @importFrom rtracklayer import
+#' @importMethodsFrom GenomicRanges findOverlaps
+associate.chrom.state <- function(regions, input.chrom.state) {
+  # Annotate with chromatin states
+  # Load and rename chromatin states (for easier lexical ordering)
+  chrom.states = rtracklayer::import(input.chrom.state)
+  chrom.states$name = gsub("^(.)_", "0\\1_", chrom.states$name)
+
+  # Sort according to name, which will cause the first match to also be the
+  # most relevant states (01_TSS first, 18_Quies last)
+  chrom.states = chrom.states[order(chrom.states$name)]
+  unique.states = sort(unique(chrom.states$name))
+
+  # Add state annotation to regions
+  state.overlap.indices = findOverlaps(regions, chrom.states, select="first")
+  regions$Chrom.State = factor(chrom.states$name[state.overlap.indices], levels=unique.states)
+
+  return(regions)
+}
+
+
+#' Associate TF overlaps to a \linkS4class{GRanges} object.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#' @param tf.regions A data frame containing the TF data.
+#'
+#' @return The \linkS4class{GRanges} object with associated TF overlaps.
+#' @importMethodsFrom GenomicRanges countOverlaps
+#' @importFrom GenomicRanges mcols
+associate.tf <- function(regions, tf.regions) {
+  # Calculate TF overlap with contact regions
+  overlap.matrix = matrix(0, nrow=length(regions), ncol=length(tf.regions))
+  colnames(overlap.matrix) <- paste0("TF.overlap.", names(tf.regions))
+  for(i in 1:length(tf.regions)) {
+    overlap.matrix[,i] <- countOverlaps(regions, tf.regions[[i]])
+  }
+
+  mcols(regions) = cbind(mcols(regions), as.data.frame(overlap.matrix))
+
+  return(regions)
+}
+
+
+#' Associate tissue specificity of genes to a \linkS4class{GRanges} object.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#'
+#' @return The \linkS4class{GRanges} object with associated tissue scpecificity.
+associate.tissue.specificity.human <- function(regions) {
+
+  # Annotate regions with Tau, Expression category.
+  calculate.tau <- function(x) {
+    return(sum(1 - (x/max(x))) / (length(x) - 1))
+  }
+  tissue.expression$Tau = apply(tissue.expression[,c(-1, -ncol(tissue.expression))], 1, calculate.tau)
+
+  tissue.match = match(regions$ENSEMBL, tissue.expression$Ensembl.gene.id)
+  regions$Expression.Category = factor(tissue.expression$Category[tissue.match],
+                                                levels=c("Not detected",
+                                                         "Mixed low", "Mixed high",
+                                                         "Moderately tissue enriched", "Highly tissue enriched", "Group enriched",
+                                                         "Expressed in all low", "Expressed in all high"))
+
+  regions$Expression.Tau = tissue.expression$Tau[tissue.match]
+
+  return(regions)
+}
+
+#' Identify essential genes of a \linkS4class{GRanges} object.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#'
+#' @return The \linkS4class{GRanges} object with identified essential genes.
+associate.fitness.genes <- function(regions){
+
+  # Add the "essential ratio" to the data
+  fitness.match <- match(regions$SYMBOL, essential.genes$Gene)
+  regions$Fitness <- essential.genes$numTKOHits[fitness.match]
+  regions$Fitness <- ifelse(is.na(regions$Fitness), 0, (regions$Fitness / 6))
+
+  return(regions)
 }
 
 #' Given a \linkS4class{GRanges} object, finds enriched motifs within those regions.

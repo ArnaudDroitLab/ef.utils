@@ -4,13 +4,16 @@
 \alias{annotate.region}
 \title{Annotates a set of regions with genomic features.}
 \usage{
-annotate.region(region, annotations.list, filename = NULL)
+annotate.region(region, annotations.list, tssRegion = c(-3000, 3000),
+  filename = NULL)
 }
 \arguments{
 \item{region}{The regions to annotate.}
 
 \item{annotations.list}{A list of annotation databases returned by
 \code{\link{select.annotations}}.}
+
+\item{tssRegion}{A vector with the region range to TSS.}
 
 \item{filename}{The name of the file where the results should be saved.
 If \code{NULL}, results are not saved to disk.}
