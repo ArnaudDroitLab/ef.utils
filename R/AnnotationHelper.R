@@ -232,7 +232,7 @@ associate.is.in.factory <- function(regions){
   factories <- as.data.frame(regions)
   factories <- aggregate(Gene.Representative~Component.Id, data = regions, FUN = sum)
   factories <- factories$Component.Id[factories$Gene.Representative > 2]
-  regions$Is.In.Factory <- regions$Component.Id %in% factories
+  regions$Is.In.Factory <- (regions$Component.Id %in% factories) & (regions$Component.size > 4)
   return(regions)
 
 }
@@ -243,8 +243,8 @@ associate.is.in.factory <- function(regions){
 associate.is.gene.active <- function(regions){
   regions.df <- as.data.frame(regions)
   colname.CDK9 <- colnames(regions.df)[grep("CDK9", colnames(regions.df))][1]
-  colname.serin <- colnames(regions.df)[grep("CDK9", colnames(regions.df))][1]
-  active.genes <- regions.df$SYMBOL[regions.df$FPKM > 1]
+  colname.serin <- colnames(regions.df)[grep("phosphoS2", colnames(regions.df))][1]
+  active.genes <- regions.df$SYMBOL[regions.df$Expr.mean > 1]
   if (!is.na(colname.CDK9)){
     active.genes <- active.genes[active.genes %in% regions.df$SYMBOL[regions.df[,colname.CDK9] > 0]]
   }
