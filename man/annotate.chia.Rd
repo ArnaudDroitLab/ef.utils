@@ -5,8 +5,9 @@
 \title{Annotate "chia.obj", given as parameter.}
 \usage{
 annotate.chia(chia.obj, input.chrom.state, tf.regions, histone.regions,
-  expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-  biosample = "GM12878", tssRegion, output.dir)
+  pol.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10",
+  "hg38"), biosample = "GM12878", tssRegion = c(-3000, 3000), output.dir,
+  split = TRUE, oneByOne = TRUE, method = igraph::cluster_fast_greedy)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
@@ -16,6 +17,8 @@ annotate.chia(chia.obj, input.chrom.state, tf.regions, histone.regions,
 \item{tf.regions}{A data frame containing the TF data.}
 
 \item{histone.regions}{A data frame containing the histone data.}
+
+\item{pol.regions}{A data frame containing the pol2 data.}
 
 \item{expression.levels}{A data frame containing the levels of expression of genes. according to their EMSEMBL id.}
 
@@ -27,6 +30,12 @@ GM12878, K562.}
 \item{tssRegion}{A vector with the region range to TSS.}
 
 \item{output.dir}{The name of the directory where to write the selected annotations.}
+
+\item{split}{Should the data be divided into communities?}
+
+\item{oneByOne}{Sould the netwoks be treated one by one or as a whole?}
+
+\item{method}{What method sould be used to split data (ignored if split = \code{FALSE}).}
 }
 \value{
 The annotated "\code{chia.obj}".

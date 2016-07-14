@@ -164,7 +164,7 @@ annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regi
   # Add an ID to every region.
   chip.data$ID = 1:length(chip.data)
 
-  chip.data <- associate.genomic.region(chip.data, genome.build, tssRegion = tssRegion, output.dir)
+  chip.data <- associate.genomic.region(chip.data, genome.build, output.dir, tssRegion = tssRegion)
 
   if(!is.null(input.chrom.state)) {
     chip.data = associate.chrom.state(chip.data, input.chrom.state)
@@ -184,6 +184,7 @@ annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regi
     chip.data = associate.tissue.specificity.human(chip.data)
     chip.data = associate.fitness.genes(chip.data)
   }
+  chip.data = associate.is.gene.active(chip.data)
 
   write.table(chip.data, file.path(output.dir, label), sep = "\t", row.names = FALSE)
 
@@ -219,6 +220,95 @@ annotate.region <- function(region, annotations.list, tssRegion = c(-3000, 3000)
         }
     }
     return(tfAnnotation)
+}
+
+#' Associates boolean to regions in fonction of their presence in factories
+#'
+#' Is.In.Factory is \code{TRUE} if the region is in a network with 3 genes or more.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#' @return The annotated regions.
+associate.is.in.factory <- function(regions){
+  factories <- as.data.frame(regions)
+  factories <- aggregate(Gene.Representative~Component.Id, data = regions, FUN = sum)
+  factories <- factories$Component.Id[factories$Gene.Representative > 2]
+  regions$Is.In.Factory <- regions$Component.Id %in% factories
+  return(regions)
+
+}
+
+#' Associates a boolean in fonction of the activity of the gene
+#'
+#' Is.Gene.Active is \code{TRUE} if FPKM > 1 and the gene overlaps with CDK9 and with ARNpolII phosS2
+associate.is.gene.active <- function(regions){
+  regions.df <- as.data.frame(regions)
+  colname.CDK9 <- colnames(regions.df)[grep("CDK9", colnames(regions.df))][1]
+  colname.serin <- colnames(regions.df)[grep("CDK9", colnames(regions.df))][1]
+  active.genes <- regions.df$SYMBOL[regions.df$FPKM > 1]
+  if (!is.na(colname.CDK9)){
+    active.genes <- active.genes[active.genes %in% regions.df$SYMBOL[regions.df[,colname.CDK9] > 0]]
+  }
+  if (!is.na(colname.serin)){
+    active.genes <- active.genes[active.genes %in% regions.df$SYMBOL[regions.df[,colname.serin] > 0]]
+  }
+  regions$Is.Gene.Active <- regions$SYMBOL %in% active.genes
+  return(regions)
+}
+
+#' Associates components ids and sizes to chia data, as returned by \code{\link{load.chia}}.
+#'
+#' @param chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param split Should the data be divided into communities?
+#' @param oneByOne Sould the netwoks be treated one by one or as a whole?
+#' @param method What method sould be used to split data (ignored if split = \code{FALSE}).
+#' @return The annotated chia.obj.
+#' @importFrom igraph components
+#' @importFrom igraph as.undirected
+associate.components <- function(chia.obj, split = TRUE, oneByOne = TRUE, method = igraph::cluster_fast_greedy){
+
+  left.df = as.data.frame(chia.left(chia.obj))
+  colnames(left.df) <- paste("Left", colnames(left.df), sep=".")
+  right.df = as.data.frame(chia.right(chia.obj))
+  colnames(right.df) <- paste("Right", colnames(right.df), sep=".")
+
+  ids <- data.frame(left.df$Left.ID, right.df$Right.ID)
+  colnames(ids) <- c("Source", "Target")
+
+  # Generate components
+  components.out <- components(chia.obj$Graph)
+  reorder.components <- components.out$membership[ids$Source]
+  ids.components <- cbind(ids, reorder.components)
+  colnames(ids.components) <- c(colnames(ids), "Component")
+
+  # Export data on nodes
+  chia.obj$Regions$Component.Id <- components.out$membership
+  chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]
+
+
+  if (split){
+    if (oneByOne){
+      for (i in 1:components.out$no){
+        network <- ids[ids.components$Component == i,]
+        chia.obj <- separate.into.communities(network, i, chia.obj, method = method)
+      }
+    } else {
+      network.input <- unique(ids[,1:2])
+      whole.graph <- make_graph(c(rbind(network.input$Source, network.input$Target)), directed = FALSE)
+      communities <- method(whole.graph, weights = NULL)
+      communities.df <- data.frame(cbind(unique(c(network.input$Source, network.input$Target)),
+                                         communities$membership[unique(c(network.input$Source, network.input$Target))]))
+      colnames(communities.df) <- c("Node.Id", "Group")
+      simplify.group.id <- data.frame(Old = unique(communities.df$Group), New = 1:length(unique(communities.df$Group)))
+      communities.df$Group <- simplify.group.id$New[match(communities.df$Group, simplify.group.id$Old)]
+      communities.df$Size <- 1
+      communities.df$Size <- aggregate(Size~Group, data = communities.df, FUN = sum)$Size[communities.df$Group]
+      annotated.chia <- chia.obj$Regions@elementMetadata@listData
+      annotated.chia$Component.size <- communities.df[order(communities.df$Node.Id),"Size"]
+      annotated.chia$Component.Id <- communities.df[order(communities.df$Node.Id),"Group"]
+      chia.obj$Regions@elementMetadata@listData <- annotated.chia
+    }
+  }
+  return (chia.obj)
 }
 
 #' Associate histone marks to a \linkS4class{GRanges} object.
@@ -281,7 +371,7 @@ associate.histone.marks <- function(regions, histone.regions){
 #'
 #' @return The \linkS4class{GRanges} object with associated genomic regions.
 #' @importFrom GenomicRanges mcols
-associate.genomic.region <- function(regions, genome.build, tssRegion = c(-3000, 3000), output.dir) {
+associate.genomic.region <- function(regions, genome.build, output.dir, tssRegion = c(-3000, 3000)) {
   # Annotate with proximity to gene regions
   annotations.list = select.annotations(genome.build)
   annotations = annotate.region(regions, annotations.list, tssRegion = tssRegion, file.path(output.dir, "CHIA-PET annotation.txt"))

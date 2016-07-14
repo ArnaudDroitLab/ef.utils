@@ -232,17 +232,25 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
     downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.narrow, resultOrigin="queryEncode", dir=narrow.dir, force=FALSE)
     downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.broad, resultOrigin="queryEncode", dir=broad.dir, force=FALSE)
 
-    # Unzip the files. Use gzip -d since on windows, gunzip is not installed by default.
-    system(paste0("gzip -d -k ", narrow.dir, "/*.gz"))
-    system(paste0("gzip -d -k ", broad.dir, "/*.gz"))
-
     # Write the metadata about the downloaded files.
     write.table(query.results$experiment, file=file.path(download.dir, "metadata.txt"))
 
+    # Unzip the files. Use gzip -d since on windows, gunzip is not installed by default.
+    if(dir.exists(narrow.dir)){
+      system(paste0("gzip -d -k ", narrow.dir, "/*.gz"))
+      narrow.gr = import.into.grl(narrow.dir, file.format="narrow", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
+      narrow.gr@unlistData@elementMetadata@listData$peak <- NULL
+    } else {
+      narrow.gr = NULL
+    }
+    if (dir.exists(broad.dir)){
+      system(paste0("gzip -d -k ", broad.dir, "/*.gz"))
+      broad.gr = import.into.grl(broad.dir, file.format="broad", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
+    } else {
+      broad.gr = NULL
+    }
+
     # Import the downloaded files.
-    narrow.gr = import.into.grl(narrow.dir, file.format="narrow", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
-    broad.gr = import.into.grl(broad.dir, file.format="broad", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
-    narrow.gr@unlistData@elementMetadata@listData$peak <- NULL
     all.gr = c(narrow.gr, broad.gr)
 
     # Combine biological/technical replicates using consensus regions.

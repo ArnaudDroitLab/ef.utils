@@ -76,20 +76,26 @@ load.chia <- function(input.chia) {
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
 #' @param tf.regions A data frame containing the TF data.
 #' @param histone.regions A data frame containing the histone data.
+#' @param pol.regions A data frame containing the pol2 data.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562.
 #' @param tssRegion A vector with the region range to TSS.
 #' @param output.dir The name of the directory where to write the selected annotations.
+#' @param split Should the data be divided into communities?
+#' @param oneByOne Sould the netwoks be treated one by one or as a whole?
+#' @param method What method sould be used to split data (ignored if split = \code{FALSE}).
 #'
 #' @return The annotated "\code{chia.obj}".
 #'
 #' @importFrom igraph degree
 #'
 #' @export
-annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          biosample = "GM12878", tssRegion, output.dir) {
+annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions, pol.regions, expression.levels,
+                          genome.build = c("hg19", "mm9", "mm10", "hg38"), biosample = "GM12878",
+                          tssRegion = c(-3000, 3000), output.dir, split = TRUE, oneByOne = TRUE,
+                          method = igraph::cluster_fast_greedy) {
     dir.create(output.dir, recursive = TRUE)
     single.set = chia.obj$Regions
     genome.build <- match.arg(genome.build)
@@ -100,7 +106,7 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
     # Add degree count to chia.obj$Regions
     chia.obj$Regions$Degree = degree(chia.obj$Graph)
 
-    chia.obj$Regions <- associate.genomic.region(chia.obj$Regions, genome.build, tssRegion = tssRegion, output.dir)
+    chia.obj$Regions <- associate.genomic.region(chia.obj$Regions, genome.build, output.dir, tssRegion = tssRegion)
 
     if(!is.null(input.chrom.state)) {
         chia.obj$Regions = associate.chrom.state(chia.obj$Regions, input.chrom.state)
@@ -114,161 +120,23 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
         chia.obj$Regions = associate.histone.marks(chia.obj$Regions, histone.regions)
     }
 
-    chia.obj = associate.gene(chia.obj, expression.levels)
+    if(!is.null(pol.regions)) {
+        chia.obj$Regions = associate.histone.marks(chia.obj$Regions, pol.regions)
+    }
+
+    chia.obj$Regions = associate.gene(chia.obj$Regions, expression.levels)
 
     if(genome.build=="hg19" || genome.build=="hg38") {
-        chia.obj = associate.tissue.specificity.human(chia.obj)
-        chia.obj = associate.fitness.genes(chia.obj)
+        chia.obj$Regions = associate.tissue.specificity.human(chia.obj$Regions)
+        chia.obj$Regions = associate.fitness.genes(chia.obj$Regions)
     }
 
-    return(chia.obj)
-}
-
-#' Associate histone marks with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by load.chia.
-#' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
-#' @param biosample The biosample identifier from ENCODE. Valid examples are
-#'   GM12878, K562 or MCF-7.
-#'
-#' @return "\code{chia.obj}" with associated histone overlap percentage.
-#' @importMethodsFrom GenomicRanges findOverlaps range
-#' @importMethodsFrom BSgenome width
-#' @importFrom stats aggregate
-associate.histone.marks <- function(chia.obj, histone.regions){
-  # find overlaps
-  overlap.index <- findOverlaps(chia.obj$Regions, unlist(histone.regions))
-
-  # to get the overlap length
-  overlap.length <- width(ranges(overlap.index, ranges(chia.obj$Regions), ranges(unlist(histone.regions))))
-
-  # correspondances between idexes from chia.obj$Regions and the lengths
-  overlap.length.df <- data.frame(index=overlap.index@from, length=overlap.length)
-  # addition of the rows with repeated indices
-  overlap.length.df <- aggregate(overlap.length.df$length, list(overlap.length.df$index), sum)
-  colnames(overlap.length.df) <- c("index", "length")
-
-  # create the new vector
-  histone.overlap.percentage <- vector(length = length(chia.obj$Regions@seqnames))
-  histone.overlap.percentage[overlap.length.df$index] <- overlap.length.df$length
-  chia.obj$Regions$Histone.overlap.percentage <- histone.overlap.percentage / width(chia.obj$Regions)
-
-  return(chia.obj)
-}
-
-
-#' Associate genomic regions with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by load.chia.
-#' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
-#' @param output.dir The name of the directory where to write the selected annotations.
-#'
-#' @return "\code{chia.obj}" with associated genomic regions.
-#' @importFrom GenomicRanges mcols
-associate.genomic.region <- function(chia.obj, genome.build, output.dir) {
-    # Annotate with proximity to gene regions
-    annotations.list = select.annotations(genome.build)
-    annotations = annotate.region(chia.obj$Regions, annotations.list, file.path(output.dir, "CHIA-PET annotation.txt"))
-    annotations.df = as.data.frame(annotations)
-    mcols(chia.obj$Regions) = annotations.df[, 6:ncol(annotations.df)]
-
-    # Write porportions of annotated region types.
-    write.table(annotations@annoStat, file.path(output.dir, "Annotation summary.txt"), sep="\t", col.names=TRUE, row.names=TRUE, quote=FALSE)
-
-    # Simplify genomic region annotation
-    simplified.annotation = mcols(chia.obj$Regions)$annotation
-    simplified.annotation[grepl("Promoter", simplified.annotation)] <- "Promoter"
-    simplified.annotation[grepl("Exon", simplified.annotation)] <- "Exon"
-    simplified.annotation[grepl("Intron", simplified.annotation)] <- "Intron"
-    simplified.annotation[grepl("Downstream", simplified.annotation)] <- "Downstream"
-    chia.obj$Regions$Simple.annotation = factor(simplified.annotation, levels=c("Distal Intergenic", "Promoter", "Intron", "Exon", "Downstream", "3' UTR", "5' UTR"))
+    chia.obj = associate.components(chia.obj, split = split, oneByOne = oneByOne, method = method)
+    chia.obj$Regions = associate.is.in.factory(chia.obj$Regions)
+    chia.obj$Regions = associate.is.gene.active(chia.obj$Regions)
 
     return(chia.obj)
 }
-
-
-#' Associate genes with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param expression.data A data frame containing the levels of expression of genes, according to their EMSEMBL id.
-#'
-#' @return "\code{chia.obj}" with associated genes.
-#' @importFrom plyr ddply mutate
-associate.gene <- function(chia.obj, expression.data=NULL) {
-    # Associate a gene to a contact only if it's in the promoter.
-    promoter.subset = chia.obj$Regions$Simple.annotation == "Promoter"
-
-    # Subset the promoter contacts to only keep the highest degrees
-    degree.info = ddply(as.data.frame(chia.obj$Regions[promoter.subset]), "ENSEMBL", plyr::mutate, max.degree=max(Degree))
-    degree.subset = subset(degree.info, Degree == max.degree)
-
-    # Further subset to keep the one closest to the TSS
-    distance.info = ddply(degree.subset, "ENSEMBL", plyr::mutate, min.distance=min(abs(distanceToTSS)))
-    distance.subset = subset(distance.info, distanceToTSS == min.distance)
-
-    # If there are still more than one row, just pick the first one.
-    gene.subset = ddply(distance.subset, "ENSEMBL", function(x) { return(x[1,]) })
-
-    # Add the gene marker to the annotations.
-    chia.obj$Regions$Gene.Representative = chia.obj$Regions$ID %in% gene.subset$ID
-
-    if(!is.null(expression.data)) {
-        index.match = match(chia.obj$Regions$ENSEMBL, expression.data$ENSEMBL)
-        chia.obj$Regions$Expr.mean = expression.data$Mean.FPKM[index.match]
-    }
-
-    return(chia.obj)
-}
-
-
-#' Associate chromatin sates with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param input.chrom.state The path to a bed file representing a genome
-#'   segmentation by chromatin state.
-#' @return "\code{chia.obj}" with associated chromatin states.
-#' @importFrom rtracklayer import
-#' @importMethodsFrom GenomicRanges findOverlaps
-associate.chrom.state <- function(chia.obj, input.chrom.state) {
-    # Annotate with chromatin states
-    # Load and rename chromatin states (for easier lexical ordering)
-    chrom.states = rtracklayer::import(input.chrom.state)
-    chrom.states$name = gsub("^(.)_", "0\\1_", chrom.states$name)
-
-    # Sort according to name, which will cause the first match to also be the
-    # most relevant states (01_TSS first, 18_Quies last)
-    chrom.states = chrom.states[order(chrom.states$name)]
-    unique.states = sort(unique(chrom.states$name))
-
-    # Add state annotation to chia.obj$Regions
-    state.overlap.indices = findOverlaps(chia.obj$Regions, chrom.states, select="first")
-    chia.obj$Regions$Chrom.State = factor(chrom.states$name[state.overlap.indices], levels=unique.states)
-
-    return(chia.obj)
-}
-
-
-#' Associate TF overlaps with the \code{Regions} of "chia.obj".
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param tf.regions A data frame containing the TF data.
-#'
-#' @return "\code{chia.obj}" with associated TF overlaps.
-#' @importMethodsFrom GenomicRanges countOverlaps
-#' @importFrom GenomicRanges mcols
-associate.tf <- function(chia.obj, tf.regions) {
-    # Calculate TF overlap with contact regions
-    overlap.matrix = matrix(0, nrow=length(chia.obj$Regions), ncol=length(tf.regions))
-    colnames(overlap.matrix) <- paste0("TF.overlap.", names(tf.regions))
-    for(i in 1:length(tf.regions)) {
-        overlap.matrix[,i] <- countOverlaps(chia.obj$Regions, tf.regions[[i]])
-    }
-
-    mcols(chia.obj$Regions) = cbind(mcols(chia.obj$Regions), as.data.frame(overlap.matrix))
-
-    return(chia.obj)
-}
-
 
 #' Perform enrichments by connectivity group.
 #'
@@ -364,21 +232,16 @@ contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
 #'   \item The first one separates the "left" and "right" sides of the ChIA-PET data with annotations.
 #'   \item The second set of files is made of components files. They group all interactions in a single component, with
 #'        an extra column containing the number of reads supporting the data. Their format is supported by Cytoscape.
-#'   \item The final file contains the annotated Regions of the ChIA-PET data, with two extra columns: \describe{
-#'        \item{$Component.Id} {Id (number) of the hub in which the node is found.}
-#'        \item{$Componend.Size} {Number of nodes of the component in which the node is found.}}}
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
 #' @param chia.raw The raw ChIA-PET data, before annotation.
 #' @param output.dir The name of the directory where to save the files.
-#' @param split Should the networks be divided into communities?
-#' @param method Which function should be used to separate the data into communities?
 #'
 #' @importFrom utils write.table
 #' @importFrom igraph components
 #'
 #' @export
-output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output", split = TRUE, method = igraph::cluster_fast_greedy) {
+output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
 
     # Write out annotated interactionsleft.df = as.data.frame(chia.left.merged)
     left.df = as.data.frame(chia.left(chia.obj))
@@ -391,43 +254,22 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output", split
 
     # Output Cytoscape components
 
-    # Generate components
-    components.out <- components(chia.obj$Graph)
-
     # Create interactions table
-    ids <- data.frame(left.df$Left.ID, right.df$Right.ID, chia.raw[,7])
-    colnames(ids) <- c("Source", "Target", "Reads")
+    ids <- data.frame(left.df$Left.ID, right.df$Right.ID, chia.raw[,7], left.df$Left.Component.Id, right.df$Right.Component.Id)
+    ids <- ids[ids[,4] == ids[,5],1:4]
+    colnames(ids) <- c("Source", "Target", "Reads", "Component")
     dir.create(output.dir, recursive = TRUE)
-    write.table(ids, file = file.path(output.dir, "all.csv"), sep=",", row.names = FALSE)
 
     # Export networks in csv files
-    reorder.components <- components.out$membership[ids$Source]
-    ids.components <- cbind(ids, reorder.components)
-    colnames(ids.components) <- c(colnames(ids), "Component")
     dir.create(file.path(output.dir, "Size between 3 and 5 nodes (incl)"), recursive = TRUE)
     dir.create(file.path(output.dir, "Size between 6 and 20 nodes (incl)"), recursive = TRUE)
     dir.create(file.path(output.dir, "Size between 21 and 50 nodes (incl)"), recursive = TRUE)
     dir.create(file.path(output.dir, "Size between 51 and 100 nodes (incl)"), recursive = TRUE)
     dir.create(file.path(output.dir,"Size over 100 nodes"), recursive = TRUE)
 
-    # Export data on nodes
-    chia.obj$Regions$Component.Id <- components.out$membership
-    chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]
-
-    if (split){
-      new.network <- data.frame()
-      for (i in 1:components.out$no){
-        network <- ids[ids.components$Component == i,]
-        list <- separate.into.communities(network, i, chia.obj, method = method)
-        chia.obj <- list[[1]]
-        new.network <- rbind(new.network, list[[2]])
-      }
-      ids.components <- new.network
-    }
-
-    for (i in unique(ids.components$Component)){
-      network <- ids.components[ids.components$Component == i]
-      size <- nrow(ids.components[ids.components$Component == i,])
+    for (i in unique(ids$Component)){
+      network <- ids[ids$Component == i,]
+      size <- length(unique(c(network$Source, network$Target)))
       if (size > 2){
         if (size < 6){
           dir <- "Size between 3 and 5 nodes (incl)"
@@ -440,15 +282,13 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output", split
         } else {
           dir <- "Size over 100 nodes"
         }
-        write.table(network,
+        write.table(network[1:3],
                     file = file.path(output.dir, dir, paste0("Create network for components ", i, "(", size, " nodes)", ".csv")),
                     sep = ",", row.names = FALSE)
       }
     }
 
-    # Output region annotation.
-    annotations.df <- as.data.frame(chia.obj$Regions)
-    write.table(cbind(ID = annotations.df$ID, annotations.df[,-6]), file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), sep = "\t", row.names = FALSE, quote = FALSE)
+    write.table(chia.obj$Regions, file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), row.names = FALSE, sep = "\t")
 
 }
 
@@ -680,17 +520,19 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
 #' @param genome.build The name of the chosen annotation ("hg38", "hg19").
 #' @param tf.regions A data frame containing the TF data.
 #' @param histone.regions A data frame containing the histone data.
+#' @param pol.regions A data frame containing the pol2 data.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param tssRegion A vector with the region range to TSS.
 #' @param output.dir The name of the directory where to save the graphs.
 #' @param split Should the networks be divided into communities?
+#' @param oneByOne Sould the netwoks be treated one by one or as a whole?
 #' @param method Which function should be used to separate the data into communities?
 #' @return The annotated chia.obj.
 #' @importFrom Biobase cache
 #' @export
 analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, tf.regions = NULL,
-                             histone.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000), output.dir="output",
-                             split = TRUE, method = igraph::cluster_fast_greedy) {
+                             histone.regions = NULL, pol.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000),
+                             output.dir="output", split = TRUE, oneByOne = TRUE, method = igraph::cluster_fast_greedy) {
     dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
 
     chia.obj = load.chia(input.chia)
@@ -698,14 +540,18 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
 
     if(!is.null(biosample) && !is.null(genome.build)) {
       if (is.null(tf.regions)){
-        cache(tf.regions <- download.encode.chip(biosample, genome.build)$Regions, dir=output.dir, prefix="cached_objects")
+        tf.regions <- download.encode.chip(biosample, genome.build)$Regions
       }
       if (is.null(histone.regions)){
-        cache(histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip)$Regions,
-              dir=output.dir, prefix="cached_objects")
+        histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip,
+                                                download.dir=file.path("input/ENCODE", "GM12878", "chip-seq", "histone"))$Regions
+      }
+      if (is.null(pol.regions)){
+        pol.regions <- download.encode.chip(biosample, genome.build, download.filter = pol2.download.filter.chip,
+                                            download.dir = file.path("input/ENCODE", "GM12878", "chip-seq", "pol2"))$Regions
       }
       if (is.null(expression.data)){
-        cache(expression.data <- download.encode.rna(biosample, genome.build)$Expression, dir=output.dir, prefix="cached_objects")
+        expression.data <- download.encode.rna(biosample, genome.build)$Expression
       }
         expression.data$ENSEMBL = gsub("\\.\\d+$", "", expression.data$gene_id)
         expression.data$FPKM = log2(expression.data$Mean.FPKM + 1)
@@ -716,18 +562,14 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
         input.chrom.state <- import.chrom.states(biosample, file.path("input/chrom_states", biosample))
     }
 
-    Biobase::cache(chia.obj <- annotate.chia(chia.obj,
-                                             input.chrom.state = input.chrom.state,
-                                             tf.regions = tf.regions,
-                                             histone.regions=histone.regions,
-                                             expression.levels=expression.data,
-                                             genome.build = genome.build,
-                                             biosample=biosample,
-                                             tssRegion = tssRegion,
-                                             output.dir = output.dir), dir=output.dir, prefix="cached_objects")
+    cache(chia.obj <- annotate.chia(chia.obj, input.chrom.state = input.chrom.state, tf.regions = tf.regions,
+                              histone.regions=histone.regions, pol.regions = pol.regions,
+                              expression.levels=expression.data, genome.build = genome.build, biosample=biosample,
+                              tssRegion = tssRegion, output.dir = output.dir,
+                              split=split, oneByOne = oneByOne, method = method), output.dir)
 
 
-    output.annotated.chia(chia.obj, chia.raw, output.dir, split = split, method = method)
+    output.annotated.chia(chia.obj, chia.raw, output.dir)
 
 
     analyze.generic.topology(chia.obj, output.dir)
@@ -753,6 +595,7 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
 }
 
 #' Produces boxplots for every transcription factor, in relation to its 3D connectivity
+#'
 #' For every transcription factor in the ChIP data, creates a boxplot of the force of the ChIP-seq signal
 #' in function of the contact frequence of the region.
 #'
@@ -858,7 +701,7 @@ boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.o
 #' @importFrom igraph make_graph
 separate.into.communities <- function(network.input, network, chia.obj, output.dir, method = igraph::cluster_fast_greedy){
   # Separate the network into smaller ones
-  network.input <- aggregate(Reads~(Source + Target), data = network.input, sum)
+  network.input <- unique(network.input)
   whole.graph <- make_graph(c(rbind(network.input$Source, network.input$Target)), directed = FALSE)
 
   communities <- method(whole.graph, weights = NULL)
@@ -879,19 +722,8 @@ separate.into.communities <- function(network.input, network, chia.obj, output.d
       paste0(network, ".", communities.df[order(communities.df$Node.Id),"Group"])
     chia.obj$Regions@elementMetadata@listData <- annotated.chia
 
-    # ...Write the new annotation and the new network tables
-    network.output <- data.frame()
-    for (group in simplify.group.id$New) {
-      nodes.to.keep <- communities.df$Node.Id[communities.df$Group == group]
-      sub.network.df <- network.input[network.input$Source %in% nodes.to.keep & network.input$Target %in% nodes.to.keep,]
-      sub.network.df$Component <- paste0(network, ".", group)
-      network.output <- rbind(network.output, sub.network.df)
-    }
-
-  } else {
-    network.output <- cbind(network.input, Component = network)
   }
-  return(list(chia.obj, network.output))
+  return(chia.obj)
 }
 
 # analyze.chia.pet(input.chia="input/ChIA-PET/GSM1872887_GM12878_RNAPII_PET_clusters.txt",

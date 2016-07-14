@@ -4,8 +4,7 @@
 \alias{output.annotated.chia}
 \title{Save annotated ChIA-PET data.}
 \usage{
-output.annotated.chia(chia.obj, chia.raw, output.dir = "output",
-  split = TRUE, method = igraph::cluster_fast_greedy)
+output.annotated.chia(chia.obj, chia.raw, output.dir = "output")
 }
 \arguments{
 \item{chia.obj}{A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.}
@@ -13,18 +12,5 @@ output.annotated.chia(chia.obj, chia.raw, output.dir = "output",
 \item{chia.raw}{The raw ChIA-PET data, before annotation.}
 
 \item{output.dir}{The name of the directory where to save the files.}
-
-\item{split}{Should the networks be divided into communities?}
-
-\item{method}{Which function should be used to separate the data into communities?}
-}
-\description{
-Writes files: \itemize{
-  \item The first one separates the "left" and "right" sides of the ChIA-PET data with annotations.
-  \item The second set of files is made of components files. They group all interactions in a single component, with
-       an extra column containing the number of reads supporting the data. Their format is supported by Cytoscape.
-  \item The final file contains the annotated Regions of the ChIA-PET data, with two extra columns: \describe{
-       \item{$Component.Id} {Id (number) of the hub in which the node is found.}
-       \item{$Componend.Size} {Number of nodes of the component in which the node is found.}}}
 }
 

@@ -6,8 +6,8 @@
 \usage{
 analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
   genome.build = NULL, tf.regions = NULL, histone.regions = NULL,
-  expression.data = NULL, tssRegion = c(-3000, 3000),
-  output.dir = "output/", split = TRUE,
+  pol.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000),
+  output.dir = "output", split = TRUE, oneByOne = TRUE,
   method = igraph::cluster_fast_greedy)
 }
 \arguments{
@@ -23,11 +23,15 @@ analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
 
 \item{histone.regions}{A data frame containing the histone data.}
 
+\item{pol.regions}{A data frame containing the pol2 data.}
+
 \item{tssRegion}{A vector with the region range to TSS.}
 
 \item{output.dir}{The name of the directory where to save the graphs.}
 
 \item{split}{Should the networks be divided into communities?}
+
+\item{oneByOne}{Sould the netwoks be treated one by one or as a whole?}
 
 \item{method}{Which function should be used to separate the data into communities?}
 

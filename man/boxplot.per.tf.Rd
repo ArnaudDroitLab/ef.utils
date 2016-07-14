@@ -2,9 +2,7 @@
 % Please edit documentation in R/CharacterizeChIA.R
 \name{boxplot.per.tf}
 \alias{boxplot.per.tf}
-\title{Produces boxplots for every transcription factor, in relation to its 3D connectivity
-For every transcription factor in the ChIP data, creates a boxplot of the force of the ChIP-seq signal
-in function of the contact frequence of the region.}
+\title{Produces boxplots for every transcription factor, in relation to its 3D connectivity}
 \usage{
 boxplot.per.tf(chip.data, hist.data, biosample, genome.build, chia.obj,
   output.dir, TSS = TRUE, tssRegion = c(-3000, 3000))
@@ -27,7 +25,6 @@ boxplot.per.tf(chip.data, hist.data, biosample, genome.build, chia.obj,
 \item{tssRegion}{tssRegion A vector with the region range to TSS.}
 }
 \description{
-Produces boxplots for every transcription factor, in relation to its 3D connectivity
 For every transcription factor in the ChIP data, creates a boxplot of the force of the ChIP-seq signal
 in function of the contact frequence of the region.
 }
