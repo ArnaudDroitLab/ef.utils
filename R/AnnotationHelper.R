@@ -222,6 +222,48 @@ annotate.region <- function(region, annotations.list, tssRegion = c(-3000, 3000)
     return(tfAnnotation)
 }
 
+#' Associates boolean to regions in focntion of their centrality
+#'
+#' @param chia.obj chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#'
+#' @return The annotated chia.obj.
+#'
+#' @importFrom igraph make_graph
+#' @importFrom igraph degree
+#' @importFrom igraph estimate_closeness
+#' @importFrom igraph betweenness
+#' @importFrom igraph eigen_centrality
+associate.centralities <- function(chia.obj){
+  left.df = as.data.frame(chia.left(chia.obj))
+  colnames(left.df) <- paste("Left", colnames(left.df), sep=".")
+  right.df = as.data.frame(chia.right(chia.obj))
+  colnames(right.df) <- paste("Right", colnames(right.df), sep=".")
+
+  ids <- data.frame(left.df$Left.ID, right.df$Right.ID, left.df$Left.Component.Id, right.df$Right.Component.Id)
+  ids <- ids[ids[,4] == ids[,3],1:3]
+  colnames(ids) <- c("Source", "Target", "Component")
+
+  # Creation of the new columns to fill
+  chia.obj$Regions$Centrality.score <- 0
+  chia.obj$Regions$Is.central <- 0
+
+  for (id in unique(chia.obj$Regions$Component.Id)){
+    network <- ids[ids$Component == id,]
+    graph <- make_graph(c(rbind(network$Source, network$Target)))
+
+    data <- data.frame(Nodes = unique(c(network$Source, network$Target)))
+    data$Degree <- degree(graph)[data$Nodes]
+    data$Closeness <- estimate_closeness(graph, mode = "all", cutoff = 1)[data$Nodes]
+    data$Betweenness <- betweenness(graph, directed = FALSE)[data$Nodes]
+    data$Eigen <- eigen_centrality(graph, directed = FALSE)$vector[data$Nodes]
+
+    data$Centrality.score <- with(data, 0.30*Degree + 0.1*Betweenness + 0.30*Eigen + 0.30*Closeness)
+    chia.obj$Regions$Centrality.score[chia.obj$Regions$Component.Id == id] <- data$Centrality.score
+
+    chia.obj$Regions$Is.central[chia.obj$Regions$Component.Id == id] <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.85)
+  }
+}
+
 #' Associates boolean to regions in fonction of their presence in factories
 #'
 #' Is.In.Factory is \code{TRUE} if the region is in a network with 3 genes or more.
@@ -264,7 +306,7 @@ associate.is.gene.active <- function(regions){
 #' @return The annotated chia.obj.
 #' @importFrom igraph components
 #' @importFrom igraph as.undirected
-associate.components <- function(chia.obj, split = TRUE, oneByOne = TRUE, method = igraph::cluster_fast_greedy){
+associate.components <- function(chia.obj, split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy){
 
   left.df = as.data.frame(chia.left(chia.obj))
   colnames(left.df) <- paste("Left", colnames(left.df), sep=".")

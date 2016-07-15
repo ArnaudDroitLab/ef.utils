@@ -7,7 +7,7 @@
 analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
   genome.build = NULL, tf.regions = NULL, histone.regions = NULL,
   pol.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000),
-  output.dir = "output", split = TRUE, oneByOne = TRUE,
+  output.dir = "output", split = TRUE, oneByOne = FALSE,
   method = igraph::cluster_fast_greedy)
 }
 \arguments{

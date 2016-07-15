@@ -94,7 +94,7 @@ load.chia <- function(input.chia) {
 #' @export
 annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions, pol.regions, expression.levels,
                           genome.build = c("hg19", "mm9", "mm10", "hg38"), biosample = "GM12878",
-                          tssRegion = c(-3000, 3000), output.dir, split = TRUE, oneByOne = TRUE,
+                          tssRegion = c(-3000, 3000), output.dir, split = TRUE, oneByOne = FALSE,
                           method = igraph::cluster_fast_greedy) {
     dir.create(output.dir, recursive = TRUE)
     single.set = chia.obj$Regions
@@ -132,6 +132,7 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
     }
 
     chia.obj = associate.components(chia.obj, split = split, oneByOne = oneByOne, method = method)
+    chia.obj = associate.centralities(chia.obj)
     chia.obj$Regions = associate.is.in.factory(chia.obj$Regions)
     chia.obj$Regions = associate.is.gene.active(chia.obj$Regions)
 
@@ -532,7 +533,7 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
 #' @export
 analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, tf.regions = NULL,
                              histone.regions = NULL, pol.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000),
-                             output.dir="output", split = TRUE, oneByOne = TRUE, method = igraph::cluster_fast_greedy) {
+                             output.dir="output", split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy) {
     dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
 
     chia.obj = load.chia(input.chia)
@@ -540,18 +541,20 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
 
     if(!is.null(biosample) && !is.null(genome.build)) {
       if (is.null(tf.regions)){
-        tf.regions <- download.encode.chip(biosample, genome.build)$Regions
+        cache(tf.regions <- download.encode.chip(biosample, genome.build)$Regions, output.dir)
       }
       if (is.null(histone.regions)){
-        histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip,
-                                                download.dir=file.path("input/ENCODE", "GM12878", "chip-seq", "histone"))$Regions
+        cache(histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip,
+                                                download.dir=file.path("input/ENCODE", "GM12878", "chip-seq", "histone"))$Regions,
+              output.dir)
       }
       if (is.null(pol.regions)){
-        pol.regions <- download.encode.chip(biosample, genome.build, download.filter = pol2.download.filter.chip,
-                                            download.dir = file.path("input/ENCODE", "GM12878", "chip-seq", "pol2"))$Regions
+        cache(pol.regions <- download.encode.chip(biosample, genome.build, download.filter = pol2.download.filter.chip,
+                                            download.dir = file.path("input/ENCODE", "GM12878", "chip-seq", "pol2"))$Regions,
+              output.dir)
       }
       if (is.null(expression.data)){
-        expression.data <- download.encode.rna(biosample, genome.build)$Expression
+        cache(expression.data <- download.encode.rna(biosample, genome.build)$Expression, output.dir)
       }
         expression.data$ENSEMBL = gsub("\\.\\d+$", "", expression.data$gene_id)
         expression.data$FPKM = log2(expression.data$Mean.FPKM + 1)
