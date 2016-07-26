@@ -221,7 +221,7 @@ contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
     results.df$Var1 = factor(results.df$Var1, levels = rev(var.levels))
     ggplot(results.df, aes(y=Var1, x=Var2, fill=value)) +
         geom_tile() +
-        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+        theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.key.size = unit(1, "cm"))
     ggsave(file.path(output.dir, paste0("Contact heatmap for ", label, ".pdf")))
 
     return(results.matrix)
@@ -289,6 +289,8 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
       }
     }
 
+    chia.data <- as.data.frame(chia.obj$Regions)
+    chia.data <- cbind(chia.data$ID, chia.data[,-which(colnames(chia.data) == "ID")])
     write.table(chia.obj$Regions, file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), row.names = FALSE, sep = "\t")
 
 }
@@ -308,18 +310,15 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
 #' @param output.dir The name of the directory where to save the graphs.
 #'
-#' @importFrom grDevices pdf
-#' @importFrom grDevices dev.off
-#' @importFrom graphics hist
 #' @import ggplot2
 #' @importFrom igraph components
 #' @importFrom igraph get.data.frame
 #' @importFrom utils write.table
 analyze.generic.topology <- function(chia.obj, output.dir="output") {
     # Plot an histogram of the number of edges.
-    pdf(file.path(output.dir, "Histogram of number of edges.pdf"))
-    hist(degree(chia.obj$Graph), breaks=seq(0, 300, by=5))
-    dev.off()
+    #hist(log2(degree(chia.obj$Graph)), breaks=seq(0, 300, by=5))
+    ggplot(as.data.frame(chia.obj$Regions)) + geom_histogram(aes(Degree)) + scale_y_log10() + scale_x_log10()
+    ggsave(file.path(output.dir, "Histogram of number of edges.pdf"))
 
     # Plot a scatter plot showing the relation between the left and right vertices' degree.
     chia.df = get.data.frame(chia.obj$Graph)
@@ -337,13 +336,12 @@ analyze.generic.topology <- function(chia.obj, output.dir="output") {
     ggsave(file.path(output.dir, "Degree vs cluster width.pdf"))
 
     # Analyze components
-    chia.components = components(chia.obj$Graph)
-    chia.obj$Regions$Component = chia.components$membership
-    component.table <- table(chia.components$csize)
+    component.table <- as.data.frame(mcols(chia.obj$Regions)[,c("Component.Id", "Component.size")])
+    component.df <- data.frame(Size = unique(component.table)$Component.size, Number = 1)
+    component.df <- aggregate(Number~Size, data = component.df, FUN = sum)
 
-    component.df = data.frame(Size=as.integer(names( component.table)), Number=as.vector(component.table))
     ggplot(component.df) + geom_point(mapping=aes(x=log2(Size), y=log2(Number)))
-    ggsave("Log2(size of component) vs Log2(Number of components).pdf")
+    ggsave(file.path(output.dir, "Log2(size of component) vs Log2(Number of components).pdf"))
 
     annotate.component <- function(x) {
         result.df = data.frame(NumberOfTSS=sum(x$distanceToTSS==0),
@@ -357,7 +355,7 @@ analyze.generic.topology <- function(chia.obj, output.dir="output") {
         return(result.df)
     }
 
-    component.table = ddply(as.data.frame(chia.obj$Regions), "Component", annotate.component)
+    component.table = ddply(as.data.frame(chia.obj$Regions), "Component.Id", annotate.component)
     write.table(component.table, file=file.path(output.dir, "Component table.txt"), sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
 
     component.table = ddply(component.table, "Size", function(x) { return(cbind(x, NumberOfComponentsOfThisSize=nrow(x)))})
@@ -429,10 +427,12 @@ analyze.expression <- function(chia.obj, output.dir="output") {
     gene.reps = chia.obj$Regions[chia.obj$Regions$Gene.Representative==TRUE]
     degree.exp.df <- data.frame(Degree=gene.reps$Degree,
                                 Exp.Mean=gene.reps$Expr.mean)
-    ggplot(degree.exp.df, aes(x=log2(Degree), y=Exp.Mean)) +
+    ggplot(degree.exp.df, aes(x=log2(Degree), y=log2(Exp.Mean))) +
         geom_point() +
         geom_smooth(method='lm')
     ggsave(file.path(output.dir, "Expression vs Degree at promoter.pdf"))
+
+    boxplot.by.connectivity(chia.obj, "Expr.mean", "Boxplot of the expression in fct of Connectivity", output.dir)
 }
 
 #' Analyze the gene specificity of ChIA-PET data
@@ -466,6 +466,7 @@ analyze.gene.specificity <- function(chia.obj, output.dir="output") {
         geom_boxplot() +
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
     ggsave(file.path(output.dir, "Boxplot of degrees by expression category.pdf"))
+
 }
 
 #' Analyze the TF of ChIA-PET data
@@ -676,7 +677,7 @@ boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.o
       }
 
       plot_grid(box, hist, nrow = 2, align = "v")
-      ggsave(file.path(output.dir, label), height = 14, width = 7)
+      ggsave(file.path(output.dir, paste0(label, ".pdf")), height = 14, width = 7)
     }
   }
 
@@ -687,10 +688,43 @@ boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.o
     chip.subset <- chip.data[tf][[1]]
     chip.subset <- annotate.chip(chip.subset, input.chrom.state = NULL, tf.regions = NULL, histone.regions = hist.data$Regions,
                                  genome.build = genome.build, biosample = biosample, output.dir = "output/annotations", tssRegion = tssRegion)
-    create.boxplot(chip.subset, chia.data,
-                   paste0("Boxplot of log2(Signal) in fct of Degree of ", tf ," at TSS.pdf"),
-                   "Contact frequency at TSS", "log2(Signal)", file.path(output.dir, biosample), tss.regions, TSS = TSS)
+    if (TSS){
+      create.boxplot(chip.subset, chia.data,
+                     paste0("Boxplot of log2(Signal) in fct of Degree of ", tf ," at TSS"),
+                     "Contact frequency at TSS", "log2(Signal)", file.path(output.dir, biosample), tss.regions, TSS = TSS)
+    } else {
+      create.boxplot(chip.subset, chia.data,
+                     paste0("Boxplot of log2(Signal) in fct of Degree of ", tf),
+                     "Contact frequency", "log2(Signal)", file.path(output.dir, biosample), tss.regions, TSS = TSS)
+    }
+
   }
+}
+
+#' Boxplot by connectivity
+#'
+#' Creates a boxplot of a specific value (given as parameter) according to the connectivity
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param variable.name The name of the variable according to which the boxplot should be computed.
+#' @param label The Name to give te the variable name in the resulting heatmap.
+#' @param output.dir The name of the directory where to save the heatmaps.
+#'
+#' @import ggplot2
+#'
+#' @export
+boxplot.by.connectivity <- function(chia.obj, variable.name, label, output.dir){
+  data.for.boxplot <- as.data.frame(mcols(chia.obj$Regions)[, c(variable.name, "Degree")])
+  data.for.boxplot$CutDegree <- cut(data.for.boxplot$Degree, breaks = c(1, 2, 6, 21, Inf), right = FALSE,
+                                    labels = c("Singles", "Low", "Intermediate", "High"))
+  data.for.boxplot <- data.for.boxplot[!is.na(data.for.boxplot$Expr.mean),]
+  ggplot(data.for.boxplot) +
+    geom_boxplot(aes(CutDegree, get(variable.name))) +
+    ylab(variable.name) +
+    xlab("Connectivity") +
+    scale_y_log10() +
+    ggtitle(label)
+  ggsave(file.path(output.dir, paste0(label, ".pdf")))
 }
 
 #' Separetes a large networks into communities and saves the sub-netwoks in cytoscape-friendly format

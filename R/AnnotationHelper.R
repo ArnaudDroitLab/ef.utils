@@ -262,6 +262,8 @@ associate.centralities <- function(chia.obj){
 
     chia.obj$Regions$Is.central[chia.obj$Regions$Component.Id == id] <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.85)
   }
+  
+  return(chia.obj)
 }
 
 #' Associates boolean to regions in fonction of their presence in factories
