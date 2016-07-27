@@ -198,6 +198,7 @@ connectivity.enrichment <- function(chia.obj, variable.name, label, wrap.row=3, 
 #'
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 ggsave
+#' @importFrom reshape2 melt
 contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
     type.df = data.frame(Left=mcols(chia.left(chia.obj))[,variable.name],
                          Right=mcols(chia.right(chia.obj))[,variable.name],
