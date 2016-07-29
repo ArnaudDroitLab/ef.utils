@@ -113,43 +113,43 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
     chia.obj$Regions$Degree = degree(chia.obj$Graph)
 
     # Associate various 
-    cat(date(), " : Associating genomic regions...", cat.sink)
+    cat(date(), " : Associating genomic regions...\n",cat.sink)
     chia.obj$Regions <- associate.genomic.region(chia.obj$Regions, genome.build, output.dir, tssRegion = tssRegion)
 
     if(!is.null(input.chrom.state)) {
-        cat(date(), " : Associating chromatin states...", cat.sink)
+        cat(date(), " : Associating chromatin states...\n",cat.sink)
         chia.obj$Regions = associate.chrom.state(chia.obj$Regions, input.chrom.state)
     }
 
     if(!is.null(tf.regions)) {
-        cat(date(), " : Associating transcription factors...", cat.sink)
+        cat(date(), " : Associating transcription factors...\n",cat.sink)
         chia.obj$Regions = associate.tf(chia.obj$Regions, tf.regions)
     }
 
     if(!is.null(histone.regions)) {
-        cat(date(), " : Associating histone marks...", cat.sink)    
+        cat(date(), " : Associating histone marks...\n",cat.sink)    
         chia.obj$Regions = associate.histone.marks(chia.obj$Regions, histone.regions)
     }
 
     if(!is.null(pol.regions)) {
-        cat(date(), " : Associating polymerase II regions...", cat.sink)
+        cat(date(), " : Associating polymerase II regions...\n",cat.sink)
         chia.obj$Regions = associate.histone.marks(chia.obj$Regions, pol.regions)
     }
 
-    cat(date(), " : Associating genes...", cat.sink)    
+    cat(date(), " : Associating genes...\n",cat.sink)    
     chia.obj$Regions = associate.gene(chia.obj$Regions, expression.levels)
 
     if(genome.build=="hg19" || genome.build=="hg38") {
-        cat(date(), " : Associating tissue specificity...", cat.sink)    
+        cat(date(), " : Associating tissue specificity...\n",cat.sink)    
         chia.obj$Regions = associate.tissue.specificity.human(chia.obj$Regions)
-        cat(date(), " : Associating fitness score...", cat.sink)            
+        cat(date(), " : Associating fitness score...\n",cat.sink)            
         chia.obj$Regions = associate.fitness.genes(chia.obj$Regions)
     }
 
-    cat(date(), " : Associating components...", cat.sink)        
+    cat(date(), " : Associating components...\n",cat.sink)        
     chia.obj = associate.components(chia.obj, split = split, oneByOne = oneByOne, method = method)
     
-#    cat(date(), " : Associating centrality scores...", cat.sink)    
+#    cat(date(), " : Associating centrality scores...\n",cat.sink)    
 #    chia.obj = associate.centralities(chia.obj)
     
     chia.obj$Regions = associate.is.in.factory(chia.obj$Regions)
@@ -504,37 +504,41 @@ analyze.gene.specificity <- function(chia.obj, output.dir="output") {
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 ggsave
 #' @importFrom reshape2 melt
-analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
-    # Look at TF presence curves as a function of connectivity
-    results = matrix(0, nrow=length(tf.regions), ncol=4)
-    rownames(results) <- names(tf.regions)
-    boundaries.list = list(Singles=c(0, 1), Low=c(1, 5), Intermediate=c(5, 20), High=c(20, 1000))
-    colnames(results) <- names(boundaries.list)
-
-    # Extract the overlap matrix from the region annotations.
-    overlap.matrix <- as.matrix(mcols(chia.obj$Regions)[,grepl("^TF\\.", colnames(mcols(chia.obj$Regions)))])
-    for(i in 1:length(boundaries.list)) {
-        for(j in 1:ncol(overlap.matrix)) {
-            boundaries = boundaries.list[[i]]
-            indices = chia.obj$Regions$Degree > boundaries[1] & chia.obj$Regions$Degree <= boundaries[2]
-
-            results[j,i] <- sum(overlap.matrix[indices,j] > 0) / sum(indices)
+analyze.tf <- function(chia.obj, output.dir="output") {
+    tf.columns = grepl("^TF\\.", colnames(mcols(chia.obj$Regions)))
+    
+    if(sum(tf.columns) > 0) {
+        # Extract the overlap matrix from the region annotations.
+        overlap.matrix <- as.matrix(mcols(chia.obj$Regions)[,tf.columns])
+        
+        # Look at TF presence curves as a function of connectivity
+        boundaries.list = list(Singles=c(0, 1), Low=c(1, 5), Intermediate=c(5, 20), High=c(20, 1000))
+        results = matrix(0, nrow=ncol(overlap.matrix), ncol=length(boundaries.list),
+                         dimnames=list(Rows=colnames(overlap.matrix), Columns=names(boundaries.list)))
+        
+        # Loop over boundaries and TFs, calculating percentages of overlap.
+        for(i in 1:length(boundaries.list)) {
+            for(j in 1:ncol(overlap.matrix)) {
+                boundaries = boundaries.list[[i]]
+                indices = chia.obj$Regions$Degree > boundaries[1] & chia.obj$Regions$Degree <= boundaries[2]
+        
+                results[j,i] <- sum(overlap.matrix[indices,j] > 0) / sum(indices)
+            }
         }
+        
+        results.df =  melt(results)
+        colnames(results.df) = c("TF", "Connectivity", "Proportion")
+        results.df$Connectivity = factor(results.df$Connectivity, levels = names(boundaries.list))
+        
+        # Reorganize TF by slope
+        results.df$TF = factor(results.df$TF, levels=rownames(results)[order(results[,4]-results[,1])])
+        
+        ggplot(data=results.df, aes(x=Connectivity, y=Proportion)) +
+            geom_line(group=1) +
+            facet_wrap(~TF, ncol=10) +
+            theme(axis.text.x = element_text(angle = 90, hjust = 1))
+        ggsave(file.path(output.dir, "TF presence on contact point by connectivity.pdf"), width=14, height=14)
     }
-
-    results.df =  melt(results)
-    colnames(results.df) = c("TF", "Connectivity", "Proportion")
-    results.df$Connectivity = factor(results.df$Connectivity, levels = names(boundaries.list))
-
-    # Reorganize TF by slope
-    results.df$TF = factor(results.df$TF, levels=rownames(results)[order(results[,4]-results[,1])])
-
-    ggplot(data=results.df, aes(x=Connectivity, y=Proportion)) +
-        geom_line(group=1) +
-        facet_wrap(~TF, ncol=10) +
-        theme(axis.text.x = element_text(angle = 90, hjust = 1))
-    ggsave(file.path(output.dir, "TF presence on contact point by connectivity.pdf"), width=14, height=14)
-
 }
 
 
@@ -554,7 +558,8 @@ analyze.tf <- function(chia.obj, tf.regions, output.dir="output") {
 #' @importFrom Biobase cache
 #' @export
 analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, tf.regions = NULL,
-                             histone.regions = NULL, pol.regions = NULL, expression.data = NULL, output.dir="output", ...) {
+                             histone.regions = NULL, pol.regions = NULL, expression.data = NULL, output.dir="output", verbose=TRUE,
+                             ...) {
     # Create output directory.
     dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
 
@@ -600,32 +605,47 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
     cache(chia.obj <- annotate.chia(chia.obj, input.chrom.state = input.chrom.state, tf.regions = tf.regions,
                               histone.regions=histone.regions, pol.regions = pol.regions,
                               expression.levels=expression.data, genome.build = genome.build, biosample=biosample,
-                              output.dir = output.dir, ...), output.dir)
+                              output.dir = output.dir, verbose=verbose, ...), output.dir)
 
 
+    # If verbose output is turned off, redirect output to a NULL stream.
+    cat.sink = ifelse(verbose, "", textConnection(NULL, w))                              
+                              
     # Output the results of the annotation.
     output.annotated.chia(chia.obj, chia.raw, output.dir)
 
     # Perform further in-depth analysis of the networks.
+    cat(date(), " : Analyzing network topologies...\n",cat.sink)
     analyze.generic.topology(chia.obj, output.dir)
+    
+    cat(date(), " : Analyzing genomic annotations...\n",cat.sink)
 	analyze.annotation(chia.obj, output.dir)
 
 	if(!is.null(input.chrom.state)) {
+        cat(date(), " : Analyzing chromatin states...\n",cat.sink)
         analyze.chromatin.states(chia.obj, output.dir)
     }
 
 	if(!is.null(expression.data)) {
+        cat(date(), " : Analyzing gene expression...\n",cat.sink)
         analyze.expression(chia.obj, output.dir)
     }
 
     if(!is.null(tf.regions)) {
-        analyze.tf(chia.obj, tf.regions, output.dir)
+        cat(date(), " : Analyzing transcription factor overlaps...\n",cat.sink)
+        analyze.tf(chia.obj, output.dir)
     }
 
 	if(genome.build %in% c("hg19", "hg38")) {
+        cat(date(), " : Analyzing gene specificity...\n",cat.sink)
         analyze.gene.specificity(chia.obj, output.dir)
     }
 
+    # Close dummy verbose stream.
+    if(!verbose) {
+        close(cat.sink)
+    }
+    
 	return(chia.obj)
 }
 
