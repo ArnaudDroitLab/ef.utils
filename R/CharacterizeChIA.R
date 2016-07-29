@@ -59,13 +59,12 @@ load.chia <- function(input.chia) {
     # Build a graph.
     # Map back to original contact points
     chia.left.indices = findOverlaps(chia.left.ranges, single.set, select="first")
-    #chia.left.merged = single.set[chia.left.indices]
     chia.right.indices = findOverlaps(chia.right.ranges, single.set, select="first")
-    #chia.right.merged = single.set[chia.right.indices]
 
     # Create iGraph object.
     chia.graph = make_graph(c(rbind(chia.left.indices, chia.right.indices)))
-
+    chia.graph = set_edge_attr(chia.graph, "Reads", value=chia.raw[,7])
+    
     return(list(Left=chia.left.ranges, Right=chia.right.ranges, Regions=single.set, Graph=chia.graph))
 }
 
@@ -149,8 +148,8 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
     cat(date(), " : Associating components...\n",cat.sink)        
     chia.obj = associate.components(chia.obj, split = split, oneByOne = oneByOne, method = method)
     
-#    cat(date(), " : Associating centrality scores...\n",cat.sink)    
-#    chia.obj = associate.centralities(chia.obj)
+    cat(date(), " : Associating centrality scores...\n",cat.sink)    
+    chia.obj = associate.centralities(chia.obj)
     
     chia.obj$Regions = associate.is.in.factory(chia.obj$Regions)
     chia.obj$Regions = associate.is.gene.active(chia.obj$Regions)
@@ -259,16 +258,22 @@ contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
 #'        an extra column containing the number of reads supporting the data. Their format is supported by Cytoscape.
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
-#' @param chia.raw The raw ChIA-PET data, before annotation.
 #' @param output.dir The name of the directory where to save the files.
 #'
 #' @importFrom utils write.table
 #' @importFrom igraph components
 #'
 #' @export
-output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
+output.annotated.chia <- function(chia.obj, output.dir="output") {
+    # Create output directory if it does not exist.
+    dir.create(output.dir, recursive = TRUE)
 
-    # Write out annotated interactionsleft.df = as.data.frame(chia.left.merged)
+    # Export region annotation, putting the ID in the first column.
+    chia.data <- as.data.frame(chia.obj$Regions)
+    chia.data <- cbind(chia.data$ID, chia.data[,-which(colnames(chia.data) == "ID")])
+    write.table(chia.data, file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), row.names = FALSE, sep = "\t")
+    
+    # Write out annotated interactions by concatening left and right annotations.
     left.df = as.data.frame(chia.left(chia.obj))
     colnames(left.df) <- paste("Left", colnames(left.df), sep=".")
     right.df = as.data.frame(chia.right(chia.obj))
@@ -280,10 +285,9 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
     # Output Cytoscape components
 
     # Create interactions table
-    ids <- data.frame(left.df$Left.ID, right.df$Right.ID, chia.raw[,7], left.df$Left.Component.Id, right.df$Right.Component.Id)
-    ids <- ids[ids[,4] == ids[,5],1:4]
+    ids <- data.frame(left.df$Left.ID, right.df$Right.ID, edge_attr(chia.obj)$Reads, left.df$Left.Component.Id)
     colnames(ids) <- c("Source", "Target", "Reads", "Component")
-    dir.create(output.dir, recursive = TRUE)
+    
 
     # Export networks in csv files
     dir.create(file.path(output.dir, "Size between 3 and 5 nodes (incl)"), recursive = TRUE)
@@ -312,11 +316,6 @@ output.annotated.chia <- function(chia.obj, chia.raw, output.dir="output") {
                     sep = ",", row.names = FALSE)
       }
     }
-
-    chia.data <- as.data.frame(chia.obj$Regions)
-    chia.data <- cbind(chia.data$ID, chia.data[,-which(colnames(chia.data) == "ID")])
-    write.table(chia.obj$Regions, file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), row.names = FALSE, sep = "\t")
-
 }
 
 #' Analyze the topology of ChIA-PET data
@@ -565,7 +564,6 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
 
     # Load interaction data.
     chia.obj = load.chia(input.chia)
-    chia.raw = read.table(input.chia)
 
     # If biosample is provided, download missing annotations from ENCODE.
     if(!is.null(biosample) && !is.null(genome.build)) {
@@ -612,7 +610,7 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
     cat.sink = ifelse(verbose, "", textConnection(NULL, w))                              
                               
     # Output the results of the annotation.
-    output.annotated.chia(chia.obj, chia.raw, output.dir)
+    output.annotated.chia(chia.obj, output.dir)
 
     # Perform further in-depth analysis of the networks.
     cat(date(), " : Analyzing network topologies...\n",cat.sink)
