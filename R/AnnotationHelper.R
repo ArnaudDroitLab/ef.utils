@@ -253,16 +253,21 @@ associate.centralities <- function(chia.obj){
 
     data <- data.frame(Nodes = unique(c(network$Source, network$Target)))
     data$Degree <- degree(graph)[data$Nodes]
-    data$Closeness <- estimate_closeness(graph, mode = "all", cutoff = 1)[data$Nodes]
     data$Betweenness <- betweenness(graph, directed = FALSE)[data$Nodes]
     data$Eigen <- eigen_centrality(graph, directed = FALSE)$vector[data$Nodes]
 
-    data$Centrality.score <- with(data, 0.30*Degree + 0.1*Betweenness + 0.30*Eigen + 0.30*Closeness)
-    chia.obj$Regions$Centrality.score[chia.obj$Regions$Component.Id == id] <- data$Centrality.score
+    data$Degree <- data$Degree / max(data$Degree)
+    data$Betweenness <- data$Betweenness / max(data$Betweenness)
+    data$Eigen <- data$Eigen / max(data$Eigen)
 
-    chia.obj$Regions$Is.central[chia.obj$Regions$Component.Id == id] <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.85)
+    data$Centrality.score <- with(data, (Degree + Betweenness + Eigen)/3)
+    data$Centrality.score[is.nan(data$Centrality.score)] <- 0
+    #data$Is.central <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.95)
+    chia.obj$Regions$Centrality.score[match(data$Nodes, chia.obj$Regions$ID)] <- data$Centrality.score
+
+    chia.obj$Regions$Is.central[match(data$Nodes, chia.obj$Regions$ID)] <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.95)
   }
-  
+
   return(chia.obj)
 }
 
