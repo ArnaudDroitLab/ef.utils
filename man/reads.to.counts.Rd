@@ -13,9 +13,9 @@ reads.to.counts(bam.files, param)
 }
 \value{
 A list with the following elements: \describe{
-  \item{[[1]]} {A \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.}
-  \item{[[2]]} {A data frame with the necessary information for the construction of a plot of window sizes.}
-  \item{[[3]]} {A vector with correlated reads.}}
+\item{[[1]]}{A \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.}
+\item{[[2]]}{A data frame with the necessary information for the construction of a plot of window sizes.}
+\item{[[3]]}{A vector with correlated reads.}}
 }
 \description{
 Convert reads from bam files to counts

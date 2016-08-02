@@ -11,10 +11,10 @@ load.chia(input.chia)
 }
 \value{
 A list of 4 elements: \describe{
-  \item{$Left} {A \linkS4class{GRanges} object containing the information about the "left side" of the ChIA-PET data.}
-  \item{$Right} {A \linkS4class{GRanges} object containing the information about the "right side" of the ChIA-PET data.}
-  \item{$Regions} {A \linkS4class{GRanges} object containing the reduced information of both sides.}
-  \item{$Graph} {A directed \linkS4class{igraph} object picturing every interaction between the left side and the right
+\item{$Left}{A \linkS4class{GRanges} object containing the information about the "left side" of the ChIA-PET data.}
+\item{$Right}{A \linkS4class{GRanges} object containing the information about the "right side" of the ChIA-PET data.}
+\item{$Regions}{A \linkS4class{GRanges} object containing the reduced information of both sides.}
+\item{$Graph}{A directed \linkS4class{igraph} object picturing every interaction between the left side and the right
 side of the ChIA-PET data.}}
 }
 \description{

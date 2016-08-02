@@ -26,10 +26,10 @@ defaults to \code{file.path("input/ENCODE", biosample, "chip-seq")}.}
 }
 \value{
 A list containing three elements: \describe{
-  \item{Metadata} {The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
+\item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
     about all files which matched the query.}
-  \item{Downloaded} {The list of files which were downloaded.}
-  \item{Regions} {The processed peak regions.}}
+\item{Downloaded}{The list of files which were downloaded.}
+\item{Regions}{The processed peak regions.}}
 }
 \description{
 Given an encode biosample identifier (GM12878, MCF-7, etc.), this function

@@ -2,26 +2,19 @@
 % Please edit documentation in R/CharacterizeChIA.R
 \name{separate.into.communities}
 \alias{separate.into.communities}
-\title{Separetes a large networks into communities and saves the sub-netwoks in cytoscape-friendly format}
+\title{Separates a large networks into communities and saves the sub-netwoks in cytoscape-friendly format}
 \usage{
-separate.into.communities(network.input, network, chia.obj, output.dir,
-  method = igraph::cluster_fast_greedy)
+separate.into.communities(network.input, method = igraph::cluster_fast_greedy)
 }
 \arguments{
 \item{network.input}{The csv file containing the network to divide.}
 
-\item{network}{The id of the network.}
-
-\item{output.dir}{The directory where to save the files.}
-
 \item{method}{The algorithm to use to divide the graph.}
-
-\item{annotated.chia}{The txt file containing all information about the networks.}
 }
 \value{
 A list with two elements: the annotated chia.obj, with changed components ids ans sizes and the new networks.
 }
 \description{
-Separetes a large networks into communities and saves the sub-netwoks in cytoscape-friendly format
+Separates a large networks into communities and saves the sub-netwoks in cytoscape-friendly format
 }
 

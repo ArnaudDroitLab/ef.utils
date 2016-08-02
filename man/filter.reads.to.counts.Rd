@@ -17,8 +17,8 @@ filter.reads.to.counts(bam.files, param, counted.reads, threshold)
 }
 \value{
 A list with the following elements: \describe{
-  \item{[[1]]} {A filtered \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.}
-  \item{[[2]]} {filter.stat, list, statistics of windows aboundances and their filter}}
+\item{[[1]]}{A filtered \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.}
+\item{[[2]]}{filter.stat, list, statistics of windows aboundances and their filter}}
 }
 \description{
 Filter out unintersing windows, by global enrichment method.

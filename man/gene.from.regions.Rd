@@ -17,12 +17,12 @@ gene.from.regions(regions, annotations.list, flank.size = c(-3000, 3000),
 promoter region.}
 
 \item{region.types}{A character vector representing region types which will
-cause a gene association. These can be: \describe{
-  \item{Promoter} {Promoter region (upstream and downstream of the TSS).}
-  \item{Gene body} {Promoter, Exons, introns, 5' and 3' UTRs.}
-  \item{Downstream} {Region downstream of the TES.}
-  \item{Distal} {Regions which do not fit any of the above category.}
-  \item{All} {All of the above.}}}
+  cause a gene association. These can be: \describe{
+\item{Promoter}{Promoter region (upstream and downstream of the TSS).}
+\item{Gene body}{Promoter, Exons, introns, 5' and 3' UTRs.}
+\item{Downstream}{Region downstream of the TES.}
+\item{Distal}{Regions which do not fit any of the above category.}
+\item{All}{All of the above.}}}
 }
 \value{
 A data-frame with the enrichment results.

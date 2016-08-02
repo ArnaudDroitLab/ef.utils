@@ -6,9 +6,8 @@
 \usage{
 analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
   genome.build = NULL, tf.regions = NULL, histone.regions = NULL,
-  pol.regions = NULL, expression.data = NULL, tssRegion = c(-3000, 3000),
-  output.dir = "output", split = TRUE, oneByOne = FALSE,
-  method = igraph::cluster_fast_greedy)
+  pol.regions = NULL, expression.data = NULL, output.dir = "output",
+  verbose = TRUE, ...)
 }
 \arguments{
 \item{input.chia}{The file containing processed ChIA-PET data.}
@@ -19,23 +18,17 @@ analyze.chia.pet(input.chia, input.chrom.state = NULL, biosample = NULL,
 
 \item{genome.build}{The name of the chosen annotation ("hg38", "hg19").}
 
-\item{tf.regions}{A data frame containing the TF data.}
+\item{tf.regions}{A \linkS4class{GRangesList} object containing TF regions.}
 
-\item{histone.regions}{A data frame containing the histone data.}
+\item{histone.regions}{A \linkS4class{GRangesList} object containing histone regions.}
 
-\item{pol.regions}{A data frame containing the pol2 data.}
+\item{pol.regions}{A \linkS4class{GRangesList} object containing the pol2 regions.}
 
-\item{tssRegion}{A vector with the region range to TSS.}
+\item{output.dir}{The name of the directory where output should be saved.}
 
-\item{output.dir}{The name of the directory where to save the graphs.}
+\item{...}{Additional parameters to be passed to \code{\link{annotate.chia}}}
 
-\item{split}{Should the networks be divided into communities?}
-
-\item{oneByOne}{Sould the netwoks be treated one by one or as a whole?}
-
-\item{method}{Which function should be used to separate the data into communities?}
-
-\item{expression.levels}{A data frame containing the levels of expression of genes. according to their EMSEMBL id.}
+\item{expression.levels}{A data frame containing the levels of expression of genes, according to their EMSEMBL id.}
 }
 \value{
 The annotated chia.obj.

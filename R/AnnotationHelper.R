@@ -1,3 +1,7 @@
+#############################################################################################################
+# Functions that should always run:
+#############################################################################################################
+
 #' Install required annotation packages.
 #'
 #' Install \pkg{BiocInstaller} and the required annotation packages for the given
@@ -61,13 +65,13 @@ install.annotations <- function(which.assembly) {
 #'
 #' @param genome.build The genome build to use for annotation.
 #' @return A list with the following elements: \describe{
-#'   \item{TxDb} {A TxDb of class \linkS4class{AnnotationDBI} providing informations about the genes
+#' \item{TxDb}{A TxDb of class \linkS4class{AnnotationDBI} providing informations about the genes
 #'   of the selected build.}
-#'   \item{OrgDb} {An \linkS4class{OrgDb} object for the selected species.}
-#'   \item{OrgDbStr} {A character string representing the name of the \linkS4class{OrgDb} object.}
-#'   \item{BSGenome} {A \linkS4class{BSGenome} object to retrieve DNA sequences.}
-#'   \item{KEGG} {A cache of KEGG pathways, as returned by \code{\link[gage]{kegg.gsets}} from the \pkg{gage} library.}
-#'   \item{PWMBG} {A PWMLogn background for motif enrichment of promoter regions.}}
+#' \item{OrgDb}{An \linkS4class{OrgDb} object for the selected species.}
+#' \item{OrgDbStr}{A character string representing the name of the \linkS4class{OrgDb} object.}
+#' \item{BSGenome}{A \linkS4class{BSGenome} object to retrieve DNA sequences.}
+#' \item{KEGG}{A cache of KEGG pathways, as returned by \code{\link[gage]{kegg.gsets}} from the \pkg{gage} library.}
+#' \item{PWMBG}{A PWMLogn background for motif enrichment of promoter regions.}}
 #'
 #' @export
 select.annotations <- function(genome.build) {
@@ -141,10 +145,11 @@ select.annotations <- function(genome.build) {
 
 #' Annotate "chip.data", given as parameter.
 #'
-#' @param chip.data A \linkS4class{GRanges} object containing the ChIp-seq data.
+#' @param chip.data A \linkS4class{GRanges} object containing the ChIP-seq data.
 #' @param input.chrom.state The name of the file containing the information about chromatin states.
-#' @param tf.regions A data frame containing the TF data.
-#' @param histone.regions A data frame containing the histone data.
+#' @param tf.regions A \linkS4class{GRangesList} object containing the TF regions.
+#' @param histone.regions A \linkS4class{GRangesList} object containing the histone regions.
+#' @param pol.regions A \linkS4class{GRangesList} object containing the pol2 regions.
 #' @param expression.levels A data frame containing the levels of expression of genes. according to their EMSEMBL id.
 #' @param genome.build The name of the chosen annotation ("hg38", "mm9", "mm10", "hg19").
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
@@ -155,9 +160,12 @@ select.annotations <- function(genome.build) {
 #'
 #' @return The annotated "\code{chip.data}".
 #'
+#' @importFrom Biobase cache
+#'
 #' @export
-annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-                          biosample = "GM12878", tssRegion = c(-3000, 3000), output.dir, label) {
+annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regions, pol.regions, expression.levels,
+                          genome.build = c("hg19", "mm9", "mm10", "hg38"), biosample = "GM12878",
+                          tssRegion = c(-3000, 3000), output.dir, label) {
   dir.create(output.dir, recursive = TRUE)
   genome.build <- match.arg(genome.build)
 
@@ -178,13 +186,20 @@ annotate.chip <- function(chip.data, input.chrom.state, tf.regions, histone.regi
     chip.data = associate.histone.marks(chip.data, histone.regions)
   }
 
+  if(!is.null(pol.regions)) {
+    chia.obj$Regions = associate.histone.marks(chia.obj$Regions, pol.regions)
+  }
+
   chip.data = associate.gene.chip(chip.data, expression.data=NULL, biosample, genome.build)
 
   if(genome.build=="hg19" || genome.build=="hg38") {
     chip.data = associate.tissue.specificity.human(chip.data)
     chip.data = associate.fitness.genes(chip.data)
   }
+
+
   chip.data = associate.is.gene.active(chip.data)
+
 
   write.table(chip.data, file.path(output.dir, label), sep = "\t", row.names = FALSE)
 
@@ -222,69 +237,396 @@ annotate.region <- function(region, annotations.list, tssRegion = c(-3000, 3000)
     return(tfAnnotation)
 }
 
-#' Associates boolean to regions in focntion of their centrality
+#' Given a \linkS4class{GRanges} object, finds enriched motifs within those regions.
 #'
-#' @param chia.obj chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' Performs motif enrichment against \code{pwm.bg}. If \code{pwm.bg} is not provided,
+#' \code{annotations.list$PWMBG} is used.
 #'
-#' @return The annotated chia.obj.
-#'
-#' @importFrom igraph make_graph
-#' @importFrom igraph degree
-#' @importFrom igraph estimate_closeness
-#' @importFrom igraph betweenness
-#' @importFrom igraph eigen_centrality
-associate.centralities <- function(chia.obj){
-  left.df = as.data.frame(chia.left(chia.obj))
-  colnames(left.df) <- paste("Left", colnames(left.df), sep=".")
-  right.df = as.data.frame(chia.right(chia.obj))
-  colnames(right.df) <- paste("Right", colnames(right.df), sep=".")
-
-  ids <- data.frame(left.df$Left.ID, right.df$Right.ID, left.df$Left.Component.Id, right.df$Right.Component.Id)
-  ids <- ids[ids[,4] == ids[,3],1:3]
-  colnames(ids) <- c("Source", "Target", "Component")
-
-  # Creation of the new columns to fill
-  chia.obj$Regions$Centrality.score <- 0
-  chia.obj$Regions$Is.central <- 0
-
-  for (id in unique(chia.obj$Regions$Component.Id)){
-    network <- ids[ids$Component == id,]
-    graph <- make_graph(c(rbind(network$Source, network$Target)))
-
-    data <- data.frame(Nodes = unique(c(network$Source, network$Target)))
-    data$Degree <- degree(graph)[data$Nodes]
-    data$Betweenness <- betweenness(graph, directed = FALSE)[data$Nodes]
-    data$Eigen <- eigen_centrality(graph, directed = FALSE)$vector[data$Nodes]
-
-    data$Degree <- data$Degree / max(data$Degree)
-    data$Betweenness <- data$Betweenness / max(data$Betweenness)
-    data$Eigen <- data$Eigen / max(data$Eigen)
-
-    data$Centrality.score <- with(data, (Degree + Betweenness + Eigen)/3)
-    data$Centrality.score[is.nan(data$Centrality.score)] <- 0
-    #data$Is.central <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.95)
-    chia.obj$Regions$Centrality.score[match(data$Nodes, chia.obj$Regions$ID)] <- data$Centrality.score
-
-    chia.obj$Regions$Is.central[match(data$Nodes, chia.obj$Regions$ID)] <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.95)
+#' @param regions The regions on which motif enrichment should be performed.
+#' @param annotations.list A list of annotation databases returned by
+#'   \code{\link{select.annotations}}.
+#' @param file.label A label for generating file names to save the results.
+#'   If \code{NULL}, results are not saved to disk.
+#' @param pwm.bg A PWMLogn background object against which enrichment
+#'   should be performed.
+#' @param top.x Number of top motifs for which logos are generated.
+#' @return A list with the following elements: \describe{
+#' \item{Region}{The subset of regions where motifs were sought.}
+#' \item{Enrichment}{The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{motifEnrichment}} call.}
+#' \item{Report}{The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{groupReport}} call.}}
+#' @importFrom Biostrings getSeq
+#' @importFrom Biostrings DNAStringSet
+#' @importFrom PWMEnrich motifEnrichment
+#' @importFrom PWMEnrich groupReport
+#' @importFrom PWMEnrich plotMultipleMotifs
+#' @export
+motif.enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg=NULL, top.x=20) {
+  # Make sure we have a valid background.
+  if(is.null(pwm.bg)) {
+    if(is.null(annotations.list$PWMBG)) {
+      stop("The provided annotations.list does not have a valid PWMBG element.")
+    } else {
+      pwm.bg = annotations.list$PWMBG
+    }
   }
 
-  return(chia.obj)
+  # Get sequences for the given regions.
+  intersectSeq <- Biostrings::getSeq(annotations.list$BSGenome, regions)
+
+  # Remove N prefix/suffixes. Will also deal with all N sequences, which would cause a crash.
+  intersectSeq <- Biostrings::DNAStringSet(gsub("N*$", "", gsub("^N*", "", as.character(intersectSeq))))
+
+  # Remove sequences which are smaller than the maximum PWM length.
+  max.pwm.length = max(unlist(lapply(pwm.bg$pwms, length)))
+  sequence.subset = width(intersectSeq) >= max.pwm.length
+  intersectSeq <- intersectSeq[sequence.subset]
+
+  if(length(intersectSeq) > 0) {
+    res <-  PWMEnrich::motifEnrichment(intersectSeq, pwm.bg)
+    report <- PWMEnrich::groupReport(res)
+
+    if(!is.null(file.label)) {
+      # Plot top X motifs
+      ordered.motifs = order(res$group.bg)
+      for(i in 1:top.x) {
+        # Perform some name sanitation.
+        # For HOCOMOCO motif names.
+        motif.name = gsub("Hsapiens-HOCOMOCOv9_AD_PLAINTEXT_H_PWM_hg19-", "", names(res$group.bg)[ordered.motifs[i]])
+
+        # For mouse names.
+        # Mouse motif names contain forward slashes, which are obviously not valid file name characters.
+        motif.name = gsub("/", "", motif.name)
+
+        # Generate logo file.
+        pdf(paste(file.label, " ", i, " - ", motif.name, ".pdf"), width=7/1.5, height=11/6)
+        PWMEnrich::plotMultipleMotifs(res$pwms[ordered.motifs[i]], xaxis=FALSE, titles="")
+        dev.off()
+      }
+
+      # Write results to disc.
+      write.table(as.data.frame(report), file=paste0(file.label, " MotifEnrichment.txt"),
+                  sep="\t", row.names=FALSE, col.names=TRUE)
+    }
+
+    return(list(Region=regions[sequence.subset], Enrichment=res, Report=report))
+  } else {
+    warning("No sequences were eligeible for motif enrichment.")
+    return(NULL)
+  }
 }
 
-#' Associates boolean to regions in fonction of their presence in factories
+#' Given a set of Entrez IDS, retrieve the coordinates of those genes' promoters.
 #'
-#' Is.In.Factory is \code{TRUE} if the region is in a network with 3 genes or more.
-#'
-#' @param regions A \linkS4class{GRanges} object to annotate.
-#' @return The annotated regions.
-associate.is.in.factory <- function(regions){
-  factories <- as.data.frame(regions)
-  factories <- aggregate(Gene.Representative~Component.Id, data = regions, FUN = sum)
-  factories <- factories$Component.Id[factories$Gene.Representative > 2]
-  regions$Is.In.Factory <- (regions$Component.Id %in% factories) & (regions$Component.size > 4)
-  return(regions)
+#' @param selected.genes A vector of ENTREZ gene ids whose promoters should be
+#'   retrieved.
+#' @param annotations.list A list of annotation databases returned by
+#'   \code{\link{select.annotations}}.
+#' @param flank.size How many base pairs upstream of the TSS should we retrieve?
+#' @return A \linkS4class{GRanges} objects representing the promoters of the given genes.
+#' @importFrom AnnotationDbi select
+#' @importFrom GenomicRanges reduce
+#' @export
+get.promoters <- function(selected.genes, annotations.list, flank.size=1000) {
+  # Get the transcription regions from the database.
+  tx.regions = AnnotationDbi::select(annotations.list$TxDb, selected.genes, c("TXCHROM", "TXSTART", "TXEND", "TXSTRAND"), "GENEID")
 
+  # Keep only the first record for each gene.
+  tx.regions = tx.regions[match(selected.genes, tx.regions$GENEID),]
+
+  # Keep promoter only.
+  promoter.regions = GenomicRanges::reduce(GenomicRanges::flank(GRanges(tx.regions), flank.size))
+
+  return(promoter.regions)
 }
+
+#' Perform motif enrichment on the promoters of a set of genes.
+#'
+#' Utility function which performs the same operations as motif.enrichment,
+#' but accepts a list of genes instead of a list of regions.
+#'
+#' @param selected.genes A vector of ENTREZ gene ids whose promoters should be
+#'   subjected to motif enrichment.
+#' @param annotations.list A list of annotation databases returned by
+#'   \code{\link{select.annotations}}.
+#' @param flank.size How many base pairs upstream of the TSS should we retrieve?
+#' @param ... Additional arguments for \code{\link{motif.enrichment}}.
+#' @return A list with the following elements: \describe{
+#'   \item{Region}{The subset of regions where motifs were sought.}
+#'   \item{Enrichment}{The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{motifEnrichment call.}}}
+#'   \item{Report}{The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{groupReport call.}}}}
+#' @export
+motif.enrichment.genes <- function(selected.genes, annotations.list, flank.size=1000, ...) {
+  promoter.regions = get.promoters(selected.genes, annotations.list, flank.size)
+
+  return(motif.enrichment(promoter.regions, annotations.list=annotations.list, ...))
+}
+
+#' Perform KEGG pathway enrichment on a set of genes.
+#'
+#' Utility function which performs the same operations as \code{\link{motif.enrichment}},
+#' but accepts a list of genes instead of a list of regions.
+#'
+#' @param selected.genes A vector of ENTREZ gene ids to be subjected
+#'   to motif enrichment.
+#' @param annotations.list A list of annotation databases returned by
+#'   \code{\link{select.annotations}}.
+#' @param filename The name of the file where the results should be saved.
+#'    If \code{NULL}, results are not saved to disk.
+#' @param diseases If \code{TRUE}, the enrichment is performed against the disease pathways.
+#' @param gene.background A list of Entrez gene ids of the genes to be used
+#'   as the background of the enrichment. If \code{NULL}, all genes in \code{annotations.list$TxDb}
+#'   are used.
+#' @return A data-frame with the enrichment results.
+#' @importFrom AnnotationDbi keys
+#' @export
+kegg.enrichment <- function(selected.genes, annotations.list, filename=NULL, diseases=FALSE, gene.background=NULL) {
+  # Retrieve all KEGG pathways.
+  keptSets <- annotations.list$KEGG$kg.sets[annotations.list$KEGG$dise.idx]
+  if(!diseases) {
+    keptSets <- annotations.list$KEGG$kg.sets[annotations.list$KEGG$sigmet.idx]
+  }
+
+  if(is.null(gene.background)) {
+    gene.background <- AnnotationDbi::keys(annotations.list$TxDb)
+  }
+
+  # For all pathways, perform enrichment analysis.
+  inUniverse <- as.numeric(gene.background)
+  inDataset <- as.numeric(selected.genes)
+
+  # list.enrichment <- function(all.drawn, all.category, all.universe) {
+  #     chosen <- sum(unique(all.drawn) %in% unique(all.category))
+  #     universe <- length(unique(all.universe))
+  #     possible <- length(unique(all.category))
+  #     drawn <- length(unique(all.drawn))
+  #     expected <- possible*(drawn/universe)
+  #
+  #     return(data.frame(Chosen=chosen,
+  #                       Possible=possible,
+  #                       Universe=universe,
+  #                       Drawn=drawn,
+  #                       Expected=expected,
+  #                       PVal=phyper(chosen, possible, universe - possible, drawn, lower.tail=FALSE)))
+  # }
+  #
+  # ldply(keptSets, list.enrichment, function(x) { list.enrichment(all.drawn=inDataset, x, inUniverse) })
+
+  results <- data.frame(Pathway=character(0),
+                        Chosen=numeric(0),
+                        Possible=numeric(0),
+                        Universe=numeric(0),
+                        Drawn=numeric(0),
+                        Expected=numeric(0),
+                        PVal=numeric(0),
+                        AdjPVal=numeric(0))
+  for(kegg.set in names(keptSets)) {
+    inPathway <- as.numeric(keptSets[[kegg.set]])
+
+    chosen <- sum(unique(inDataset) %in% unique(inPathway))
+    universe <- length(unique(inUniverse))
+    possible <- length(unique(inPathway))
+    drawn <- length(unique(inDataset))
+    expected <- possible*(drawn/universe)
+
+    # Perform the hypergeometric test.
+    results <- rbind(results,
+                     data.frame(Pathway=kegg.set,
+                                Chosen=chosen,
+                                Possible=possible,
+                                Universe=universe,
+                                Drawn=drawn,
+                                Expected=expected,
+                                PVal=phyper(chosen, possible, universe - possible, drawn, lower.tail=FALSE),
+                                AdjPVal=1))
+  }
+
+  results$AdjPVal <- p.adjust(results$PVal, method="fdr")
+  if(!is.null(filename)) {
+    write.table(results, file=filename, sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
+  }
+
+  return(results)
+}
+
+# Given a set of annotations, convert it to a set of Entrez gene ids before calling kegg.enrichment.
+# kegg.enrichment.annotation <- function(annotations, file.name, diseases=FALSE, gene.background=NULL) {
+#   selected.genes = unique(as.data.frame(annotations)$geneId)
+#
+#   return(kegg.enrichment(selected.genes, file.name, diseases, gene.background))
+# }
+
+#' Given a set of regions, convert it to a set of Entrez gene ids.
+#'
+#' Utility function to get a gene list from a set of regions.
+#'
+#' @param regions A \linkS4class{GRanges} object with regions to be associated to genes.
+#' @param annotations.list A list of annotation databases returned by
+#'   \code{\link{select.annotations}}.
+#' @param flank.size The extent around the TSS which is considered the
+#'   promoter region.
+#' @param region.types A character vector representing region types which will
+#'   cause a gene association. These can be: \describe{
+#' \item{Promoter}{Promoter region (upstream and downstream of the TSS).}
+#' \item{Gene body}{Promoter, Exons, introns, 5' and 3' UTRs.}
+#' \item{Downstream}{Region downstream of the TES.}
+#' \item{Distal}{Regions which do not fit any of the above category.}
+#' \item{All}{All of the above.}}
+#' @return A data-frame with the enrichment results.
+#' @importFrom ChIPseeker annotatePeak
+#' @export
+gene.from.regions <- function(regions, annotations.list, flank.size=c(-3000, 3000), region.types=c("Gene body", "Promoter", "Downstream", "Distal", "All")) {
+
+  region.types <- match.arg(region.types, several.ok = TRUE)
+
+  # Annotate regions to retrieve gene names.
+  overlap.annotation <- ChIPseeker::annotatePeak(regions,
+                                                 tssRegion=flank.size,
+                                                 TxDb=annotations.list$TxDb,
+                                                 annoDb=annotations.list$OrgDbStr)
+
+  if("All" %in% region.types) {
+    region.types=c("Promoter", "Gene body", "Downstream", "Distal")
+  }
+
+  to.keep = rep(FALSE, length(regions))
+  if("Promoter" %in% region.types) {
+    to.keep = to.keep | grepl("Promoter", overlap.annotation@anno$annotation)
+  }
+
+  if("Gene body" %in% region.types) {
+    to.keep = to.keep | grepl("Promoter", overlap.annotation@anno$annotation) | grepl("3' UTR", overlap.annotation@anno$annotation) |
+      grepl("5' UTR", overlap.annotation@anno$annotation) | grepl("Exon", overlap.annotation@anno$annotation) | grepl("Intron", overlap.annotation@anno$annotation)
+
+  }
+
+  if("Downstream" %in% region.types) {
+    to.keep = to.keep | grepl("Downstream", overlap.annotation@anno$annotation)
+  }
+
+  if("Distal" %in% region.types) {
+    to.keep = to.keep | grepl("Distal", overlap.annotation@anno$annotation)
+  }
+
+  return(unique(overlap.annotation@anno$geneId[to.keep]))
+}
+
+#' Perform KEGG enrichment on a set of regions.
+#'
+#' Conveniance function. Regions are converted to genes with
+#' \code{\link{gene.from.regions}} using default parameters.
+#'
+#' @param regions A \linkS4class{GRanges} object with regions to enriched for KEGG pathways.
+#' @param annotations.list A list of annotation databases returned by
+#'   \code{\link{select.annotations}}.
+#' @param ... Parameters to be passed to \code{\link{kegg.enrichment}}.
+#' @return A vector of Entrez gene ids containing a non-redundant list of the
+#'   genes represented by the given regions.
+#' @export
+kegg.enrichment.regions <- function(regions, annotations.list, ...) {
+  selected.genes = gene.from.regions(regions, annotations.list)
+
+  return(kegg.enrichment(selected.genes, annotations.list=annotations.list, ...))
+}
+
+#' Given a set of regions, perform annotation, motif enrichment and KEGG enrichment.
+#'
+#' @param region A \linkS4class{GRanges} object with regions to be characterized.
+#' @param annotations.list A list of annotation databases returned by
+#'   \code{\link{select.annotations}}.
+#' @param file.label A label for generating file names to save the results.
+#'   If \code{NULL}, results are not saved to disk.
+#' @param skip.motif If \code{TRUE}, motif enrichment is skipped.
+#' @param skip.kegg If \code{TRUE}, KEGG pathway enrichment is skipped.
+#' @param output.dir The directory where output should be stored.A directory for storing output.
+#' @return A list containing the characterization results.
+#' @export
+characterize.region <- function(region, annotations.list, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/") {
+  results = list()
+
+  if(is.null(output.dir)){
+    file.label.annotation <- NULL
+    file.label.motif <- NULL
+    file.label.KEGG.sig <- NULL
+    file.label.KEGG.dis <- NULL
+  } else {
+    dir.create(output.dir, showWarnings = FALSE, recursive = TRUE)
+    file.label.annotation <- file.path(output.dir, "Annotations.txt")
+    file.label.motif <- file.path(output.dir, "Motifs")
+    file.label.KEGG.sig <- file.path(output.dir, "KEGG signalisation and metabolism.txt")
+    file.label.KEGG.dis <- file.path(output.dir, "KEGG diseases.txt")
+  }
+
+  #results[["Annotation"]] = annotate.region(region, file.path(base.dir, "Annotations.txt"))
+  results[["Annotation"]] = annotate.region(region, annotations.list, filename = file.label.annotation)
+
+  if(!skip.motif) {
+    #results[["Motif"]] = motif.enrichment(region, file.path(base.dir, "Motifs"), use.HOCOMOCO=(!exists("GENOME_VERSION") || GENOME_VERSION=="hg38"))
+    results[["Motif"]] = motif.enrichment(region, annotations.list, file.label = file.label.motif)
+  }
+
+  if(!skip.kegg) {
+    #results[["KEGG.sig"]] = kegg.enrichment.annotation(results[["Annotation"]], file.path(base.dir, "KEGG signalisation and metabolism.txt"))
+    #results[["KEGG.dis"]] = kegg.enrichment.annotation(results[["Annotation"]], file.path(base.dir, "KEGG diseases.txt"), diseases=TRUE)
+    results[["KEGG.sig"]] = kegg.enrichment.regions(region, annotations.list, filename = file.label.KEGG.sig)
+    results[["KEGG.dis"]] = kegg.enrichment.regions(region, annotations.list, filename = file.label.KEGG.dis, diseases = TRUE)
+  }
+
+  return(results)
+}
+
+#' Given a set of Entrez gene ids, perform  KEGG enrichment and motif enrichement at the promoters.
+#'
+#' @param gene.set A vector of Entrez IDs representing the genes to be characterized.
+#' @param annotations.list A list of annotation databases returned by
+#'   \code{\link{select.annotations}}.
+#' @param file.label A label for generating file names to save the results.
+#'   If \code{NULL}, results are not saved to disk.
+#' @param skip.motif If \code{TRUE}, motif enrichment is skipped.
+#' @param skip.kegg If \code{TRUE}, KEGG pathway enrichment is skipped.
+#' @param output.dir The directory where output should be stored.A directory for storing output.
+#' @return A list containing the characterization results.
+#' @export
+characterize.gene.set <- function(gene.set, annotations.list, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/", promoter.size=1000) {
+  results = list()
+
+  if(is.null(output.dir)){
+    file.label.motif <- NULL
+    file.label.KEGG.sig <- NULL
+    file.label.KEGG.dis <- NULL
+  } else {
+    dir.create(output.dir, showWarnings = FALSE, recursive = TRUE)
+    file.label.motif <- file.path(output.dir, "Motifs")
+    file.label.KEGG.sig <- file.path(output.dir, "KEGG signalisation and metabolism.txt")
+    file.label.KEGG.dis <- file.path(output.dir, "KEGG diseases.txt")
+  }
+
+  if(!skip.motif) {
+    #results[["Motif"]] = motif.enrichment.genes(gene.set, file.path(base.dir, "Motifs"), use.HOCOMOCO=(!exists("GENOME_VERSION") || GENOME_VERSION=="hg38"), flank.size=promoter.size)
+    results[["Motif"]] = motif.enrichment.genes(gene.set, annotations.list, flank.size=promoter.size, file.label = file.label.motif)
+
+  }
+
+  if(!skip.kegg) {
+    #results[["KEGG.sig"]] = kegg.enrichment(gene.set, file.path(base.dir, "KEGG signalisation and metabolism.txt"))
+    #results[["KEGG.dis"]] = kegg.enrichment(gene.set, file.path(base.dir, "KEGG diseases.txt"), diseases=TRUE)
+    results[["KEGG.sig"]] = kegg.enrichment(gene.set, annotations.list, filename = file.label.KEGG.sig)
+    results[["KEGG.dis"]] = kegg.enrichment(gene.set, annotations.list, filename = file.label.KEGG.dis, diseases=TRUE)
+
+  }
+
+  return(results)
+}
+
+
+################################################################################################################
+# Functions that may not work:
+# Possible reasons:
+# associate.is.gene.active: The conditions of active genes may not be observed because
+#   1) The annotation for CDK9 is not provided;
+#   2) The annotation of the Pol2 phosphoS2 is not provided;
+#   3) The FPKM is not provided.
+# etc.
+################################################################################################################
 
 #' Associates a boolean in fonction of the activity of the gene
 #'
@@ -302,62 +644,6 @@ associate.is.gene.active <- function(regions){
   }
   regions$Is.Gene.Active <- regions$SYMBOL %in% active.genes
   return(regions)
-}
-
-#' Associates components ids and sizes to chia data, as returned by \code{\link{load.chia}}.
-#'
-#' @param chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
-#' @param split Should the data be divided into communities?
-#' @param oneByOne Sould the netwoks be treated one by one or as a whole?
-#' @param method What method sould be used to split data (ignored if split = \code{FALSE}).
-#' @return The annotated chia.obj.
-#' @importFrom igraph components
-#' @importFrom igraph as.undirected
-associate.components <- function(chia.obj, split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy){
-
-  left.df = as.data.frame(chia.left(chia.obj))
-  colnames(left.df) <- paste("Left", colnames(left.df), sep=".")
-  right.df = as.data.frame(chia.right(chia.obj))
-  colnames(right.df) <- paste("Right", colnames(right.df), sep=".")
-
-  ids <- data.frame(left.df$Left.ID, right.df$Right.ID)
-  colnames(ids) <- c("Source", "Target")
-
-  # Generate components
-  components.out <- components(chia.obj$Graph)
-  reorder.components <- components.out$membership[ids$Source]
-  ids.components <- cbind(ids, reorder.components)
-  colnames(ids.components) <- c(colnames(ids), "Component")
-
-  # Export data on nodes
-  chia.obj$Regions$Component.Id <- components.out$membership
-  chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]
-
-
-  if (split){
-    if (oneByOne){
-      for (i in 1:components.out$no){
-        network <- ids[ids.components$Component == i,]
-        chia.obj <- separate.into.communities(network, i, chia.obj, method = method)
-      }
-    } else {
-      network.input <- unique(ids[,1:2])
-      whole.graph <- make_graph(c(rbind(network.input$Source, network.input$Target)), directed = FALSE)
-      communities <- method(whole.graph, weights = NULL)
-      communities.df <- data.frame(cbind(unique(c(network.input$Source, network.input$Target)),
-                                         communities$membership[unique(c(network.input$Source, network.input$Target))]))
-      colnames(communities.df) <- c("Node.Id", "Group")
-      simplify.group.id <- data.frame(Old = unique(communities.df$Group), New = 1:length(unique(communities.df$Group)))
-      communities.df$Group <- simplify.group.id$New[match(communities.df$Group, simplify.group.id$Old)]
-      communities.df$Size <- 1
-      communities.df$Size <- aggregate(Size~Group, data = communities.df, FUN = sum)$Size[communities.df$Group]
-      annotated.chia <- chia.obj$Regions@elementMetadata@listData
-      annotated.chia$Component.size <- communities.df[order(communities.df$Node.Id),"Size"]
-      annotated.chia$Component.Id <- communities.df[order(communities.df$Node.Id),"Group"]
-      chia.obj$Regions@elementMetadata@listData <- annotated.chia
-    }
-  }
-  return (chia.obj)
 }
 
 #' Associate histone marks to a \linkS4class{GRanges} object.
@@ -410,7 +696,6 @@ associate.histone.marks <- function(regions, histone.regions){
   return(regions)
 }
 
-
 #' Associate genomic regions to a \linkS4class{GRanges} object.
 #'
 #' @param regions A \linkS4class{GRanges} object to annotate.
@@ -437,40 +722,6 @@ associate.genomic.region <- function(regions, genome.build, output.dir, tssRegio
   simplified.annotation[grepl("Intron", simplified.annotation)] <- "Intron"
   simplified.annotation[grepl("Downstream", simplified.annotation)] <- "Downstream"
   regions$Simple.annotation = factor(simplified.annotation, levels=c("Distal Intergenic", "Promoter", "Intron", "Exon", "Downstream", "3' UTR", "5' UTR"))
-
-  return(regions)
-}
-
-
-#' Associate genes to a \linkS4class{GRanges} object from ChIA-PET data.
-#'
-#' @param regions A \linkS4class{GRanges} object to annotate.
-#' @param expression.data A data frame containing the levels of expression of genes, according to their EMSEMBL id.
-#'
-#' @return The \linkS4class{GRanges} object with associated genes.
-#' @importFrom plyr ddply mutate
-associate.gene <- function(regions, expression.data=NULL) {
-  # Associate a gene to a contact only if it's in the promoter.
-  promoter.subset = regions$Simple.annotation == "Promoter"
-
-  # Subset the promoter contacts to only keep the highest degrees
-  degree.info = ddply(as.data.frame(regions[promoter.subset]), "ENSEMBL", plyr::mutate, max.degree=max(Degree))
-  degree.subset = subset(degree.info, Degree == max.degree)
-
-  # Further subset to keep the one closest to the TSS
-  distance.info = ddply(degree.subset, "ENSEMBL", plyr::mutate, min.distance=min(abs(distanceToTSS)))
-  distance.subset = subset(distance.info, distanceToTSS == min.distance)
-
-  # If there are still more than one row, just pick the first one.
-  gene.subset = ddply(distance.subset, "ENSEMBL", function(x) { return(x[1,]) })
-
-  # Add the gene marker to the annotations.
-  regions$Gene.Representative = regions$ID %in% gene.subset$ID
-
-  if(!is.null(expression.data)) {
-    index.match = match(regions$ENSEMBL, expression.data$ENSEMBL)
-    regions$Expr.mean = expression.data$Mean.FPKM[index.match]
-  }
 
   return(regions)
 }
@@ -545,7 +796,6 @@ associate.chrom.state <- function(regions, input.chrom.state) {
   return(regions)
 }
 
-
 #' Associate TF overlaps to a \linkS4class{GRanges} object.
 #'
 #' @param regions A \linkS4class{GRanges} object to annotate.
@@ -566,7 +816,6 @@ associate.tf <- function(regions, tf.regions) {
 
   return(regions)
 }
-
 
 #' Associate tissue specificity of genes to a \linkS4class{GRanges} object.
 #'
@@ -606,384 +855,4 @@ associate.fitness.genes <- function(regions){
   regions$Fitness <- ifelse(is.na(regions$Fitness), 0, (regions$Fitness / 6))
 
   return(regions)
-}
-
-#' Given a \linkS4class{GRanges} object, finds enriched motifs within those regions.
-#'
-#' Performs motif enrichment against \code{pwm.bg}. If \code{pwm.bg} is not provided,
-#' \code{annotations.list$PWMBG} is used.
-#'
-#' @param regions The regions on which motif enrichment should be performed.
-#' @param annotations.list A list of annotation databases returned by
-#'   \code{\link{select.annotations}}.
-#' @param file.label A label for generating file names to save the results.
-#'   If \code{NULL}, results are not saved to disk.
-#' @param pwm.bg A PWMLogn background object against which enrichment
-#'   should be performed.
-#' @param top.x Number of top motifs for which logos are generated.
-#' @return A list with the following elements: \describe{
-#'   \item{Region} {The subset of regions where motifs were sought.}
-#'   \item{Enrichment} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{motifEnrichment}} call.}
-#'   \item{Report} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{groupReport}} call.}}
-#' @importFrom Biostrings getSeq
-#' @importFrom Biostrings DNAStringSet
-#' @importFrom PWMEnrich motifEnrichment
-#' @importFrom PWMEnrich groupReport
-#' @importFrom PWMEnrich plotMultipleMotifs
-#' @export
-motif.enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg=NULL, top.x=20) {
-    # Make sure we have a valid background.
-    if(is.null(pwm.bg)) {
-        if(is.null(annotations.list$PWMBG)) {
-            stop("The provided annotations.list does not have a valid PWMBG element.")
-        } else {
-            pwm.bg = annotations.list$PWMBG
-        }
-    }
-
-    # Get sequences for the given regions.
-    intersectSeq <- Biostrings::getSeq(annotations.list$BSGenome, regions)
-
-    # Remove N prefix/suffixes. Will also deal with all N sequences, which would cause a crash.
-    intersectSeq <- Biostrings::DNAStringSet(gsub("N*$", "", gsub("^N*", "", as.character(intersectSeq))))
-
-    # Remove sequences which are smaller than the maximum PWM length.
-    max.pwm.length = max(unlist(lapply(pwm.bg$pwms, length)))
-    sequence.subset = width(intersectSeq) >= max.pwm.length
-    intersectSeq <- intersectSeq[sequence.subset]
-
-    if(length(intersectSeq) > 0) {
-        res <-  PWMEnrich::motifEnrichment(intersectSeq, pwm.bg)
-        report <- PWMEnrich::groupReport(res)
-
-        if(!is.null(file.label)) {
-            # Plot top X motifs
-            ordered.motifs = order(res$group.bg)
-            for(i in 1:top.x) {
-                # Perform some name sanitation.
-                # For HOCOMOCO motif names.
-                motif.name = gsub("Hsapiens-HOCOMOCOv9_AD_PLAINTEXT_H_PWM_hg19-", "", names(res$group.bg)[ordered.motifs[i]])
-
-                # For mouse names.
-                # Mouse motif names contain forward slashes, which are obviously not valid file name characters.
-                motif.name = gsub("/", "", motif.name)
-
-                # Generate logo file.
-                pdf(paste(file.label, " ", i, " - ", motif.name, ".pdf"), width=7/1.5, height=11/6)
-                PWMEnrich::plotMultipleMotifs(res$pwms[ordered.motifs[i]], xaxis=FALSE, titles="")
-                dev.off()
-            }
-
-            # Write results to disc.
-            write.table(as.data.frame(report), file=paste0(file.label, " MotifEnrichment.txt"),
-                        sep="\t", row.names=FALSE, col.names=TRUE)
-        }
-
-        return(list(Region=regions[sequence.subset], Enrichment=res, Report=report))
-    } else {
-        warning("No sequences were eligeible for motif enrichment.")
-        return(NULL)
-    }
-}
-
-#' Given a set of Entrez IDS, retrieve the coordinates of those genes' promoters.
-#'
-#' @param selected.genes A vector of ENTREZ gene ids whose promoters should be
-#'   retrieved.
-#' @param annotations.list A list of annotation databases returned by
-#'   \code{\link{select.annotations}}.
-#' @param flank.size How many base pairs upstream of the TSS should we retrieve?
-#' @return A \linkS4class{GRanges} objects representing the promoters of the given genes.
-#' @importFrom AnnotationDbi select
-#' @importFrom GenomicRanges reduce
-#' @export
-get.promoters <- function(selected.genes, annotations.list, flank.size=1000) {
-    # Get the transcription regions from the database.
-    tx.regions = AnnotationDbi::select(annotations.list$TxDb, selected.genes, c("TXCHROM", "TXSTART", "TXEND", "TXSTRAND"), "GENEID")
-
-    # Keep only the first record for each gene.
-    tx.regions = tx.regions[match(selected.genes, tx.regions$GENEID),]
-
-    # Keep promoter only.
-    promoter.regions = GenomicRanges::reduce(GenomicRanges::flank(GRanges(tx.regions), flank.size))
-
-    return(promoter.regions)
-}
-
-#' Perform motif enrichment on the promoters of a set of genes.
-#'
-#' Utility function which performs the same operations as motif.enrichment,
-#' but accepts a list of genes instead of a list of regions.
-#'
-#' @param selected.genes A vector of ENTREZ gene ids whose promoters should be
-#'   subjected to motif enrichment.
-#' @param annotations.list A list of annotation databases returned by
-#'   \code{\link{select.annotations}}.
-#' @param flank.size How many base pairs upstream of the TSS should we retrieve?
-#' @param ... Additional arguments for \code{\link{motif.enrichment}}.
-#' @return A list with the following elements: \describe{
-#'   \item{Region} {The subset of regions where motifs were sought.}
-#'   \item{Enrichment} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{motifEnrichment call.}}}
-#'   \item{Report} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{groupReport call.}}}}
-#' @export
-motif.enrichment.genes <- function(selected.genes, annotations.list, flank.size=1000, ...) {
-    promoter.regions = get.promoters(selected.genes, annotations.list, flank.size)
-
-    return(motif.enrichment(promoter.regions, annotations.list=annotations.list, ...))
-}
-
-#' Perform KEGG pathway enrichment on a set of genes.
-#'
-#' Utility function which performs the same operations as \code{\link{motif.enrichment}},
-#' but accepts a list of genes instead of a list of regions.
-#'
-#' @param selected.genes A vector of ENTREZ gene ids to be subjected
-#'   to motif enrichment.
-#' @param annotations.list A list of annotation databases returned by
-#'   \code{\link{select.annotations}}.
-#' @param filename The name of the file where the results should be saved.
-#'    If \code{NULL}, results are not saved to disk.
-#' @param diseases If \code{TRUE}, the enrichment is performed against the disease pathways.
-#' @param gene.background A list of Entrez gene ids of the genes to be used
-#'   as the background of the enrichment. If \code{NULL}, all genes in \code{annotations.list$TxDb}
-#'   are used.
-#' @return A data-frame with the enrichment results.
-#' @importFrom AnnotationDbi keys
-#' @export
-kegg.enrichment <- function(selected.genes, annotations.list, filename=NULL, diseases=FALSE, gene.background=NULL) {
-    # Retrieve all KEGG pathways.
-    keptSets <- annotations.list$KEGG$kg.sets[annotations.list$KEGG$dise.idx]
-    if(!diseases) {
-        keptSets <- annotations.list$KEGG$kg.sets[annotations.list$KEGG$sigmet.idx]
-    }
-
-    if(is.null(gene.background)) {
-        gene.background <- AnnotationDbi::keys(annotations.list$TxDb)
-    }
-
-    # For all pathways, perform enrichment analysis.
-    inUniverse <- as.numeric(gene.background)
-    inDataset <- as.numeric(selected.genes)
-
-    # list.enrichment <- function(all.drawn, all.category, all.universe) {
-    #     chosen <- sum(unique(all.drawn) %in% unique(all.category))
-    #     universe <- length(unique(all.universe))
-    #     possible <- length(unique(all.category))
-    #     drawn <- length(unique(all.drawn))
-    #     expected <- possible*(drawn/universe)
-    #
-    #     return(data.frame(Chosen=chosen,
-    #                       Possible=possible,
-    #                       Universe=universe,
-    #                       Drawn=drawn,
-    #                       Expected=expected,
-    #                       PVal=phyper(chosen, possible, universe - possible, drawn, lower.tail=FALSE)))
-    # }
-    #
-    # ldply(keptSets, list.enrichment, function(x) { list.enrichment(all.drawn=inDataset, x, inUniverse) })
-
-    results <- data.frame(Pathway=character(0),
-                          Chosen=numeric(0),
-                          Possible=numeric(0),
-                          Universe=numeric(0),
-                          Drawn=numeric(0),
-                          Expected=numeric(0),
-                          PVal=numeric(0),
-                          AdjPVal=numeric(0))
-    for(kegg.set in names(keptSets)) {
-      inPathway <- as.numeric(keptSets[[kegg.set]])
-
-      chosen <- sum(unique(inDataset) %in% unique(inPathway))
-      universe <- length(unique(inUniverse))
-      possible <- length(unique(inPathway))
-      drawn <- length(unique(inDataset))
-      expected <- possible*(drawn/universe)
-
-      # Perform the hypergeometric test.
-      results <- rbind(results,
-                       data.frame(Pathway=kegg.set,
-                                  Chosen=chosen,
-                                  Possible=possible,
-                                  Universe=universe,
-                                  Drawn=drawn,
-                                  Expected=expected,
-                                  PVal=phyper(chosen, possible, universe - possible, drawn, lower.tail=FALSE),
-                                  AdjPVal=1))
-    }
-
-    results$AdjPVal <- p.adjust(results$PVal, method="fdr")
-    if(!is.null(filename)) {
-      write.table(results, file=filename, sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
-    }
-
-    return(results)
-}
-
-# Given a set of annotations, convert it to a set of Entrez gene ids before calling kegg.enrichment.
-# kegg.enrichment.annotation <- function(annotations, file.name, diseases=FALSE, gene.background=NULL) {
-#   selected.genes = unique(as.data.frame(annotations)$geneId)
-#
-#   return(kegg.enrichment(selected.genes, file.name, diseases, gene.background))
-# }
-
-#' Given a set of regions, convert it to a set of Entrez gene ids.
-#'
-#' Utility function to get a gene list from a set of regions.
-#'
-#' @param regions A \linkS4class{GRanges} object with regions to be associated to genes.
-#' @param annotations.list A list of annotation databases returned by
-#'   \code{\link{select.annotations}}.
-#' @param flank.size The extent around the TSS which is considered the
-#'   promoter region.
-#' @param region.types A character vector representing region types which will
-#'   cause a gene association. These can be: \describe{
-#'     \item{Promoter} {Promoter region (upstream and downstream of the TSS).}
-#'     \item{Gene body} {Promoter, Exons, introns, 5' and 3' UTRs.}
-#'     \item{Downstream} {Region downstream of the TES.}
-#'     \item{Distal} {Regions which do not fit any of the above category.}
-#'     \item{All} {All of the above.}}
-#' @return A data-frame with the enrichment results.
-#' @importFrom ChIPseeker annotatePeak
-#' @export
-gene.from.regions <- function(regions, annotations.list, flank.size=c(-3000, 3000), region.types=c("Gene body", "Promoter", "Downstream", "Distal", "All")) {
-
-    region.types <- match.arg(region.types, several.ok = TRUE)
-
-    # Annotate regions to retrieve gene names.
-    overlap.annotation <- ChIPseeker::annotatePeak(regions,
-                                                   tssRegion=flank.size,
-                                                   TxDb=annotations.list$TxDb,
-                                                   annoDb=annotations.list$OrgDbStr)
-
-    if("All" %in% region.types) {
-        region.types=c("Promoter", "Gene body", "Downstream", "Distal")
-    }
-
-    to.keep = rep(FALSE, length(regions))
-    if("Promoter" %in% region.types) {
-        to.keep = to.keep | grepl("Promoter", overlap.annotation@anno$annotation)
-    }
-
-    if("Gene body" %in% region.types) {
-        to.keep = to.keep | grepl("Promoter", overlap.annotation@anno$annotation) | grepl("3' UTR", overlap.annotation@anno$annotation) |
-          grepl("5' UTR", overlap.annotation@anno$annotation) | grepl("Exon", overlap.annotation@anno$annotation) | grepl("Intron", overlap.annotation@anno$annotation)
-
-    }
-
-    if("Downstream" %in% region.types) {
-        to.keep = to.keep | grepl("Downstream", overlap.annotation@anno$annotation)
-    }
-
-    if("Distal" %in% region.types) {
-        to.keep = to.keep | grepl("Distal", overlap.annotation@anno$annotation)
-    }
-
-    return(unique(overlap.annotation@anno$geneId[to.keep]))
-}
-
-#' Perform KEGG enrichment on a set of regions.
-#'
-#' Conveniance function. Regions are converted to genes with
-#' \code{\link{gene.from.regions}} using default parameters.
-#'
-#' @param regions A \linkS4class{GRanges} object with regions to enriched for KEGG pathways.
-#' @param annotations.list A list of annotation databases returned by
-#'   \code{\link{select.annotations}}.
-#' @param ... Parameters to be passed to \code{\link{kegg.enrichment}}.
-#' @return A vector of Entrez gene ids containing a non-redundant list of the
-#'   genes represented by the given regions.
-#' @export
-kegg.enrichment.regions <- function(regions, annotations.list, ...) {
-    selected.genes = gene.from.regions(regions, annotations.list)
-
-    return(kegg.enrichment(selected.genes, annotations.list=annotations.list, ...))
-}
-
-#' Given a set of regions, perform annotation, motif enrichment and KEGG enrichment.
-#'
-#' @param region A \linkS4class{GRanges} object with regions to be characterized.
-#' @param annotations.list A list of annotation databases returned by
-#'   \code{\link{select.annotations}}.
-#' @param file.label A label for generating file names to save the results.
-#'   If \code{NULL}, results are not saved to disk.
-#' @param skip.motif If \code{TRUE}, motif enrichment is skipped.
-#' @param skip.kegg If \code{TRUE}, KEGG pathway enrichment is skipped.
-#' @param output.dir The directory where output should be stored.A directory for storing output.
-#' @return A list containing the characterization results.
-#' @export
-characterize.region <- function(region, annotations.list, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/") {
-    results = list()
-
-    if(is.null(output.dir)){
-      file.label.annotation <- NULL
-      file.label.motif <- NULL
-      file.label.KEGG.sig <- NULL
-      file.label.KEGG.dis <- NULL
-    } else {
-      dir.create(output.dir, showWarnings = FALSE, recursive = TRUE)
-      file.label.annotation <- file.path(output.dir, "Annotations.txt")
-      file.label.motif <- file.path(output.dir, "Motifs")
-      file.label.KEGG.sig <- file.path(output.dir, "KEGG signalisation and metabolism.txt")
-      file.label.KEGG.dis <- file.path(output.dir, "KEGG diseases.txt")
-    }
-
-    #results[["Annotation"]] = annotate.region(region, file.path(base.dir, "Annotations.txt"))
-    results[["Annotation"]] = annotate.region(region, annotations.list, filename = file.label.annotation)
-
-    if(!skip.motif) {
-        #results[["Motif"]] = motif.enrichment(region, file.path(base.dir, "Motifs"), use.HOCOMOCO=(!exists("GENOME_VERSION") || GENOME_VERSION=="hg38"))
-      results[["Motif"]] = motif.enrichment(region, annotations.list, file.label = file.label.motif)
-    }
-
-    if(!skip.kegg) {
-        #results[["KEGG.sig"]] = kegg.enrichment.annotation(results[["Annotation"]], file.path(base.dir, "KEGG signalisation and metabolism.txt"))
-        #results[["KEGG.dis"]] = kegg.enrichment.annotation(results[["Annotation"]], file.path(base.dir, "KEGG diseases.txt"), diseases=TRUE)
-        results[["KEGG.sig"]] = kegg.enrichment.regions(region, annotations.list, filename = file.label.KEGG.sig)
-        results[["KEGG.dis"]] = kegg.enrichment.regions(region, annotations.list, filename = file.label.KEGG.dis, diseases = TRUE)
-    }
-
-    return(results)
-}
-
-#' Given a set of Entrez gene ids, perform  KEGG enrichment and motif enrichement at the promoters.
-#'
-#' @param gene.set A vector of Entrez IDs representing the genes to be characterized.
-#' @param annotations.list A list of annotation databases returned by
-#'   \code{\link{select.annotations}}.
-#' @param file.label A label for generating file names to save the results.
-#'   If \code{NULL}, results are not saved to disk.
-#' @param skip.motif If \code{TRUE}, motif enrichment is skipped.
-#' @param skip.kegg If \code{TRUE}, KEGG pathway enrichment is skipped.
-#' @param output.dir The directory where output should be stored.A directory for storing output.
-#' @return A list containing the characterization results.
-#' @export
-characterize.gene.set <- function(gene.set, annotations.list, skip.motif=FALSE, skip.kegg=FALSE, output.dir="output/", promoter.size=1000) {
-    results = list()
-
-    if(is.null(output.dir)){
-      file.label.motif <- NULL
-      file.label.KEGG.sig <- NULL
-      file.label.KEGG.dis <- NULL
-    } else {
-      dir.create(output.dir, showWarnings = FALSE, recursive = TRUE)
-      file.label.motif <- file.path(output.dir, "Motifs")
-      file.label.KEGG.sig <- file.path(output.dir, "KEGG signalisation and metabolism.txt")
-      file.label.KEGG.dis <- file.path(output.dir, "KEGG diseases.txt")
-    }
-
-    if(!skip.motif) {
-        #results[["Motif"]] = motif.enrichment.genes(gene.set, file.path(base.dir, "Motifs"), use.HOCOMOCO=(!exists("GENOME_VERSION") || GENOME_VERSION=="hg38"), flank.size=promoter.size)
-        results[["Motif"]] = motif.enrichment.genes(gene.set, annotations.list, flank.size=promoter.size, file.label = file.label.motif)
-
-    }
-
-    if(!skip.kegg) {
-        #results[["KEGG.sig"]] = kegg.enrichment(gene.set, file.path(base.dir, "KEGG signalisation and metabolism.txt"))
-        #results[["KEGG.dis"]] = kegg.enrichment(gene.set, file.path(base.dir, "KEGG diseases.txt"), diseases=TRUE)
-        results[["KEGG.sig"]] = kegg.enrichment(gene.set, annotations.list, filename = file.label.KEGG.sig)
-        results[["KEGG.dis"]] = kegg.enrichment(gene.set, annotations.list, filename = file.label.KEGG.dis, diseases=TRUE)
-
-    }
-
-    return(results)
 }

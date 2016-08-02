@@ -4,9 +4,9 @@
 #' @param param A vector with the list of parameters to give to the functions.
 #'
 #' @return A list with the following elements: \describe{
-#'   \item{[[1]]} {A \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.}
-#'   \item{[[2]]} {A data frame with the necessary information for the construction of a plot of window sizes.}
-#'   \item{[[3]]} {A vector with correlated reads.}}
+#' \item{[[1]]}{A \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.}
+#' \item{[[2]]}{A data frame with the necessary information for the construction of a plot of window sizes.}
+#' \item{[[3]]}{A vector with correlated reads.}}
 #'
 #' @import csaw
 reads.to.counts <- function(bam.files, param){
@@ -50,8 +50,8 @@ reads.to.counts <- function(bam.files, param){
 #' @param threshold A numeric, the threshold to consider in order to cut out windows.
 #'
 #' @return A list with the following elements: \describe{
-#'   \item{[[1]]} {A filtered \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.}
-#'   \item{[[2]]} {filter.stat, list, statistics of windows aboundances and their filter}}
+#' \item{[[1]]}{A filtered \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}}.}
+#' \item{[[2]]}{filter.stat, list, statistics of windows aboundances and their filter}}
 #'
 #' @importFrom csaw windowCounts
 #' @importFrom csaw filterWindows
@@ -71,8 +71,8 @@ filter.reads.to.counts <- function(bam.files, param, counted.reads, threshold){
 #' @param param A vector with the list of parameters to give to the functions.
 #'
 #' @return A list with the following elements: \describe{
-#'   \item{[[1]]} {A vector with the normalization factors to use to normalize.}
-#'   \item{[[2]]} {A \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}} to consider as a "bin".}}
+#' \item{[[1]]}{A vector with the normalization factors to use to normalize.}
+#' \item{[[2]]}{A \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}} to consider as a "bin".}}
 #'
 #' @importFrom csaw windowCounts
 #' @importFrom csaw normOffsets
@@ -131,8 +131,8 @@ test.diff.binding <- function(bam.files, filtered.counted.reads, norm.factors, c
 #' @param results A \linkS4class{DGELRT} object returned as results by \code{\link[edgeR]{glmQLFTest}}.
 #'
 #' @return A list with the following elements: \describe{
-#'   \item{[[1]]} {A \linkS4class{GRanges} object returned by \code{\link[csaw]{mergeWindows}}}
-#'   \item{[[2]]} {A data frame returned by \code{\link[csaw]{combineTests}}}}
+#' \item{[[1]]}{A \linkS4class{GRanges} object returned by \code{\link[csaw]{mergeWindows}}}
+#' \item{[[2]]}{A data frame returned by \code{\link[csaw]{combineTests}}}}
 #'
 #' @import GenomicRanges
 #' @import csaw
@@ -208,8 +208,8 @@ post.processing <- function(merged, tabcom, txdb, orgdb){
 #' Analyze bam files with csaw and produces corresponding graphs.
 #'
 #' @param correspondances A data frame with two columns: \describe{
-#'   \item{$Name} {Name (with the path) of the bam files.}
-#'   \item{$Factors} {The factors to considerate during the analysis. Files with the same factor are replicas.}}
+#' \item{$Name}{Name (with the path) of the bam files.}
+#' \item{$Factors}{The factors to considerate during the analysis. Files with the same factor are replicas.}}
 #' @param reference The name of the reference factor.
 #' @param genome.build The name of the chosen annotation ("hg38", "hg19", "mm9", "mm10").
 #' @param output.dir The name of the directory where to save the files and graphs.
@@ -270,21 +270,21 @@ csaw.analyze <- function(correspondances, reference, genome.build, output.dir = 
 #' Output of csaw analysis
 #'
 #' Creates and saves plots and tables for csaw analysis: \describe{
-#'   \item{Fragements lengths.pdf} {A plot of fragments (reads) lengths in all bam files.}
-#'   \item{Window size.pdf} {A cross-correlation plot of the efficiency of the ChIP-seq data.}
-#'   \item{Window size (zoom).pdf} {A zommed version of "Window size.pdf".}
-#'   \item{Effect of filtering.pdf} {A histogram of the counted reads, with lines representing background and filtering.}
-#'   \item{Normalization efforts.pdf} {MA plots of the effect of normalization between the first file and every others.}
-#'   \item{TopTags results.txt} {The best results of \code{\link{test.diff.binding}}.}
-#'   \item{Representative windows (differential binding).txt}
-#' {Table of the most representative windows, by "differential binding" clustering method, after the correction for multiple testing.}
-#'   \item{LogFC of best windows in each cluster.txt}
-#' {For each window cluster, the LogFC of the best windows, by "differential binding" clustering method, after the correction for multiple testing.}
-#'   \item{Representative windows (promoter-based).txt}
-#' {Table of the most representative windows, by "promoter-based" clustering method, after the correction for multiple testing.}
-#'   \item{LogFC of best windows in each cluster (promoter-based).txt}
-#' {For each window cluster, the LogFC of the best windows, by "promoter-based" clustering method, after the correction for multiple testing.}
-#'   \item{csaw_clusters.gz} {The zipped table of results.}}
+#' \item{Fragements lengths.pdf}{A plot of fragments (reads) lengths in all bam files.}
+#' \item{Window size.pdf}{A cross-correlation plot of the efficiency of the ChIP-seq data.}
+#' \item{Window size (zoom).pdf}{A zommed version of "Window size.pdf".}
+#' \item{Effect of filtering.pdf}{A histogram of the counted reads, with lines representing background and filtering.}
+#' \item{Normalization efforts.pdf}{MA plots of the effect of normalization between the first file and every others.}
+#' \item{TopTags results.txt}{The best results of \code{\link{test.diff.binding}}.}
+#' \item{Representative windows (differential binding).txt}{Table of the most representative windows, by "differential binding"
+#' clustering method, after the correction for multiple testing.}
+#' \item{LogFC of best windows in each cluster.txt}{For each window cluster, the LogFC of the best windows, by "differential binding"
+#' clustering method, after the correction for multiple testing.}
+#' \item{Representative windows (promoter-based).txt}{Table of the most representative windows, by "promoter-based" clustering method,
+#' after the correction for multiple testing.}
+#' \item{LogFC of best windows in each cluster (promoter-based).txt}{For each window cluster, the LogFC of the best windows, by
+#' "promoter-based" clustering method, after the correction for multiple testing.}
+#' \item{csaw_clusters.gz}{The zipped table of results.}}
 #'
 #' @param list.reads.to.counts List returned by \code{\link{reads.to.counts}}.
 #' @param list.reads.filter List returned by \code{\link{filter.reads.to.counts}}.

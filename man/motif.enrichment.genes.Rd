@@ -20,9 +20,9 @@ subjected to motif enrichment.}
 }
 \value{
 A list with the following elements: \describe{
-  \item{Region} {The subset of regions where motifs were sought.}
-  \item{Enrichment} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{motifEnrichment call.}}}
-  \item{Report} {The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{groupReport call.}}}}
+  \item{Region}{The subset of regions where motifs were sought.}
+  \item{Enrichment}{The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{motifEnrichment call.}}}
+  \item{Report}{The result of the \pkg{PWMEnrich} \code{\link[PWMEnrich]{groupReport call.}}}}
 }
 \description{
 Utility function which performs the same operations as motif.enrichment,

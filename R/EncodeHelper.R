@@ -199,10 +199,10 @@ isoform.download.filter.rna <- function(query.results, genome.assembly) {
 #'   defaults to \code{file.path("input/ENCODE", biosample, "chip-seq")}.
 #' @param keep.signal Should the signalValue from the ChIP-seq be kept?
 #' @return A list containing three elements: \describe{
-#'   \item{Metadata} {The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
+#' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
 #'     about all files which matched the query.}
-#'   \item{Downloaded} {The list of files which were downloaded.}
-#'   \item{Regions} {The processed peak regions.}}
+#' \item{Downloaded}{The list of files which were downloaded.}
+#' \item{Regions}{The processed peak regions.}}
 #' @importFrom ENCODExplorer queryEncode
 #' @importFrom ENCODExplorer downloadEncode
 #' @importFrom GenomicRanges GRangesList
@@ -291,10 +291,10 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
 #' @param download.dir The folder where the downloaded files should be stored.
 #'   defaults to \code{file.path("input/ENCODE", biosample, "chip-seq")}.
 #' @return A list containing three elements: \describe{
-#'   \item{Metadata} {The metadata returned by queryEncode, containing information
+#' \item{Metadata}{The metadata returned by queryEncode, containing information
 #'     about all files which matched the query.}
-#'   \item{Downloaded} {The list of files which were downloaded.}
-#'   \item{Expression} {A data-frame with processed expression levels.}}
+#' \item{Downloaded}{The list of files which were downloaded.}
+#' \item{Expression}{A data-frame with processed expression levels.}}
 #' @importFrom ENCODExplorer queryEncode
 #' @importFrom ENCODExplorer downloadEncode
 #' @export

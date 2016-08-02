@@ -6,7 +6,7 @@
 Produce a plot of the presence of TF at the connection points of ChIA-PET data, according to the
 connectivity of the nodes.}
 \usage{
-analyze.tf(chia.obj, tf.regions, output.dir = "output")
+analyze.tf(chia.obj, output.dir = "output")
 }
 \arguments{
 \item{chia.obj}{A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.}

@@ -14,12 +14,12 @@ analyze.generic.topology(chia.obj, output.dir = "output")
 \description{
 Analyzes ChIA-PET data and produces graphs according to the topology of the nodes in the whole set
 of regions and in the separated components: \describe{
-  \item{Histogram of number of edges.pdf} {Histogram of the number of edges in the whole set of data.}
-  \item{Scatter plot of degrees of the left node versus the right node.pdf} {Scatter plot showing the relation between the left and right vertices' degree.}
-  \item{Degree vs cluster width.pdf} {A plot of the degree of the nodes in one cluster according to the size of its cluster.}
-  \item{Log2(size of component) vs Log2(Number of components).pdf} {A plot of the number of components according to the size of the components.}
-  \item{Component table.txt} {A file with the information about TSS for each component.}
-  \item{Proportion of TSS in low connectivity nodes.pdf} {A plot of the proportion of TSS in nodes with low connectivity (component with 5 nodes or less).}
-  \item{Proportion of TSS in high connectivity nodes.pdf} {A plot of the proportion of TSS in nodes with high connectivity (component with more than 5 nodes).}}
+\item{Histogram of number of edges.pdf}{Histogram of the number of edges in the whole set of data.}
+\item{Scatter plot of degrees of the left node versus the right node.pdf}{Scatter plot showing the relation between the left and right vertices' degree.}
+\item{Degree vs cluster width.pdf}{A plot of the degree of the nodes in one cluster according to the size of its cluster.}
+\item{Log2(size of component) vs Log2(Number of components).pdf}{A plot of the number of components according to the size of the components.}
+\item{Component table.txt}{A file with the information about TSS for each component.}
+\item{Proportion of TSS in low connectivity nodes.pdf}{A plot of the proportion of TSS in nodes with low connectivity (component with 5 nodes or less).}
+\item{Proportion of TSS in high connectivity nodes.pdf}{A plot of the proportion of TSS in nodes with high connectivity (component with more than 5 nodes).}}
 }
 

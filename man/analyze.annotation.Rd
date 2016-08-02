@@ -13,7 +13,7 @@ analyze.annotation(chia.obj, output.dir = "output")
 }
 \description{
 Analyzes ChIA-PET data and produces graphs according to the annotation: \describe{
-  \item{Proportion of genomic location as a function of connectivity category.pdf} {A plot of the proportion of the genomic location of the regions as a fonction of connectivity category.}
-  \item{Contact heatmap for genomic location.pdf} {A contact heatmap of the genomic location of the regions.}}
+\item{Proportion of genomic location as a function of connectivity category.pdf}{A plot of the proportion of the genomic location of the regions as a fonction of connectivity category.}
+\item{Contact heatmap for genomic location.pdf}{A contact heatmap of the genomic location of the regions.}}
 }
 

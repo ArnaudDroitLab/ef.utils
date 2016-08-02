@@ -7,18 +7,19 @@
 annotate.chia(chia.obj, input.chrom.state, tf.regions, histone.regions,
   pol.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10",
   "hg38"), biosample = "GM12878", tssRegion = c(-3000, 3000), output.dir,
-  split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy)
+  split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy,
+  verbose = TRUE)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
 
 \item{input.chrom.state}{The name of the file containing the information about chromatin states.}
 
-\item{tf.regions}{A data frame containing the TF data.}
+\item{tf.regions}{A \linkS4class{GRangesList} object containing the TF regions.}
 
-\item{histone.regions}{A data frame containing the histone data.}
+\item{histone.regions}{A \linkS4class{GRangesList} object containing the histone regions.}
 
-\item{pol.regions}{A data frame containing the pol2 data.}
+\item{pol.regions}{A \linkS4class{GRangesList} object containing the pol2 regions.}
 
 \item{expression.levels}{A data frame containing the levels of expression of genes. according to their EMSEMBL id.}
 
@@ -36,6 +37,8 @@ GM12878, K562.}
 \item{oneByOne}{Sould the netwoks be treated one by one or as a whole?}
 
 \item{method}{What method sould be used to split data (ignored if split = \code{FALSE}).}
+
+\item{verbose}{If TRUE, console output is suppressed.}
 }
 \value{
 The annotated "\code{chia.obj}".

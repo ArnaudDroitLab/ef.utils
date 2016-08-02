@@ -13,7 +13,7 @@ analyze.gene.specificity(chia.obj, output.dir = "output")
 }
 \description{
 Analyzes ChIA-PET data and produces graphs according to gene specificity: \describe{
-  \item{Tau vs degree.pdf} {A plot of the Tau of the nodes according to their degree.}
-  \item{Boxplot of degrees by expression category.pdf} {A boxplot the degrees of the nodes in each expression category.}}
+\item{Tau vs degree.pdf}{A plot of the Tau of the nodes according to their degree.}
+\item{Boxplot of degrees by expression category.pdf}{A boxplot the degrees of the nodes in each expression category.}}
 }
 

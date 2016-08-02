@@ -4,13 +4,17 @@
 \alias{output.annotated.chia}
 \title{Save annotated ChIA-PET data.}
 \usage{
-output.annotated.chia(chia.obj, chia.raw, output.dir = "output")
+output.annotated.chia(chia.obj, output.dir = "output")
 }
 \arguments{
 \item{chia.obj}{A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.}
 
-\item{chia.raw}{The raw ChIA-PET data, before annotation.}
-
 \item{output.dir}{The name of the directory where to save the files.}
+}
+\description{
+Writes files: \itemize{
+  \item The first one separates the "left" and "right" sides of the ChIA-PET data with annotations.
+  \item The second set of files is made of components files. They group all interactions in a single component, with
+       an extra column containing the number of reads supporting the data. Their format is supported by Cytoscape.}
 }
 

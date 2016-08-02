@@ -8,15 +8,15 @@ boxplot.per.tf(chip.data, hist.data, biosample, genome.build, chia.obj,
   output.dir, TSS = TRUE, tssRegion = c(-3000, 3000))
 }
 \arguments{
-\item{chip.data}{A \links4class{GRangesList} containing the regions of the ChIp-seq data, with signal values.}
+\item{chip.data}{A \linkS4class{GRangesList} containing the regions of the ChIp-seq data, with signal values.}
 
-\item{hist.data}{A \links4class{GRangesList} containing the regions of the ChIP-seq data of histone marks.}
+\item{hist.data}{A \linkS4class{GRangesList} containing the regions of the ChIP-seq data of histone marks.}
 
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.}
 
 \item{genome.build}{The name of the chosen annotation ("hg38", "hg19").}
 
-\item{chia.obj}{Annotated ChIA-PET data, as returned by \link{analyze.chia.pet} or \linl{annotate.chia}.}
+\item{chia.obj}{Annotated ChIA-PET data, as returned by \link{analyze.chia.pet} or \link{annotate.chia}.}
 
 \item{output.dir}{The directory where to write the boxplots.}
 

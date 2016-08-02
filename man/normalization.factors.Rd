@@ -13,8 +13,8 @@ normalization.factors(bam.files, param)
 }
 \value{
 A list with the following elements: \describe{
-  \item{[[1]]} {A vector with the normalization factors to use to normalize.}
-  \item{[[2]]} {A \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}} to consider as a "bin".}}
+\item{[[1]]}{A vector with the normalization factors to use to normalize.}
+\item{[[2]]}{A \linkS4class{RangedSummarizedExperiment} object returned by \code{\link[csaw]{WindowCounts}} to consider as a "bin".}}
 }
 \description{
 Calculate normalization factors, by using TMM method.

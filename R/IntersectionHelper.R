@@ -84,19 +84,19 @@ intersect.overlap <- function(intersect.object, indices=NULL, names=NULL, exclus
 #' each others.
 #' @param keep.signal Should the values of signal be kept?
 #' @return A list with the following elements: \describe{
-#'   \item{Regions} {A \linkS4class{GRanges} object with all genomic ranges occupied by at least one item.
+#' \item{Regions}{A \linkS4class{GRanges} object with all genomic ranges occupied by at least one item.
 #'   All ranges are "flattened", so if two of the initial ranges overlapped each other
 #'   imperfectly, they are combined into a single region spanning both of them.}
-#'   \item{Matrix} {A matrix, with \code{ncol=} the number of items in the initial \linkS4class{GRangesList} and \code{nrow=}
+#' \item{Matrix}{A matrix, with \code{ncol=} the number of items in the initial \linkS4class{GRangesList} and \code{nrow=}
 #'   the total number of loci, which is equal to the length of \code{Regions}. A value of 1 or more
 #'   within the matrix indicates that the regions described by the column overlapped
 #'   the region defined by the row.}
-#'   \item{List} {A list of \code{length(grl)} numeric vectors indicating which indices of \code{Regions} overlap
+#' \item{List}{A list of \code{length(grl)} numeric vectors indicating which indices of \code{Regions} overlap
 #'   with the given condition/protein. Useful to translate the regions into unique names
 #'   for drawing venn diagrams.}
-#'   \item{Names} {The names of the initial grl items, corresponding to the column names of \code{Matrix} and the names
+#' \item{Names}{The names of the initial grl items, corresponding to the column names of \code{Matrix} and the names
 #'   of the element of \code{List}.}
-#'   \item{Length} {The number of items in the initial \linkS4class{GRangesList}, corresponding to the number of columns in \code{Matrix}
+#' \item{Length}{The number of items in the initial \linkS4class{GRangesList}, corresponding to the number of columns in \code{Matrix}
 #'   and the number of elements in \code{List}}.}
 #' @importFrom GenomicRanges reduce
 #' @importFrom GenomicRanges mcols

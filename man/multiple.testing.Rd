@@ -13,8 +13,8 @@ multiple.testing(filtered.counted.reads, results, txdb)
 }
 \value{
 A list with the following elements: \describe{
-  \item{[[1]]} {A \linkS4class{GRanges} object returned by \code{\link[csaw]{mergeWindows}}}
-  \item{[[2]]} {A data frame returned by \code{\link[csaw]{combineTests}}}}
+\item{[[1]]}{A \linkS4class{GRanges} object returned by \code{\link[csaw]{mergeWindows}}}
+\item{[[2]]}{A data frame returned by \code{\link[csaw]{combineTests}}}}
 }
 \description{
 Make corrections for multiple testing

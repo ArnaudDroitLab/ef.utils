@@ -13,9 +13,9 @@ analyze.chromatin.states(chia.obj, output.dir = "output")
 }
 \description{
 Analyzes ChIA-PET data and produces graphs according to its chromatin states: \describe{
-  \item{Chromatin states summary.txt} {A file with the summary of chromatin states.}
-  \item{log Degree histogram per chromatin state.pdf} {A histogram of the degree of each node according to the chromatin state.}
-  \item{Proportion of chromatin state as a function of connectivity category.pdf} {A plot of the proportion of chromatin state as a fonction of connectivity category.}
-  \item{Contact heatmap for chromatin states.pdf} {A contact heatmap of chromatin states.}}
+\item{Chromatin states summary.txt}{A file with the summary of chromatin states.}
+\item{log Degree histogram per chromatin state.pdf}{A histogram of the degree of each node according to the chromatin state.}
+\item{Proportion of chromatin state as a function of connectivity category.pdf}{A plot of the proportion of chromatin state as a fonction of connectivity category.}
+\item{Contact heatmap for chromatin states.pdf}{A contact heatmap of chromatin states.}}
 }
 

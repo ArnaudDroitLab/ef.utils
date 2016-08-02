@@ -5,17 +5,20 @@
 \title{Annotate "chip.data", given as parameter.}
 \usage{
 annotate.chip(chip.data, input.chrom.state, tf.regions, histone.regions,
-  expression.levels, genome.build = c("hg19", "mm9", "mm10", "hg38"),
-  biosample = "GM12878", tssRegion = c(-3000, 3000), output.dir, label)
+  pol.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10",
+  "hg38"), biosample = "GM12878", tssRegion = c(-3000, 3000), output.dir,
+  label)
 }
 \arguments{
-\item{chip.data}{A \linkS4class{GRanges} object containing the ChIp-seq data.}
+\item{chip.data}{A \linkS4class{GRanges} object containing the ChIP-seq data.}
 
 \item{input.chrom.state}{The name of the file containing the information about chromatin states.}
 
-\item{tf.regions}{A data frame containing the TF data.}
+\item{tf.regions}{A \linkS4class{GRangesList} object containing the TF regions.}
 
-\item{histone.regions}{A data frame containing the histone data.}
+\item{histone.regions}{A \linkS4class{GRangesList} object containing the histone regions.}
+
+\item{pol.regions}{A \linkS4class{GRangesList} object containing the pol2 regions.}
 
 \item{expression.levels}{A data frame containing the levels of expression of genes. according to their EMSEMBL id.}
 

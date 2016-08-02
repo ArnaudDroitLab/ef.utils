@@ -9,8 +9,8 @@ csaw.analyze(correspondances, reference, genome.build,
 }
 \arguments{
 \item{correspondances}{A data frame with two columns: \describe{
-\item{$Name} {Name (with the path) of the bam files.}
-\item{$Factors} {The factors to considerate during the analysis. Files with the same factor are replicas.}}}
+\item{$Name}{Name (with the path) of the bam files.}
+\item{$Factors}{The factors to considerate during the analysis. Files with the same factor are replicas.}}}
 
 \item{reference}{The name of the reference factor.}
 
