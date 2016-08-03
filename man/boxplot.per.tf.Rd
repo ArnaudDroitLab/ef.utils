@@ -4,13 +4,11 @@
 \alias{boxplot.per.tf}
 \title{Produces boxplots for every transcription factor, in relation to its 3D connectivity}
 \usage{
-boxplot.per.tf(chip.data, hist.data, biosample, genome.build, chia.obj,
-  output.dir, TSS = TRUE, tssRegion = c(-3000, 3000))
+boxplot.per.tf(chip.data, biosample, genome.build, chia.obj, output.dir,
+  TSS = TRUE, tssRegion = c(-3000, 3000))
 }
 \arguments{
 \item{chip.data}{A \linkS4class{GRangesList} containing the regions of the ChIp-seq data, with signal values.}
-
-\item{hist.data}{A \linkS4class{GRangesList} containing the regions of the ChIP-seq data of histone marks.}
 
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.}
 

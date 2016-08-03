@@ -265,7 +265,7 @@ contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
 #' @param output.dir The name of the directory where to save the files.
 #'
 #' @importFrom utils write.table
-#' @importFrom igraph components
+#' @importFrom igraph edge_attr
 #'
 #' @export
 output.annotated.chia <- function(chia.obj, output.dir="output") {
@@ -289,7 +289,7 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
   # Output Cytoscape components
 
   # Create interactions table
-  ids <- data.frame(left.df$Left.ID, right.df$Right.ID, edge_attr(chia.obj)$Reads, left.df$Left.Component.Id)
+  ids <- data.frame(left.df$Left.ID, right.df$Right.ID, edge_attr(chia.obj$Graph)$Reads, left.df$Left.Component.Id)
   colnames(ids) <- c("Source", "Target", "Reads", "Component")
 
 
@@ -332,7 +332,6 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
 #' in function of the contact frequence of the region.
 #'
 #' @param chip.data A \linkS4class{GRangesList} containing the regions of the ChIp-seq data, with signal values.
-#' @param hist.data A \linkS4class{GRangesList} containing the regions of the ChIP-seq data of histone marks.
 #' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
 #' @param genome.build The name of the chosen annotation ("hg38", "hg19").
 #' @param chia.obj Annotated ChIA-PET data, as returned by \link{analyze.chia.pet} or \link{annotate.chia}.
@@ -351,7 +350,7 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
 #' @importFrom GenomicRanges flank
 #' @importFrom GenomicFeatures genes
 #' @export
-boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.obj, output.dir, TSS = TRUE, tssRegion = c(-3000, 3000)) {
+boxplot.per.tf <- function(chip.data, biosample, genome.build, chia.obj, output.dir, TSS = TRUE, tssRegion = c(-3000, 3000)) {
 
   # Extract ChIA-PET regions
   chia.data <- chia.obj$Regions
@@ -370,7 +369,7 @@ boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.o
   }
 
   tss.regions <- genes(TxDb)
-  tss.regions <- promoters(tss.regions, abs(tss.region[1]), tss.region[2])
+  tss.regions <- promoters(tss.regions, abs(tssRegion[1]), tssRegion[2])
 
 
   # Function to create boxplot with histogram
@@ -425,8 +424,11 @@ boxplot.per.tf <- function(chip.data, hist.data, biosample, genome.build, chia.o
   for (tf in names(chip.data)){
     cat("Factor : ", tf, "\n")
     chip.subset <- chip.data[tf][[1]]
-    chip.subset <- annotate.chip(chip.subset, input.chrom.state = NULL, tf.regions = NULL, histone.regions = hist.data$Regions,
-                                 genome.build = genome.build, biosample = biosample, output.dir = "output/annotations", tssRegion = tssRegion)
+    chip.subset <- annotate.chip(chip.subset, input.chrom.state = NULL, tf.regions = NULL, histone.regions = NULL,
+                                 pol.regions = NULL, expression.levels = NULL, genome.build = genome.build,
+                                 biosample = biosample, tssRegion = tssRegion, output.dir = "output/annotations",
+                                 label = paste0(tf, " annotated"))
+
     if (TSS){
       create.boxplot(chip.subset, chia.data,
                      paste0("Boxplot of log2(Signal) in fct of Degree of ", tf ," at TSS"),
@@ -903,6 +905,7 @@ associate.is.in.factory <- function(regions){
 #' @importFrom igraph components
 #' @importFrom igraph as.undirected
 #' @importFrom igraph delete_edges
+#' @importFrom igraph E
 associate.components <- function(chia.obj, split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy){
 
   left.df = as.data.frame(chia.left(chia.obj))
@@ -944,14 +947,12 @@ associate.components <- function(chia.obj, split = TRUE, oneByOne = FALSE, metho
     left.df = as.data.frame(chia.left(chia.obj))
     right.df = as.data.frame(chia.right(chia.obj))
     # Identify deleted edges
-    to.delete <- left.df$Component.Id != right.df$Component.Id
+    to.delete <- which(left.df$Component.Id != right.df$Component.Id)
 
     chia.obj$Left <- chia.obj$Left[-to.delete]
     chia.obj$Right <- chia.obj$Right[-to.delete]
 
-    # Find edge ids
-    edges.matrix <- as_edgelist(chia.obj$Graph)
-    chia.obj$Graph <- delete_edges(chia.obj$Graph, which((edges.matrix[,1] %in% to.delete) & (edges.matrix[,2] %in% to.delete)))
+    chia.obj$Graph <- delete_edges(chia.obj$Graph, E(chia.obj$Graph)[to.delete])
   } else {
     left.df = as.data.frame(chia.left(chia.obj))
   }
