@@ -953,11 +953,10 @@ associate.components <- function(chia.obj, split = TRUE, oneByOne = FALSE, metho
     chia.obj$Right <- chia.obj$Right[-to.delete]
 
     chia.obj$Graph <- delete_edges(chia.obj$Graph, E(chia.obj$Graph)[to.delete])
-  } else {
-    left.df = as.data.frame(chia.left(chia.obj))
   }
 
   # Add a column with the number of edges in each community
+  left.df = as.data.frame(chia.left(chia.obj))
   left.df$Edges <- 1
   number.edges.df <- aggregate(Edges~Component.Id, data = left.df, FUN = sum)
   chia.obj$Regions$Component.edges <- number.edges.df$Edges[match(chia.obj$Regions$Component.Id, number.edges.df$Component.Id)]
