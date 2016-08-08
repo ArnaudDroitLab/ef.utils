@@ -630,18 +630,18 @@ characterize.gene.set <- function(gene.set, annotations.list, skip.motif=FALSE, 
 
 #' Associates a boolean in fonction of the activity of the gene
 #'
-#' Is.Gene.Active is \code{TRUE} if FPKM > 1 and the gene overlaps with CDK9 and with ARNpolII phosS2
+#' Is.Gene.Active is \code{TRUE} if FPKM > 1
 associate.is.gene.active <- function(regions){
   regions.df <- as.data.frame(regions)
-  colname.CDK9 <- colnames(regions.df)[grep("CDK9", colnames(regions.df))][1]
-  colname.serin <- colnames(regions.df)[grep("phosphoS2", colnames(regions.df))][1]
+  #colname.CDK9 <- colnames(regions.df)[grep("CDK9", colnames(regions.df))][1]
+  #colname.serin <- colnames(regions.df)[grep("phosphoS2", colnames(regions.df))][1]
   active.genes <- regions.df$SYMBOL[regions.df$Expr.mean > 1]
-  if (!is.na(colname.CDK9)){
-    active.genes <- active.genes[active.genes %in% regions.df$SYMBOL[regions.df[,colname.CDK9] > 0]]
-  }
-  if (!is.na(colname.serin)){
-    active.genes <- active.genes[active.genes %in% regions.df$SYMBOL[regions.df[,colname.serin] > 0]]
-  }
+  #if (!is.na(colname.CDK9)){
+  #  active.genes <- active.genes[active.genes %in% regions.df$SYMBOL[regions.df[,colname.CDK9] > 0]]
+  #}
+  #if (!is.na(colname.serin)){
+  #  active.genes <- active.genes[active.genes %in% regions.df$SYMBOL[regions.df[,colname.serin] > 0]]
+  #}
   regions$Is.Gene.Active <- regions$SYMBOL %in% active.genes
   return(regions)
 }

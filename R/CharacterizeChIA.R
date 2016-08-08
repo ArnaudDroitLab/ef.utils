@@ -155,9 +155,10 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
 
   cat(date(), " : Associating centrality scores...\n",cat.sink)
   chia.obj = associate.centralities(chia.obj)
-  chia.obj$Regions = associate.is.in.factory(chia.obj$Regions)
 
   chia.obj$Regions = associate.is.gene.active(chia.obj$Regions)
+  chia.obj$Regions = associate.is.in.factory(chia.obj$Regions)
+
 
   # If verbose output was turned off, close the dummy stream.
   if(!verbose) {
@@ -888,9 +889,9 @@ associate.centralities <- function(chia.obj){
 #' @return The annotated regions.
 associate.is.in.factory <- function(regions){
   factories <- as.data.frame(regions)
-  factories <- aggregate(Gene.Representative~Component.Id, data = regions, FUN = sum)
-  factories <- factories$Component.Id[factories$Gene.Representative > 2]
-  regions$Is.In.Factory <- (regions$Component.Id %in% factories) & (regions$Component.size > 4)
+  factories <- aggregate(Is.Gene.Active~Component.Id, data = regions, FUN = sum)
+  factories <- factories$Component.Id[factories$Is.Gene.Active > 1]
+  regions$Is.In.Factory <- (regions$Component.Id %in% factories)
   return(regions)
 
 }
