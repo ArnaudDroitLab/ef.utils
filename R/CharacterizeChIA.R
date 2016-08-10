@@ -108,8 +108,8 @@ regions.to.vertex.attr <- function(chia.obj) {
   return(chia.obj)
 }
 
-vertex.attr.to.regions <- function(chia.obj) {
-  region.df = as.data.frame(vertex_attr(test$Graph), stringsAsFactors = FALSE)
+vertex.attr.to.regions <- function(graph.obj) {
+  region.df = as.data.frame(vertex_attr(graph.obj), stringsAsFactors = FALSE)
   region.df$strand = '*'
   return(GRanges(region.df))
 }
@@ -200,7 +200,8 @@ load.chia <- function(input.chia) {
 annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regions, pol.regions, expression.levels,
                           genome.build = c("hg19", "mm9", "mm10", "hg38"), biosample = "GM12878",
                           tssRegion = c(-3000, 3000), output.dir, split = TRUE, oneByOne = FALSE,
-                          method = igraph::cluster_fast_greedy, verbose=TRUE) {
+                          method = igraph::cluster_fast_greedy, centrality.measures=c("Degree"), 
+                          weight.attr=NULL, verbose=TRUE) {
   # Make sure the genome build is one of the supported ones.
   genome.build <- match.arg(genome.build)
 
@@ -252,10 +253,10 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
 
 
   cat(date(), " : Associating components...\n",cat.sink)
-  chia.obj = associate.components(chia.obj, split = split, oneByOne = oneByOne, method = method)
+  chia.obj = associate.components(chia.obj, split = split, oneByOne = oneByOne, method = method, weight.attr=weight.attr)
 
   cat(date(), " : Associating centrality scores...\n",cat.sink)
-  chia.obj = associate.centralities(chia.obj)
+  chia.obj = associate.centralities(chia.obj, which.measures=centrality.measures, weight.attr=weight.attr)
 
   chia.obj$Regions = associate.is.gene.active(chia.obj$Regions)
   chia.obj$Regions = associate.is.in.factory(chia.obj$Regions)
@@ -912,49 +913,82 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
 #' @param chia.obj chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
 #'
 #' @return The annotated chia.obj.
+associate.centralities <- function(chia.obj, which.measures=c("Degree", "Betweenness", "Eigenvector"), weight.attr=NULL) {
+  centralities = calculate.centralities(chia.obj, which.measures, weight.attr)
+  mcols(chia.obj$Regions) <- cbind(mcols(chia.obj$Regions), centralities)
+  
+  return(chia.obj)
+}
+
+#' Associates boolean to regions in focntion of their centrality
 #'
-#' @importFrom igraph make_graph
+#' @param chia.obj chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#'
+#' @return The annotated chia.obj.
+#'
 #' @importFrom igraph degree
 #' @importFrom igraph estimate_closeness
 #' @importFrom igraph betweenness
 #' @importFrom igraph eigen_centrality
-associate.centralities <- function(chia.obj){
-  left.df = as.data.frame(chia.left(chia.obj))
-  colnames(left.df) <- paste("Left", colnames(left.df), sep=".")
-  right.df = as.data.frame(chia.right(chia.obj))
-  colnames(right.df) <- paste("Right", colnames(right.df), sep=".")
-
-  ids <- data.frame(left.df$Left.ID, right.df$Right.ID, left.df$Left.Component.Id, right.df$Right.Component.Id)
-  ids <- ids[ids[,4] == ids[,3],1:3]
-  colnames(ids) <- c("Source", "Target", "Component")
-
-  # Creation of the new columns to fill
-  chia.obj$Regions$Centrality.score <- 0
-  chia.obj$Regions$Is.central <- 0
-
-  for (id in unique(chia.obj$Regions$Component.Id)){
-    network <- ids[ids$Component == id,]
-    graph <- make_graph(c(rbind(network$Source, network$Target)))
-
-    data <- data.frame(Nodes = unique(c(network$Source, network$Target)))
-    data$Degree <- degree(graph)[data$Nodes]
-    #data$Betweenness <- betweenness(graph, directed = FALSE)[data$Nodes]
-    data$Eigen <- eigen_centrality(graph, directed = FALSE)$vector[data$Nodes]
-
-    data$Degree <- data$Degree / max(data$Degree)
-    #data$Betweenness <- data$Betweenness / max(data$Betweenness)
-    data$Eigen <- data$Eigen / max(data$Eigen)
-
-    #data$Centrality.score <- with(data, (Degree + Betweenness + Eigen)/3)
-    data$Centrality.score <- with(data, (Degree + Eigen)/3)
-    data$Centrality.score[is.nan(data$Centrality.score)] <- 0
-    #data$Is.central <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.95)
-    chia.obj$Regions$Centrality.score[match(data$Nodes, chia.obj$Regions$ID)] <- data$Centrality.score
-
-    chia.obj$Regions$Is.central[match(data$Nodes, chia.obj$Regions$ID)] <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.95)
+calculate.centralities <- function(chia.obj, which.measures=c("Degree", "Betweenness", "Eigenvector"), weight.attr=NULL) {
+  # If weights should be used, set them as the weight edge attribute.
+  if(!is.null(weight.attr)) {
+    stopifnot(weight.attr %in% names(edge_attr(chia.obj$Graph)))
+    set_edge_attr(chia.obj$Graph, "weight", edge_attr(chia.obj$Graph[[weight.attr]]))
   }
+  
+  # Define a matrix and a vector to contain network-wide scores and centrality markers.
+  results.matrix = matrix(0, nrow=number.of.nodes(chia.obj), ncol=length(which.measures)+1, dimnames=list(NULL, c(which.measures, "Centrality.score")))
+  centrality.marker = rep(FALSE, number.of.nodes(chia.obj))
+  
+  # Loop over components to measure centrality. Most of these methods can be applied to
+  # discontinuous components, but will give different results which might fail
+  # to identify a component specific  central node.
+  components.out = components(chia.obj$Graph)  
+  for(i in 1:components.out$no) {
+    # Generate a subgraph for the component.
+    which.nodes = components.out$membership==i
+    component.subgraph = induced_subgraph(chia.obj$Graph, which.nodes)
+    
+    # Get the requested centrality measures.
+    measures = list()
+    if("Degree" %in% which.measures) {
+        measures[["Degree"]] = degree(component.subgraph)
+    }
 
-  return(chia.obj)
+    if("Betweenness" %in% which.measures) {    
+      measures[["Betweenness"]] = betweenness(component.subgraph, directed = FALSE)
+    }
+    
+    if("Eigenvector" %in% which.measures) {    
+      measures[["Eigenvector"]] = eigen_centrality(component.subgraph, directed = FALSE)$vector
+    }
+    
+    # Make sure we had at least one valid measure.
+    stopifnot(length(measures) > 0)
+    
+    # Get combined score and determine if nodes should be marked as central.
+    measures[["Centrality.score"]] =  apply(as.data.frame(lapply(measures, scale)), 1, mean)
+    
+    # Some networks will have constant centrality on all nodes (Two node networks, ring networks, etc.)
+    # This will cause standard deviation to be 0 and centrality to be NAN.
+    # Deal with these edge cases by assigning a 0 centrality to them.
+    measures[["Centrality.score"]][is.nan(measures[["Centrality.score"]])] <- 0
+    if(sd(measures[["Centrality.score"]]) != 0) {
+        is.central = measures[["Centrality.score"]] > quantile(measures[["Centrality.score"]], probs = 0.95)
+    } else {
+        is.central = FALSE
+    }
+    
+    # Report components' results to the combined matrix/vector of all nodes.
+    for(measure in names(measures)) {
+        results.matrix[which.nodes, measure] = measures[[measure]]
+    }
+    centrality.marker[which.nodes] = is.central
+  }
+  
+  # Return a data frame combining the scores and the centrality marker.
+  return(data.frame(results.matrix, Is.central=centrality.marker))
 }
 
 #' Associates boolean to regions in fonction of their presence in factories
@@ -986,6 +1020,7 @@ community.split <- function(chia.obj, oneByOne, method, weight.attr=NULL) {
     # Make Regions a vertex attribute so that the information will
     # follow along as we split the communities up.
     work.obj = regions.to.vertex.attr(chia.obj)
+    igraph::set_vertex_attr(work.obj$Graph, "name", value=work.obj$Regions$ID)
     final.graph = NULL
     
     # Loop over components one by one.
@@ -1000,7 +1035,9 @@ community.split <- function(chia.obj, oneByOne, method, weight.attr=NULL) {
       if(is.null(final.graph)) {
         final.graph = component.split
       } else {
-        final.graph = union(final.graph, component.split)
+        # Plain union duplicate attributes columns. Disjoint union does not, since
+        # it expects no node/edge will be present in both operands.
+        final.graph = igraph::disjoint_union(final.graph, component.split)
       }
     }
     
@@ -1008,7 +1045,7 @@ community.split <- function(chia.obj, oneByOne, method, weight.attr=NULL) {
     chia.obj = list(Graph=final.graph, Regions=vertex.attr.to.regions(final.graph))
     
     # Drop the vertex attributes to speed up future processing.
-    vertex_attr(chia.obj) <- list()
+    vertex_attr(chia.obj$Graph) <- list()
   } else {
     chia.obj$Graph = separate.into.communities(chia.obj$Graph, method = method, weight.attr=weight.attr)
   }
