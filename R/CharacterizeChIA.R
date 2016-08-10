@@ -24,6 +24,96 @@ chia.right <- function(chia.obj) {
     return(chia.obj$Regions[as_edgelist(chia.obj$Graph)[,2]])
 }
 
+#' Return the number of nodes in a CHIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return The number of nodes in the chia object.
+#' @importFrom igraph vcount
+number.of.nodes <- function(chia.obj) {
+    node.count = vcount(chia.obj$Graph)
+    stopifnot(nrow(chia.obj$Regions) == node.count)
+    
+    return(vcount(chia.obj$Graph))
+}
+
+#' Return the number of contacts in a CHIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return The number of contacts in the chia object.
+#' @importFrom igraph ecount
+number.of.contacts <- function(chia.obj) {
+    return(ecount(chia.obj$Graph))
+}
+
+#' Return the number of components in a CHIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return The number of components in the chia object.
+#' @importFrom igraph components
+number.of.components <- function(chia.obj) {
+    return(components(chia.obj$Graph)$no)
+}
+
+#' Return the mean component size of a CHIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return The mean component size of the chia object.
+#' @importFrom igraph components
+mean.component.size <- function(chia.obj) {
+    return(mean(components(chia.obj$Graph)$csize))
+}
+
+#' Return the number of genes represented in a CHIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return The number of genes represented in the chia object.
+number.of.genes <- function(chia.obj) {
+    return(sum(chia.obj$Regions$Gene.Representative))
+}
+
+#' Return the number of active genes represented in a CHIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return The number of active genes represented in the chia object.
+number.active.genes <- function(chia.obj) {
+    return(chia.obj$Regions$Gene.Representative & chia.obj$Regions$Is.Gene.Active)
+}
+
+#' Return the proportion of nodes representing genes in a CHIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return The number of active genes represented in the chia object.
+proportion.genes <- function(chia.obj) {
+    return(number.of.genes(chia.obj) / number.of.nodes(chia.obj))
+}
+
+#' Return the proportion of active genes among all genes in a CHIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return The proportion of active genes among all genes in the chia object.
+proportion.active.genes <- function(chia.obj) {
+    return(number.active.genes(chia.obj) / number.of.genes(chia.obj))
+}
+
+regions.to.vertex.attr <- function(chia.obj) {
+  vertex_attr(chia.obj$Graph) <- as.data.frame(chia.obj$Regions, stringsAsFactors = FALSE)
+  return(chia.obj)
+}
+
+vertex.attr.to.regions <- function(chia.obj) {
+  region.df = as.data.frame(vertex_attr(test$Graph), stringsAsFactors = FALSE)
+  region.df$strand = '*'
+  return(GRanges(region.df))
+}
+
 #' Read and load a ChIA-PET output file.
 #'
 #' @param input.chia The path of the file containing the ChIA-PET data.
@@ -39,11 +129,14 @@ chia.right <- function(chia.obj) {
 #' @importFrom GenomicRanges GRanges
 #' @importMethodsFrom GenomicRanges findOverlaps
 #' @importFrom igraph make_graph
+#' @importFrom igraph edge_attr
 #' @importFrom igraph set_edge_attr
+#' @importFrom plyr ddply
 #'
 #' @export
 load.chia <- function(input.chia) {
-    chia.raw = read.table(input.chia, sep="\t")
+    chia.raw = read.table(input.chia, sep="\t", 
+                          col.names=c("L.chr", "L.start", "L.end", "R.chr", "R.start", "R.end", "Reads"))
 
     # Separate and extend on both sides
     split.raw.chia <- function(chia.raw, columns, flank.size=0) {
@@ -66,11 +159,19 @@ load.chia <- function(input.chia) {
     chia.left.indices = findOverlaps(chia.left.ranges, single.set, select="first")
     chia.right.indices = findOverlaps(chia.right.ranges, single.set, select="first")
 
-    # Create iGraph object.
-    chia.graph = make_graph(c(rbind(chia.left.indices, chia.right.indices)))
-    chia.graph = set_edge_attr(chia.graph, "Reads", value=chia.raw[,7])
-
-    return(list(Left=chia.left.ranges, Right=chia.right.ranges, Regions=single.set, Graph=chia.graph))
+    # Find and remove self loops.
+    mapped.df = cbind(chia.raw, Left=chia.left.indices, Right=chia.right.indices)
+    mapped.df = mapped.df[mapped.df$Left != mapped.df$Right,]
+    
+    # Summarize multiple edges.
+    max.df = ddply(mapped.df, ~Left*Right, summarize, L.chr=head(L.chr, n=1), L.start=min(L.start), L.end=max(L.end),
+                                                      R.chr=head(R.chr, n=1), R.start=min(R.start), R.end=max(R.end), Reads=sum(Reads))
+    
+    # Create iGraph object and set the original coordinates and the number of supporting reads as edge attributes.
+    chia.graph = make_graph(c(rbind(max.df$Left, max.df$Right)))
+    edge_attr(chia.graph) <- max.df
+    
+    return(list(Regions=single.set, Graph=chia.graph))
 }
 
 #' Annotate "chia.obj", given as parameter.
@@ -469,32 +570,6 @@ boxplot.by.connectivity <- function(chia.obj, variable.name, label, output.dir){
   ggsave(file.path(output.dir, paste0(label, ".pdf")))
 }
 
-#' Separates a large networks into communities and saves the sub-netwoks in cytoscape-friendly format
-#'
-#' @param network.input The csv file containing the network to divide.
-#' @param method The algorithm to use to divide the graph.
-#' @return A list with two elements: the annotated chia.obj, with changed components ids ans sizes and the new networks.
-#' @importFrom igraph make_graph
-separate.into.communities <- function(network.input, method = igraph::cluster_fast_greedy){
-
-  # Separate the network into smaller ones
-  network.input <- unique(network.input)
-  whole.graph <- make_graph(c(rbind(network.input$Source, network.input$Target)), directed = FALSE)
-
-  communities <- method(whole.graph, weights = NULL)
-  communities.df <- data.frame(cbind(unique(c(network.input$Source, network.input$Target)),
-                                     communities$membership[unique(c(network.input$Source, network.input$Target))]))
-  colnames(communities.df) <- c("Node.Id", "Group")
-  simplify.group.id <- data.frame(Old = unique(communities.df$Group), New = 1:length(unique(communities.df$Group)))
-  communities.df$Group <- simplify.group.id$New[match(communities.df$Group, simplify.group.id$Old)]
-  communities.df$Size <- 1
-  communities.df$Size <- aggregate(Size~Group, data = communities.df, FUN = sum)$Size[communities.df$Group]
-
-
-  return(communities.df)
-}
-
-
 #############################################################################################################
 # Functions that may not work:
 # Possible reasons:
@@ -753,26 +828,26 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
     # If biosample is provided, download missing annotations from ENCODE.
     if(!is.null(biosample) && !is.null(genome.build)) {
         # Download transcription factors
-        if (is.null(tf.regions)){
+        if (is.null(tf.regions)) {
             cache(tf.regions <- download.encode.chip(biosample, genome.build)$Regions, output.dir)
         }
 
         # Download histone marks
-        if (is.null(histone.regions)){
+        if (is.null(histone.regions)) {
             cache(histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip,
                                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq", "histone"))$Regions,
                 output.dir)
         }
 
         # Download PolII regions.
-        if (is.null(pol.regions)){
+        if (is.null(pol.regions)) {
             cache(pol.regions <- download.encode.chip(biosample, genome.build, download.filter = pol2.download.filter.chip,
                                               download.dir = file.path("input/ENCODE", biosample, "chip-seq", "pol2"))$Regions,
                 output.dir)
         }
 
         # Download expression data
-        if (is.null(expression.data)){
+        if (is.null(expression.data)) {
             cache(expression.data <- download.encode.rna(biosample, genome.build)$Expression, output.dir)
             expression.data$ENSEMBL = gsub("\\.\\d+$", "", expression.data$gene_id)
             expression.data$FPKM = log2(expression.data$Mean.FPKM + 1)
@@ -863,14 +938,15 @@ associate.centralities <- function(chia.obj){
 
     data <- data.frame(Nodes = unique(c(network$Source, network$Target)))
     data$Degree <- degree(graph)[data$Nodes]
-    data$Betweenness <- betweenness(graph, directed = FALSE)[data$Nodes]
+    #data$Betweenness <- betweenness(graph, directed = FALSE)[data$Nodes]
     data$Eigen <- eigen_centrality(graph, directed = FALSE)$vector[data$Nodes]
 
     data$Degree <- data$Degree / max(data$Degree)
-    data$Betweenness <- data$Betweenness / max(data$Betweenness)
+    #data$Betweenness <- data$Betweenness / max(data$Betweenness)
     data$Eigen <- data$Eigen / max(data$Eigen)
 
-    data$Centrality.score <- with(data, (Degree + Betweenness + Eigen)/3)
+    #data$Centrality.score <- with(data, (Degree + Betweenness + Eigen)/3)
+    data$Centrality.score <- with(data, (Degree + Eigen)/3)
     data$Centrality.score[is.nan(data$Centrality.score)] <- 0
     #data$Is.central <- data$Centrality.score > quantile(data$Centrality.score, probs = 0.95)
     chia.obj$Regions$Centrality.score[match(data$Nodes, chia.obj$Regions$ID)] <- data$Centrality.score
@@ -896,6 +972,50 @@ associate.is.in.factory <- function(regions){
 
 }
 
+separate.into.communities <- function(input.graph, method = igraph::cluster_fast_greedy, weight.attr=NULL){
+  communities <- method(as.undirected(input.graph), weights = weight.attr)
+  to.delete = crossing(communities, input.graph)
+  return(delete_edges(input.graph, E(input.graph)[to.delete]))
+}
+
+community.split <- function(chia.obj, oneByOne, method, weight.attr=NULL) {
+  if (oneByOne){
+    # Split into components so that we might process them one by one.
+    components.out = components(chia.obj$Graph)
+    
+    # Make Regions a vertex attribute so that the information will
+    # follow along as we split the communities up.
+    work.obj = regions.to.vertex.attr(chia.obj)
+    final.graph = NULL
+    
+    # Loop over components one by one.
+    for (i in 1:components.out$no){
+      # Get the component subgraph.
+      component.subgraph = induced_subgraph(work.obj$Graph, components.out$membership==i)
+      
+      # Split it into communities.
+      component.split = separate.into.communities(component.subgraph, method = method, weight.attr=weight.attr)
+      
+      # Concatenate the resulting graph to the others.
+      if(is.null(final.graph)) {
+        final.graph = component.split
+      } else {
+        final.graph = union(final.graph, component.split)
+      }
+    }
+    
+    # Rebuild a chia object by regenerating the regions object from the vertex attributes.
+    chia.obj = list(Graph=final.graph, Regions=vertex.attr.to.regions(final.graph))
+    
+    # Drop the vertex attributes to speed up future processing.
+    vertex_attr(chia.obj) <- list()
+  } else {
+    chia.obj$Graph = separate.into.communities(chia.obj$Graph, method = method, weight.attr=weight.attr)
+  }
+
+  return(chia.obj)
+}
+
 #' Associates components ids and sizes to chia data, as returned by \code{\link{load.chia}}.
 #'
 #' @param chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
@@ -907,54 +1027,15 @@ associate.is.in.factory <- function(regions){
 #' @importFrom igraph as.undirected
 #' @importFrom igraph delete_edges
 #' @importFrom igraph E
-associate.components <- function(chia.obj, split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy){
-
-  left.df = as.data.frame(chia.left(chia.obj))
-  right.df = as.data.frame(chia.right(chia.obj))
-
-  ids <- data.frame(left.df$ID, right.df$ID)
-  colnames(ids) <- c("Source", "Target")
-
-  # Generate components
-  components.out <- components(chia.obj$Graph)
-  reorder.components <- components.out$membership[ids$Source]
-  ids <- cbind(ids, Component = reorder.components)
-
-  # Add data about components
-  chia.obj$Regions$Component.Id <- components.out$membership
-  chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]
-
-
+associate.components <- function(chia.obj, split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy, weight.attr=NULL){
   if (split){
-    if (oneByOne){
-      for (i in 1:components.out$no){
-        communities.df <- separate.into.communities(ids[ids$Component == i, 1:2], method = method)
-        # If the network is divided...
-        if (length(unique(communities.df$Group)) > 1){
-          # ...Change the annotation
-          chia.obj$Regions$Component.size[chia.obj$Regions$Component.Id == i] <- communities.df[order(communities.df$Node.Id),"Size"]
-          chia.obj$Regions$Component.Id[chia.obj$Regions$Component.Id == i] <-
-            paste0(network, ".", communities.df[order(communities.df$Node.Id),"Group"])
-        }
-      }
-    } else {
-      communities.df <- separate.into.communities(ids[, 1:2], method = method)
-
-      chia.obj$Regions$Component.size <- communities.df[order(communities.df$Node.Id),"Size"]
-      chia.obj$Regions$Component.Id <- communities.df[order(communities.df$Node.Id),"Group"]
-    }
-    # Update Left, Right and Graph
-    # Reload Left and Right info, with new component ids ans sizes
-    left.df = as.data.frame(chia.left(chia.obj))
-    right.df = as.data.frame(chia.right(chia.obj))
-    # Identify deleted edges
-    to.delete <- which(left.df$Component.Id != right.df$Component.Id)
-
-    chia.obj$Left <- chia.obj$Left[-to.delete]
-    chia.obj$Right <- chia.obj$Right[-to.delete]
-
-    chia.obj$Graph <- delete_edges(chia.obj$Graph, E(chia.obj$Graph)[to.delete])
+    chia.obj = community.split(chia.obj, oneByOne, method, weight.attr)
   }
+  
+  # Add data about components
+  components.out <- components(chia.obj$Graph)  
+  chia.obj$Regions$Component.Id <- components.out$membership
+  chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]  
 
   # Add a column with the number of edges in each community
   left.df = as.data.frame(chia.left(chia.obj))
