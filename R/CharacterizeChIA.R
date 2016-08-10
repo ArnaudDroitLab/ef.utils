@@ -999,7 +999,7 @@ calculate.centralities <- function(chia.obj, which.measures=c("Degree", "Between
 #' @return The annotated regions.
 associate.is.in.factory <- function(regions){
   factories <- as.data.frame(regions)
-  factories <- aggregate(Is.Gene.Active~Component.Id, data = regions, FUN = sum)
+  factories <- aggregate(Is.Gene.Active~Component.Id, data = factories[factories$Gene.Representative,], FUN = sum)
   factories <- factories$Component.Id[factories$Is.Gene.Active > 1]
   regions$Is.In.Factory <- (regions$Component.Id %in% factories)
   return(regions)
