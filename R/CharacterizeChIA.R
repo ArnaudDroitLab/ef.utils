@@ -1012,7 +1012,18 @@ separate.into.communities <- function(input.graph, method = igraph::cluster_fast
   return(delete_edges(input.graph, E(input.graph)[to.delete]))
 }
 
-community.split <- function(chia.obj, oneByOne, method, weight.attr=NULL) {
+#' Associates components ids and sizes to chia data, as returned by \code{\link{load.chia}}.
+#'
+#' @param chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param split Should the data be divided into communities?
+#' @param oneByOne Sould the netwoks be treated one by one or as a whole?
+#' @param method What method sould be used to split data (ignored if split = \code{FALSE}).
+#' @return The annotated chia.obj.
+#' @importFrom igraph components
+#' @importFrom igraph as.undirected
+#' @importFrom igraph delete_edges
+#' @importFrom igraph E
+split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::cluster_fast_greedy, weight.attr=NULL) {
   if (oneByOne){
     # Split into components so that we might process them one by one.
     components.out = components(chia.obj$Graph)
@@ -1064,11 +1075,7 @@ community.split <- function(chia.obj, oneByOne, method, weight.attr=NULL) {
 #' @importFrom igraph as.undirected
 #' @importFrom igraph delete_edges
 #' @importFrom igraph E
-associate.components <- function(chia.obj, split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy, weight.attr=NULL){
-  if (split){
-    chia.obj = community.split(chia.obj, oneByOne, method, weight.attr)
-  }
-  
+associate.components <- function(chia.obj){
   # Add data about components
   components.out <- components(chia.obj$Graph)  
   chia.obj$Regions$Component.Id <- components.out$membership
