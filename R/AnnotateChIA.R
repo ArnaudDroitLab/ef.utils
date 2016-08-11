@@ -12,7 +12,7 @@ associate.centralities <- function(chia.obj, which.measures=c("Degree", "Between
 
 #' Associates boolean to regions in focntion of their centrality
 #'
-#' @param chia.obj chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
 #'
 #' @return The annotated chia.obj.
 #'

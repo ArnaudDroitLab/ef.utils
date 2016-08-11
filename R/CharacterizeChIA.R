@@ -348,9 +348,6 @@ process.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
 	return(chia.obj)
 }
 
-
-
-
 identify.crossing.edges <- function(input.graph, method = igraph::cluster_fast_greedy, weight.attr=NULL){
   communities <- method(as.undirected(input.graph), weights = weight.attr)
   to.delete = crossing(communities, input.graph)
@@ -404,4 +401,3 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
   chia.obj$Regions$Degree = degree(chia.obj$Graph)
   return(chia.obj)
 }
-
