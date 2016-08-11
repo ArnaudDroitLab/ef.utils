@@ -43,6 +43,10 @@ has.degree <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Degree))
 }
 
+has.gene.representative <- function(chia.obj) {
+    return(!is.null(chia.obj$Regions$Gene.Representative))
+}
+
 has.expression.levels <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Gene.Representative) &&
            !is.null(chia.obj$Regions$Expr.mean))
@@ -59,6 +63,7 @@ has.gene.annotation <- function(chia.obj) {
 #'
 #' @return The number of nodes in the chia object.
 #' @importFrom igraph vcount
+#' @export
 number.of.nodes <- function(chia.obj) {
     node.count = vcount(chia.obj$Graph)
     stopifnot(nrow(chia.obj$Regions) == node.count)
@@ -72,6 +77,7 @@ number.of.nodes <- function(chia.obj) {
 #'
 #' @return The number of contacts in the chia object.
 #' @importFrom igraph ecount
+#' @export
 number.of.contacts <- function(chia.obj) {
     return(ecount(chia.obj$Graph))
 }
@@ -82,6 +88,7 @@ number.of.contacts <- function(chia.obj) {
 #'
 #' @return The number of components in the chia object.
 #' @importFrom igraph components
+#' @export
 number.of.components <- function(chia.obj) {
     return(components(chia.obj$Graph)$no)
 }
@@ -92,6 +99,7 @@ number.of.components <- function(chia.obj) {
 #'
 #' @return The mean component size of the chia object.
 #' @importFrom igraph components
+#' @export
 mean.component.size <- function(chia.obj) {
     return(mean(components(chia.obj$Graph)$csize))
 }
@@ -101,6 +109,7 @@ mean.component.size <- function(chia.obj) {
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
 #'
 #' @return The number of genes represented in the chia object.
+#' @export
 number.of.genes <- function(chia.obj) {
     return(sum(chia.obj$Regions$Gene.Representative))
 }
@@ -110,8 +119,20 @@ number.of.genes <- function(chia.obj) {
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
 #'
 #' @return The number of active genes represented in the chia object.
+#' @export
 number.active.genes <- function(chia.obj) {
     return(chia.obj$Regions$Gene.Representative & chia.obj$Regions$Is.Gene.Active)
+}
+
+#' Return the number genes per component in the CHIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return The number of active genes represented in the chia object.
+#' @export
+genes.by.component <- function(chia.obj) {
+    stopifnot(has.gene.representative(chia.obj) && has.components(chia.obj))
+    return(aggregate(Gene.Representative~Component.Id, as.data.frame(chia.obj$Regions), sum))
 }
 
 #' Return the proportion of nodes representing genes in a CHIA object.
@@ -221,7 +242,7 @@ load.chia <- function(input.chia) {
 #' @export
 output.annotated.chia <- function(chia.obj, output.dir="output") {
   # Create output directory if it does not exist.
-  dir.create(output.dir, recursive = TRUE)
+  dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 
   # Export region annotation, putting the ID in the first column.
   chia.data <- as.data.frame(chia.obj$Regions)
@@ -245,11 +266,11 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
 
 
   # Export networks in csv files
-  dir.create(file.path(output.dir, "Size between 3 and 5 nodes (incl)"), recursive = TRUE, showWarnigns=FALSE)
-  dir.create(file.path(output.dir, "Size between 6 and 20 nodes (incl)"), recursive = TRUE, showWarnigns=FALSE)
-  dir.create(file.path(output.dir, "Size between 21 and 50 nodes (incl)"), recursive = TRUE, showWarnigns=FALSE)
-  dir.create(file.path(output.dir, "Size between 51 and 100 nodes (incl)"), recursive = TRUE, showWarnigns=FALSE)
-  dir.create(file.path(output.dir,"Size over 100 nodes"), recursive = TRUE, showWarnigns=FALSE)
+  dir.create(file.path(output.dir, "Size between 3 and 5 nodes (incl)"), recursive = TRUE, showWarnings=FALSE)
+  dir.create(file.path(output.dir, "Size between 6 and 20 nodes (incl)"), recursive = TRUE, showWarnings=FALSE)
+  dir.create(file.path(output.dir, "Size between 21 and 50 nodes (incl)"), recursive = TRUE, showWarnings=FALSE)
+  dir.create(file.path(output.dir, "Size between 51 and 100 nodes (incl)"), recursive = TRUE, showWarnings=FALSE)
+  dir.create(file.path(output.dir,"Size over 100 nodes"), recursive = TRUE, showWarnings=FALSE)
 
   for (i in unique(ids$Component)){
     network <- ids[ids$Component == i,]
@@ -277,6 +298,18 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
   write.table(chia.data, file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), row.names = FALSE, sep = "\t")
 }
 
+
+#' Identifies edges crossing community borders.
+#'
+#' @param input.graph The igraph whose community-crossing edges must be identified,
+#' @param method A method returning a \code{community} object, such as igraph::cluster_fast_greedy.
+#' @param weight.attr The name fo the edge attribute to be used as edge weight.
+#'
+#' @return The ids of the edges to be removed.
+#' @importFrom igraph crossing
+#' @importFrom igraph as.undirected
+#' @importFrom igraph edge_attr
+#' @export
 identify.crossing.edges <- function(input.graph, method = igraph::cluster_fast_greedy, weight.attr=NULL){
   communities <- method(as.undirected(input.graph), weights = weight.attr)
   to.delete = crossing(communities, input.graph)
@@ -329,6 +362,19 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
   # Update the degree attribute of regions if it is present.
   chia.obj$Regions$Degree = degree(chia.obj$Graph)
   return(chia.obj)
+}
+
+#' Subset a CHIA object.
+#'
+#' @param chia.obj The chia object to eb subset.
+#' @param indices The indices of the vertices to be kept.
+#'
+#' @return A chia object containing only the selected vertices.
+#' @importFrom igraph induced_subgraph
+#' @export
+chia.vertex.subset <- function(chia.obj, indices) {
+    return(list(Regions = chia.obj$Regions[indices],
+                Graph = induced_subgraph(chia.obj$Graph, which(indices))))
 }
 
 #' Analyze ChIA-PET data and produce graphs.

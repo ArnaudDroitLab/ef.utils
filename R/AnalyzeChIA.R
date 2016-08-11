@@ -180,7 +180,7 @@ boxplot.per.tf <- function(chip.data, biosample, genome.build, chia.obj, output.
   }
 
   # Create plot for every TF
-  dir.create(file.path(output.dir, biosample), recursive = TRUE, showWarnigns=FALSE)
+  dir.create(file.path(output.dir, biosample), recursive = TRUE, showWarnings=FALSE)
   for (tf in names(chip.data)){
     cat("Factor : ", tf, "\n")
     chip.subset <- chip.data[tf][[1]]
@@ -495,7 +495,7 @@ analyze.generic.topology <- function(chia.obj, output.dir="output") {
 #'
 #' @export
 plot.network.heatmap <- function(chia.obj, size.limit, variable.name, label, output.dir) {
-  dir.create(output.dir, recursive = TRUE, showWarnigns=FALSE)
+  dir.create(output.dir, recursive = TRUE, showWarnings=FALSE)
 
   presence.by.tf <- function(chia.df){
     tf.col <- grep("TF.overlap", colnames(chia.df))
