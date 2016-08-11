@@ -180,7 +180,7 @@ boxplot.per.tf <- function(chip.data, biosample, genome.build, chia.obj, output.
   }
 
   # Create plot for every TF
-  dir.create(file.path(output.dir, biosample), recursive = TRUE)
+  dir.create(file.path(output.dir, biosample), recursive = TRUE, showWarnigns=FALSE)
   for (tf in names(chip.data)){
     cat("Factor : ", tf, "\n")
     chip.subset <- chip.data[tf][[1]]
@@ -495,7 +495,7 @@ analyze.generic.topology <- function(chia.obj, output.dir="output") {
 #'
 #' @export
 plot.network.heatmap <- function(chia.obj, size.limit, variable.name, label, output.dir) {
-  dir.create(output.dir, recursive = TRUE)
+  dir.create(output.dir, recursive = TRUE, showWarnigns=FALSE)
 
   presence.by.tf <- function(chia.df){
     tf.col <- grep("TF.overlap", colnames(chia.df))
@@ -540,7 +540,15 @@ plot.network.heatmap <- function(chia.obj, size.limit, variable.name, label, out
   dev.off()
 }
 
-analyze.chia.pet <- function(chia.obj, verbose=TRUE) {
+#' Performs all possible analysis steps on a ChIA-PET object.
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param output.dir The directory where output should be saved.
+#' @param verbose Set to TRUE to get progress output to the console.
+#' @param label The label to add to the heatmap title (name of the variable).
+#'
+#' @export
+analyze.chia.pet <- function(chia.obj, output.dir=".", verbose=TRUE) {
     # If verbose output is turned off, redirect output to a NULL stream.
     cat.sink = ifelse(verbose, "", textConnection(NULL, w))
     

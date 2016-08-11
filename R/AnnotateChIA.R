@@ -1,7 +1,12 @@
-#' Associates boolean to regions in focntion of their centrality
+#' Associates centrality scores and boolean centrality markers to regions.
 #'
-#' @param chia.obj chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param which.measures A vector containing the names of the measures to be used
+#'   to assess centrality. Those can be "Degree", "Betweenness" and "Eigenvector".
+#' @param weight.attr The anme of the edge attribute to be sued as a weight in 
+#'   centrality calculations.
 #'
+#' @export
 #' @return The annotated chia.obj.
 associate.centralities <- function(chia.obj, which.measures=c("Degree", "Betweenness", "Eigenvector"), weight.attr=NULL) {
   centralities = calculate.centralities(chia.obj, which.measures, weight.attr)
@@ -10,16 +15,19 @@ associate.centralities <- function(chia.obj, which.measures=c("Degree", "Between
   return(chia.obj)
 }
 
-#' Associates boolean to regions in focntion of their centrality
+#' Calculates centralities for all vertices in a graph.
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
-#'
-#' @return The annotated chia.obj.
+#' @param which.measures A vector containing the names of the measures to be used
+#'   to assess centrality. Those can be "Degree", "Betweenness" and "Eigenvector".
+#' @param weight.attr The anme of the edge attribute to be sued as a weight in 
+#'   centrality calculations.
 #'
 #' @importFrom igraph degree
 #' @importFrom igraph estimate_closeness
 #' @importFrom igraph betweenness
 #' @importFrom igraph eigen_centrality
+#' @return A data-frame containing the centrality scores and markers for all vertices in the graph.
 calculate.centralities <- function(chia.obj, which.measures=c("Degree", "Betweenness", "Eigenvector"), weight.attr=NULL) {
   # If weights should be used, set them as the weight edge attribute.
   if(!is.null(weight.attr)) {
@@ -174,13 +182,7 @@ associate.gene <- function(regions, expression.data=NULL) {
 #' @importFrom igraph degree
 #'
 #' @export
-annotate.chia <- function(chia.obj, output.dir, input.chrom.state=NULL, tf.regions=NULL, histone.regions=NULL,
-                          pol.regions=NULL, expression.levels=NULL, genome.build = c("hg19", "mm9", "mm10", "hg38"), 
-                          tssRegion = c(-3000, 3000), centrality.measures=c("Degree"), 
-                          weight.attr=NULL, verbose=TRUE) {
-  # Make sure the genome build is one of the supported ones.
-  genome.build <- match.arg(genome.build)
-
+annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
   # Create the output directory.
   dir.create(output.dir, recursive = TRUE, showWarnings=FALSE)
 
@@ -195,38 +197,41 @@ annotate.chia <- function(chia.obj, output.dir, input.chrom.state=NULL, tf.regio
 
   # Associate genomic regions
   cat(date(), " : Associating genomic regions...\n",cat.sink)
-  chia.obj$Regions <- associate.genomic.region(chia.obj$Regions, genome.build, output.dir, tssRegion = tssRegion)
+  chia.obj$Regions <- associate.genomic.region(chia.obj$Regions,
+                                               chia.param$genome.build,
+                                               output.dir = output.dir,
+                                               tssRegion = chia.param$tssRegion)
 
   # Associate chromatin states
-  if(!is.null(input.chrom.state)) {
+  if(!is.null(chia.param$input.chrom.state)) {
     cat(date(), " : Associating chromatin states...\n",cat.sink)
-    chia.obj$Regions = associate.chrom.state(chia.obj$Regions, input.chrom.state)
+    chia.obj$Regions = associate.chrom.state(chia.obj$Regions, chia.param$input.chrom.state)
   }
 
   # Associate transcription factors
-  if(!is.null(tf.regions)) {
+  if(!is.null(chia.param$tf.regions)) {
     cat(date(), " : Associating transcription factors...\n",cat.sink)
-    chia.obj$Regions = associate.tf(chia.obj$Regions, tf.regions)
+    chia.obj$Regions = associate.tf(chia.obj$Regions, chia.param$tf.regions)
   }
 
   # Associate histone marks
-  if(!is.null(histone.regions)) {
+  if(!is.null(chia.param$histone.regions)) {
     cat(date(), " : Associating histone marks...\n",cat.sink)
-    chia.obj$Regions = associate.histone.marks(chia.obj$Regions, histone.regions)
+    chia.obj$Regions = associate.histone.marks(chia.obj$Regions, chia.param$histone.regions)
   }
 
   # Associate known polymerase binding
-  if(!is.null(pol.regions)) {
+  if(!is.null(chia.param$pol.regions)) {
     cat(date(), " : Associating polymerase II regions...\n",cat.sink)
-    chia.obj$Regions = associate.histone.marks(chia.obj$Regions, pol.regions)
+    chia.obj$Regions = associate.histone.marks(chia.obj$Regions, chia.param$pol.regions)
   }
 
   # Associate genes to regions
   cat(date(), " : Associating genes...\n",cat.sink)
-  chia.obj$Regions = associate.gene(chia.obj$Regions, expression.levels)
+  chia.obj$Regions = associate.gene(chia.obj$Regions, chia.param$expression.data)
 
   # Associate tissue specificity and fitness scores if the organism allows it.
-  if(genome.build=="hg19" || genome.build=="hg38") {
+  if(chia.param$genome.build=="hg19" || chia.param$genome.build=="hg38") {
     cat(date(), " : Associating tissue specificity...\n",cat.sink)
     chia.obj$Regions = associate.tissue.specificity.human(chia.obj$Regions)
     cat(date(), " : Associating fitness score...\n",cat.sink)
@@ -239,7 +244,9 @@ annotate.chia <- function(chia.obj, output.dir, input.chrom.state=NULL, tf.regio
 
   # Associate centrality scores
   cat(date(), " : Associating centrality scores...\n",cat.sink)
-  chia.obj = associate.centralities(chia.obj, which.measures=centrality.measures, weight.attr=weight.attr)
+  chia.obj = associate.centralities(chia.obj,
+                                    which.measures=chia.param$centrality.measures,
+                                    weight.attr=chia.param$weight.attr)
 
   # Associate miscellaneous useful defnitions
   chia.obj$Regions = associate.is.gene.active(chia.obj$Regions)

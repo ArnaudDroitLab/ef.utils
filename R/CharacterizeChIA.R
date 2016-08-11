@@ -25,31 +25,31 @@ chia.right <- function(chia.obj) {
 }
 
 has.chrom.state <- function(chia.obj) {
-    return(exists("Chrom.State", where=chia.obj$Regions))
+    return(!is.null(chia.obj$Regions$Chrom.State))
 }
 
 has.components <- function(chia.obj) {
-    return(exists("Component.Id", where=chia.obj$Regions) && exists("Component.size", where=chia.obj$Regions))
+    return(!is.null(chia.obj$Regions$Component.Id) && !is.null(chia.obj$Regions$Component.size))
 }
 
 has.gene.specificity <- function(chia.obj) {
-    return(exists("Gene.Representative", where=chia.obj$Regions) &&
-           exists("Expression.Tau", where=chia.obj$Regions) &&
-           exists("Expression.Category", where=chia.obj$Regions))
+    return(!is.null(chia.obj$Regions$Gene.Representative) &&
+           !is.null(chia.obj$Regions$Expression.Tau) &&
+           !is.null(chia.obj$Regions$Expression.Category))
 }
 
 
 has.degree <- function(chia.obj) {
-    return(exists("Degree", where=chia.obj$Regions))
+    return(!is.null(chia.obj$Regions$Degree))
 }
 
 has.expression.levels <- function(chia.obj) {
-    return(exists("Gene.Representative", where=chia.obj$Regions) &&
-           exists("Expr.mean", where=chia.obj$Regions))
+    return(!is.null(chia.obj$Regions$Gene.Representative) &&
+           !is.null(chia.obj$Regions$Expr.mean))
 }
 
 has.gene.annotation <- function(chia.obj) {
-    return(exists("Simple.annotation", where=chia.obj$Regions))
+    return(!is.null(chia.obj$Regions$Simple.annotation))
 }
 
 
@@ -245,11 +245,11 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
 
 
   # Export networks in csv files
-  dir.create(file.path(output.dir, "Size between 3 and 5 nodes (incl)"), recursive = TRUE)
-  dir.create(file.path(output.dir, "Size between 6 and 20 nodes (incl)"), recursive = TRUE)
-  dir.create(file.path(output.dir, "Size between 21 and 50 nodes (incl)"), recursive = TRUE)
-  dir.create(file.path(output.dir, "Size between 51 and 100 nodes (incl)"), recursive = TRUE)
-  dir.create(file.path(output.dir,"Size over 100 nodes"), recursive = TRUE)
+  dir.create(file.path(output.dir, "Size between 3 and 5 nodes (incl)"), recursive = TRUE, showWarnigns=FALSE)
+  dir.create(file.path(output.dir, "Size between 6 and 20 nodes (incl)"), recursive = TRUE, showWarnigns=FALSE)
+  dir.create(file.path(output.dir, "Size between 21 and 50 nodes (incl)"), recursive = TRUE, showWarnigns=FALSE)
+  dir.create(file.path(output.dir, "Size between 51 and 100 nodes (incl)"), recursive = TRUE, showWarnigns=FALSE)
+  dir.create(file.path(output.dir,"Size over 100 nodes"), recursive = TRUE, showWarnigns=FALSE)
 
   for (i in unique(ids$Component)){
     network <- ids[ids$Component == i,]
@@ -275,77 +275,6 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
   chia.data <- cbind(chia.data$ID, chia.data[,-which(colnames(chia.data) == "ID")])
   colnames(chia.data)[1] <- "ID"
   write.table(chia.data, file = file.path(output.dir, "Annotated CHIA-PET regions.txt"), row.names = FALSE, sep = "\t")
-}
-
-
-#' Analyze ChIA-PET data and produce graphs.
-#'
-#' @param input.chia The file containing processed ChIA-PET data.
-#' @param input.chrom.state The name of the file containing the information about chromatin states.
-#' @param biosample The biosample identifier from ENCODE. Valid examples are GM12878, K562 or MCF-7.
-#' @param genome.build The name of the chosen annotation ("hg38", "hg19").
-#' @param tf.regions A \linkS4class{GRangesList} object containing TF regions.
-#' @param histone.regions A \linkS4class{GRangesList} object containing histone regions.
-#' @param pol.regions A \linkS4class{GRangesList} object containing the pol2 regions.
-#' @param expression.levels A data frame containing the levels of expression of genes, according to their EMSEMBL id.
-#' @param output.dir The name of the directory where output should be saved.
-#' @param ... Additional parameters to be passed to \code{\link{annotate.chia}}
-#' @return The annotated chia.obj.
-#' @importFrom Biobase cache
-#' @export
-process.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = NULL, genome.build = NULL, tf.regions = NULL,
-                             histone.regions = NULL, pol.regions = NULL, expression.data = NULL, output.dir="output", verbose=TRUE,
-                             ...) {
-    # Create output directory.
-    dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
-
-    # Load interaction data.
-    chia.obj = load.chia(input.chia)
-
-    # If biosample is provided, download missing annotations from ENCODE.
-    if(!is.null(biosample) && !is.null(genome.build)) {
-        # Download transcription factors
-        if (is.null(tf.regions)) {
-            cache(tf.regions <- download.encode.chip(biosample, genome.build)$Regions, output.dir)
-        }
-
-        # Download histone marks
-        if (is.null(histone.regions)) {
-            cache(histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip,
-                                                  download.dir=file.path("input/ENCODE", biosample, "chip-seq", "histone"))$Regions,
-                output.dir)
-        }
-
-        # Download PolII regions.
-        if (is.null(pol.regions)) {
-            cache(pol.regions <- download.encode.chip(biosample, genome.build, download.filter = pol2.download.filter.chip,
-                                              download.dir = file.path("input/ENCODE", biosample, "chip-seq", "pol2"))$Regions,
-                output.dir)
-        }
-
-        # Download expression data
-        if (is.null(expression.data)) {
-            cache(expression.data <- download.encode.rna(biosample, genome.build)$Expression, output.dir)
-            expression.data$ENSEMBL = gsub("\\.\\d+$", "", expression.data$gene_id)
-            expression.data$FPKM = log2(expression.data$Mean.FPKM + 1)
-        }
-
-        # Download chromatin states
-        if (is.null(input.chrom.state) && genome.build=="hg19") {
-            input.chrom.state <- import.chrom.states(biosample, file.path("input/chrom_states", biosample))
-        }
-    }
-
-    # Annotate the ChIA object.
-    cache(chia.obj <- annotate.chia(chia.obj, input.chrom.state = input.chrom.state, tf.regions = tf.regions,
-                              histone.regions=histone.regions, pol.regions = pol.regions,
-                              expression.levels=expression.data, genome.build = genome.build, biosample=biosample,
-                              output.dir = output.dir, verbose=verbose, ...), output.dir)
-
-    analyze.chia.pet(chia.obj, output.dir)
-    
-
-	return(chia.obj)
 }
 
 identify.crossing.edges <- function(input.graph, method = igraph::cluster_fast_greedy, weight.attr=NULL){
@@ -400,4 +329,28 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
   # Update the degree attribute of regions if it is present.
   chia.obj$Regions$Degree = degree(chia.obj$Graph)
   return(chia.obj)
+}
+
+#' Analyze ChIA-PET data and produce graphs.
+#'
+#' @param input.chia The file containing processed ChIA-PET data.
+#' @param output.dir The name of the directory where output should be saved.
+#' @return The annotated chia.obj.
+#' @importFrom Biobase cache
+#' @export
+process.chia.pet <- function(input.chia, chia.param, output.dir="output", verbose=TRUE) {
+    # Create output directory.
+    dir.create(file.path(output.dir), recursive=TRUE, showWarnings=FALSE)
+
+    # Load interaction data.
+    chia.obj = load.chia(input.chia)
+
+    # Annotate the ChIA object.
+    chia.obj <- annotate.chia(chia.obj, chia.param, output.dir=output.dir, verbose=verbose)
+
+    # Analyze the ChIA network.
+    analyze.chia.pet(chia.obj, output.dir)
+    
+    # Return teh created object.
+	return(chia.obj)
 }
