@@ -8,7 +8,7 @@ annotate.chia(chia.obj, input.chrom.state, tf.regions, histone.regions,
   pol.regions, expression.levels, genome.build = c("hg19", "mm9", "mm10",
   "hg38"), biosample = "GM12878", tssRegion = c(-3000, 3000), output.dir,
   split = TRUE, oneByOne = FALSE, method = igraph::cluster_fast_greedy,
-  verbose = TRUE)
+  centrality.measures = c("Degree"), weight.attr = NULL, verbose = TRUE)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
