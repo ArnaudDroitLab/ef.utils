@@ -834,7 +834,7 @@ analyze.chia.pet <- function(input.chia, input.chrom.state = NULL, biosample = N
 
 #' Associates boolean to regions in focntion of their centrality
 #'
-#' @param chia.obj chia.obj ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
 #'
 #' @return The annotated chia.obj.
 #'
@@ -996,4 +996,66 @@ associate.gene <- function(regions, expression.data=NULL) {
   }
 
   return(regions)
+}
+
+#' Plot heatmaps in fonction of a ChIA-PET annotation
+#'
+#' Creates heatmaps of the proportion of a variable from the ChIA-PET annotation, given as parameter, in fonction of the networks.
+#' To use the transcription factors as variable, write "TF". This will create the same heatmaps, but with presence or absence of each factor instead of proportions.
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param size.limit The networks must have a size over size.limit.
+#' @param variable.name Name of the column to use, or "TF" for transcription factors.
+#' @param label The label to add to the heatmap title (name of the variable).
+#' @param output.dir The name of the directory where output should be saved.
+#'
+#' @importFrom plyr ddply
+#' @importFrom reshape2 dcast
+#' @importFrom NMF aheatmap
+#'
+#' @export
+plot.network.heatmap <- function(chia.obj, size.limit, variable.name, label, output.dir) {
+  dir.create(output.dir, recursive = TRUE)
+
+  presence.by.tf <- function(chia.df){
+    tf.col <- grep("TF.overlap", colnames(chia.df))
+    tf.presence <- apply(chia.df[,tf.col], 2, sum)
+    tf.presence <- ifelse(tf.presence > 0, 1, 0)
+    names(tf.presence) <- sub("TF.overlap.", "", colnames(chia.df)[tf.col])
+    return(tf.presence)
+  }
+
+  if (variable.name == "TF") {
+    per.component.cs = ddply(as.data.frame(chia.obj$Regions[chia.obj$Regions$Component.size>size.limit]), ~Component.Id,
+                             presence.by.tf)
+
+  } else {
+    per.component.cs = ddply(as.data.frame(chia.obj$Regions[chia.obj$Regions$Component.size>size.limit]), ~Component.Id,
+                             function(x) { as.data.frame(table(x[, variable.name])/nrow(x)) })
+    # Un-melt it.
+    per.component.cs = dcast(per.component.cs, Component.Id~Var1)
+  }
+
+  component.ids = per.component.cs$Component.Id
+
+  per.component.cs.matrix = per.component.cs[,-1]
+  component.sizes = chia.obj$Regions$Component.size[match(component.ids, chia.obj$Regions$Component.Id)]
+  pdf(file.path(output.dir, paste0("Heatmap of the ", label, " - networks with more than ", size.limit, " nodes.pdf")), width=7, height=7)
+  aheatmap(t(per.component.cs.matrix), annCol=list("log2(Network size)"=log2(component.sizes)), color="-Blues")
+  dev.off()
+
+
+  pdf(file.path(output.dir, paste0("Heatmap of the ", label, " - networks with more than ", size.limit, " nodes no clustering.pdf")), width=7, height=7)
+  aheatmap(t(per.component.cs.matrix[order(component.sizes),]), annCol=list("log2(Network size)"=log2(component.sizes)[order(component.sizes)]), Colv=NA, color="-Blues")
+  dev.off()
+
+  per.component.cs.matrix[per.component.cs.matrix > 0.4] = 0.3
+  pdf(file.path(output.dir, paste0("Heatmap of the ", label, " - networks with more than ", size.limit, " nodes limit 0.3.pdf")), width=7, height=7)
+  aheatmap(t(per.component.cs.matrix), annCol=list("log2(Network size)"=log2(component.sizes)), color="-Blues")
+  dev.off()
+
+
+  pdf(file.path(output.dir, paste0("Heatmap of the ", label, " - networks with more than ", size.limit, " nodes no clustering limit 0.3.pdf")), width=7, height=7)
+  aheatmap(t(per.component.cs.matrix[order(component.sizes),]), annCol=list("log2(Network size)"=log2(component.sizes)[order(component.sizes)]), Colv=NA, color="-Blues")
+  dev.off()
 }
