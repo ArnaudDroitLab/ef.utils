@@ -131,7 +131,9 @@ vertex.attr.to.regions <- function(graph.obj) {
 #' @importFrom igraph make_graph
 #' @importFrom igraph edge_attr
 #' @importFrom igraph set_edge_attr
+#' @importFrom igraph edge_attr<-
 #' @importFrom plyr ddply
+#' @importFrom plyr summarize
 #'
 #' @export
 load.chia <- function(input.chia) {
@@ -168,7 +170,7 @@ load.chia <- function(input.chia) {
                                                       R.chr=head(R.chr, n=1), R.start=min(R.start), R.end=max(R.end), Reads=sum(Reads))
     
     # Create iGraph object and set the original coordinates and the number of supporting reads as edge attributes.
-    chia.graph = make_graph(c(rbind(max.df$Left, max.df$Right)))
+    chia.graph = make_graph(c(rbind(max.df$Left, max.df$Right)), directed=FALSE)
     edge_attr(chia.graph) <- max.df
     
     return(list(Regions=single.set, Graph=chia.graph))
@@ -253,7 +255,7 @@ annotate.chia <- function(chia.obj, input.chrom.state, tf.regions, histone.regio
 
 
   cat(date(), " : Associating components...\n",cat.sink)
-  chia.obj = associate.components(chia.obj, split = split, oneByOne = oneByOne, method = method, weight.attr=weight.attr)
+  chia.obj = associate.components(chia.obj)
 
   cat(date(), " : Associating centrality scores...\n",cat.sink)
   chia.obj = associate.centralities(chia.obj, which.measures=centrality.measures, weight.attr=weight.attr)
@@ -1006,10 +1008,10 @@ associate.is.in.factory <- function(regions){
 
 }
 
-separate.into.communities <- function(input.graph, method = igraph::cluster_fast_greedy, weight.attr=NULL){
+identify.crossing.edges <- function(input.graph, method = igraph::cluster_fast_greedy, weight.attr=NULL){
   communities <- method(as.undirected(input.graph), weights = weight.attr)
   to.delete = crossing(communities, input.graph)
-  return(delete_edges(input.graph, E(input.graph)[to.delete]))
+  return(edge_attr(input.graph)$original.id[to.delete])
 }
 
 #' Associates components ids and sizes to chia data, as returned by \code{\link{load.chia}}.
@@ -1023,44 +1025,36 @@ separate.into.communities <- function(input.graph, method = igraph::cluster_fast
 #' @importFrom igraph as.undirected
 #' @importFrom igraph delete_edges
 #' @importFrom igraph E
+#' @importFrom igraph induced_subgraph
+#' @importFrom igraph set_edge_attr
+#' @export
 split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::cluster_fast_greedy, weight.attr=NULL) {
+  edge_attr(chia.obj$Graph)$original.id = 1:ecount(chia.obj$Graph)
   if (oneByOne){
-    # Split into components so that we might process them one by one.
-    components.out = components(chia.obj$Graph)
-    
-    # Make Regions a vertex attribute so that the information will
-    # follow along as we split the communities up.
-    work.obj = regions.to.vertex.attr(chia.obj)
-    igraph::set_vertex_attr(work.obj$Graph, "name", value=work.obj$Regions$ID)
-    final.graph = NULL
+    # Keep a record of edges marked for deletion, so that we can delete them all
+    # at once. This prevents issues with edges being relabeled.
+    marked.for.deletion = c()
     
     # Loop over components one by one.
+    components.out = components(chia.obj$Graph)
     for (i in 1:components.out$no){
       # Get the component subgraph.
-      component.subgraph = induced_subgraph(work.obj$Graph, components.out$membership==i)
+      component.subgraph = induced_subgraph(chia.obj$Graph, components.out$membership==i)
       
-      # Split it into communities.
-      component.split = separate.into.communities(component.subgraph, method = method, weight.attr=weight.attr)
-      
-      # Concatenate the resulting graph to the others.
-      if(is.null(final.graph)) {
-        final.graph = component.split
-      } else {
-        # Plain union duplicate attributes columns. Disjoint union does not, since
-        # it expects no node/edge will be present in both operands.
-        final.graph = igraph::disjoint_union(final.graph, component.split)
-      }
-    }
+      # Split it into communities and record teh deleted edges.
+      crossing.edges = identify.crossing.edges(component.subgraph, method = method, weight.attr=weight.attr)
+      marked.for.deletion = c(marked.for.deletion, crossing.edges)
+    }  
     
-    # Rebuild a chia object by regenerating the regions object from the vertex attributes.
-    chia.obj = list(Graph=final.graph, Regions=vertex.attr.to.regions(final.graph))
-    
-    # Drop the vertex attributes to speed up future processing.
-    vertex_attr(chia.obj$Graph) <- list()
+    # Delete removed edges in the original chia object.
+    chia.obj$Graph = delete_edges(chia.obj$Graph, marked.for.deletion)
   } else {
-    chia.obj$Graph = separate.into.communities(chia.obj$Graph, method = method, weight.attr=weight.attr)
+    # Split it into communities and delete the necessary edges.
+    crossing.edges = identify.crossing.edges(chia.obj$Graph, method = method, weight.attr=weight.attr)
+    chia.obj$Graph = delete_edges(chia.obj$Graph, crossing.edges)
   }
 
+  edge_attr(chia.obj$Graph)$original.id = NULL
   return(chia.obj)
 }
 
