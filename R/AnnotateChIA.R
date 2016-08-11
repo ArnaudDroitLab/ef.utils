@@ -11,7 +11,7 @@
 associate.centralities <- function(chia.obj, which.measures=c("Degree", "Betweenness", "Eigenvector"), weight.attr=NULL) {
   centralities = calculate.centralities(chia.obj, which.measures, weight.attr)
   mcols(chia.obj$Regions) <- cbind(mcols(chia.obj$Regions), centralities)
-  
+
   return(chia.obj)
 }
 
@@ -32,42 +32,42 @@ calculate.centralities <- function(chia.obj, which.measures=c("Degree", "Between
   # If weights should be used, set them as the weight edge attribute.
   if(!is.null(weight.attr)) {
     stopifnot(weight.attr %in% names(edge_attr(chia.obj$Graph)))
-    set_edge_attr(chia.obj$Graph, "weight", edge_attr(chia.obj$Graph[[weight.attr]]))
+    set_edge_attr(chia.obj$Graph, "weight", value = edge_attr(chia.obj$Graph)[[weight.attr]])
   }
-  
+
   # Define a matrix and a vector to contain network-wide scores and centrality markers.
   results.matrix = matrix(0, nrow=number.of.nodes(chia.obj), ncol=length(which.measures)+1, dimnames=list(NULL, c(which.measures, "Centrality.score")))
   centrality.marker = rep(FALSE, number.of.nodes(chia.obj))
-  
+
   # Loop over components to measure centrality. Most of these methods can be applied to
   # discontinuous components, but will give different results which might fail
   # to identify a component specific  central node.
-  components.out = components(chia.obj$Graph)  
+  components.out = components(chia.obj$Graph)
   for(i in 1:components.out$no) {
     # Generate a subgraph for the component.
     which.nodes = components.out$membership==i
     component.subgraph = induced_subgraph(chia.obj$Graph, which.nodes)
-    
+
     # Get the requested centrality measures.
     measures = list()
     if("Degree" %in% which.measures) {
         measures[["Degree"]] = degree(component.subgraph)
     }
 
-    if("Betweenness" %in% which.measures) {    
+    if("Betweenness" %in% which.measures) {
       measures[["Betweenness"]] = betweenness(component.subgraph, directed = FALSE)
     }
-    
-    if("Eigenvector" %in% which.measures) {    
+
+    if("Eigenvector" %in% which.measures) {
       measures[["Eigenvector"]] = eigen_centrality(component.subgraph, directed = FALSE)$vector
     }
-    
+
     # Make sure we had at least one valid measure.
     stopifnot(length(measures) > 0)
-    
+
     # Get combined score and determine if nodes should be marked as central.
     measures[["Centrality.score"]] =  apply(as.data.frame(lapply(measures, scale)), 1, mean)
-    
+
     # Some networks will have constant centrality on all nodes (Two node networks, ring networks, etc.)
     # This will cause standard deviation to be 0 and centrality to be NAN.
     # Deal with these edge cases by assigning a 0 centrality to them.
@@ -77,14 +77,14 @@ calculate.centralities <- function(chia.obj, which.measures=c("Degree", "Between
     } else {
         is.central = FALSE
     }
-    
+
     # Report components' results to the combined matrix/vector of all nodes.
     for(measure in names(measures)) {
         results.matrix[which.nodes, measure] = measures[[measure]]
     }
     centrality.marker[which.nodes] = is.central
   }
-  
+
   # Return a data frame combining the scores and the centrality marker.
   return(data.frame(results.matrix, Is.central=centrality.marker))
 }
@@ -116,9 +116,9 @@ associate.is.in.factory <- function(regions){
 #' @importFrom igraph E
 associate.components <- function(chia.obj){
   # Add data about components
-  components.out <- components(chia.obj$Graph)  
+  components.out <- components(chia.obj$Graph)
   chia.obj$Regions$Component.Id <- components.out$membership
-  chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]  
+  chia.obj$Regions$Component.size <- components.out$csize[components.out$membership]
 
   # Add a column with the number of edges in each community
   left.df = as.data.frame(chia.left(chia.obj))
@@ -182,6 +182,7 @@ associate.gene <- function(regions, expression.data=NULL) {
 #' @importFrom igraph degree
 #'
 #' @export
+
 annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
   # Create the output directory.
   dir.create(output.dir, recursive = TRUE, showWarnings=FALSE)
