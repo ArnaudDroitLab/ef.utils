@@ -28,6 +28,7 @@ associate.centralities <- function(chia.obj, which.measures=c("Degree", "Between
 #' @importFrom igraph betweenness
 #' @importFrom igraph eigen_centrality
 #' @return A data-frame containing the centrality scores and markers for all vertices in the graph.
+#' @export
 calculate.centralities <- function(chia.obj, which.measures=c("Degree", "Betweenness", "Eigenvector"), weight.attr=NULL) {
   # If weights should be used, set them as the weight edge attribute.
   if(!is.null(weight.attr)) {
@@ -95,6 +96,7 @@ calculate.centralities <- function(chia.obj, which.measures=c("Degree", "Between
 #'
 #' @param regions A \linkS4class{GRanges} object to annotate.
 #' @return The annotated regions.
+#' @export
 associate.is.in.factory <- function(regions){
   factories <- as.data.frame(regions)
   factories <- aggregate(Is.Gene.Active~Component.Id, data = factories[factories$Gene.Representative,], FUN = sum)
@@ -114,6 +116,7 @@ associate.is.in.factory <- function(regions){
 #' @importFrom igraph as.undirected
 #' @importFrom igraph delete_edges
 #' @importFrom igraph E
+#' @export
 associate.components <- function(chia.obj){
   # Add data about components
   components.out <- components(chia.obj$Graph)
@@ -136,6 +139,7 @@ associate.components <- function(chia.obj){
 #'
 #' @return The \linkS4class{GRanges} object with associated genes.
 #' @importFrom plyr ddply mutate
+#' @export
 associate.gene <- function(regions, expression.data=NULL) {
   # Associate a gene to a contact only if it's in the promoter.
   promoter.subset = regions$Simple.annotation == "Promoter"
@@ -182,7 +186,6 @@ associate.gene <- function(regions, expression.data=NULL) {
 #' @importFrom igraph degree
 #'
 #' @export
-
 annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
   # Create the output directory.
   dir.create(output.dir, recursive = TRUE, showWarnings=FALSE)

@@ -100,7 +100,7 @@ number.of.components <- function(chia.obj) {
 #' @return The mean component size of the chia object.
 #' @importFrom igraph components
 #' @export
-mean.component.size <- function(chia.obj) {
+average.component.size <- function(chia.obj) {
     return(mean(components(chia.obj$Graph)$csize))
 }
 
@@ -121,7 +121,7 @@ number.of.genes <- function(chia.obj) {
 #' @return The number of active genes represented in the chia object.
 #' @export
 number.active.genes <- function(chia.obj) {
-    return(chia.obj$Regions$Gene.Representative & chia.obj$Regions$Is.Gene.Active)
+    return(sum(chia.obj$Regions$Gene.Representative & chia.obj$Regions$Is.Gene.Active))
 }
 
 #' Return the number genes per component in the CHIA object.
@@ -140,6 +140,7 @@ genes.by.component <- function(chia.obj) {
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
 #'
 #' @return The number of active genes represented in the chia object.
+#' @export
 proportion.genes <- function(chia.obj) {
     return(number.of.genes(chia.obj) / number.of.nodes(chia.obj))
 }
@@ -149,6 +150,7 @@ proportion.genes <- function(chia.obj) {
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
 #'
 #' @return The proportion of active genes among all genes in the chia object.
+#' @export
 proportion.active.genes <- function(chia.obj) {
     return(number.active.genes(chia.obj) / number.of.genes(chia.obj))
 }
@@ -361,6 +363,11 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
   
   # Update the degree attribute of regions if it is present.
   chia.obj$Regions$Degree = degree(chia.obj$Graph)
+  
+  # Also update components, if present.
+  if(has.components(chia.obj)) {
+    chia.obj = associate.components(chia.obj)
+  }
   return(chia.obj)
 }
 
