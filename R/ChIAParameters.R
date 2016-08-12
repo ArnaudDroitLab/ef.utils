@@ -50,14 +50,12 @@ add.encode.data <- function(chia.params) {
 
         # Download histone marks
         if (is.null(chia.params$histone.regions)) {
-            chia.params$histone.regions <- download.encode.chip(biosample, genome.build, download.filter=histone.download.filter.chip,
-                                                  download.dir=file.path("input/ENCODE", biosample, "chip-seq", "histone"))$Regions
+            chia.params$histone.regions <- download.encode.histones(biosample, genome.build)$Regions
         }
 
         # Download PolII regions.
         if (is.null(chia.params$pol.regions)) {
-            chia.params$pol.regions <- download.encode.chip(biosample, genome.build, download.filter = pol2.download.filter.chip,
-                                              download.dir = file.path("input/ENCODE", biosample, "chip-seq", "pol2"))$Regions
+            chia.params$pol.regions <- download.encode.polymerases(biosample, genome.build)$Regions
         }
 
         # Download expression data

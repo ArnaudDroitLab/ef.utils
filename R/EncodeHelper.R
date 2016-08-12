@@ -211,7 +211,7 @@ isoform.download.filter.rna <- function(query.results, genome.assembly) {
 #' @importMethodsFrom GenomicRanges findOverlaps
 #' @export
 download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter.chip,
-                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq"), keep.signal = FALSE) {
+                                   download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq"), keep.signal = FALSE) {
     # Query ENCODE to obtain appropriate files.
     query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", status="released")
 
@@ -298,7 +298,7 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
 #' @importFrom ENCODExplorer queryEncode
 #' @importFrom ENCODExplorer downloadEncode
 #' @export
-download.encode.rna <- function(biosample, assembly, download.filter=default.download.filter.rna, download.dir=file.path("input/ENCODE", biosample, "rna-seq")) {
+download.encode.rna <- function(biosample, assembly, download.filter=default.download.filter.rna, download.dir=file.path("input/ENCODE", biosample, assembly, "rna-seq")) {
     # Query ENCODE to obtain appropriate files.
     query.results = ENCODExplorer::queryEncode(assay="RNA-seq", biosample=biosample, file_format="tsv", status="released")
 
@@ -326,4 +326,70 @@ download.encode.rna <- function(biosample, assembly, download.filter=default.dow
     return(list(Metadata=query.results$experiment,
                 Downloaded=downloaded.files,
                 Expression=rna.data))
+}
+
+#' Helper function for obtaining transcription factor data through download.encode.chip.
+#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @param download.dir The folder where the downloaded files should be stored.
+#'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
+#' @param ... Other parameters to be passed to download.encode.chip.
+#' @return A list containing three elements: \describe{
+#' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
+#'     about all files which matched the query.}
+#' \item{Downloaded}{The list of files which were downloaded.}
+#' \item{Regions}{The processed peak regions.}}
+#' @export
+download.encode.tf <- function(biosample, assembly, 
+                               download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf"),
+                               ...) {
+    return(download.encode.chip(biosample, assembly,
+                                download.filter=default.download.filter.chip, 
+                                download.dir=download.dir, ...))
+}
+
+#' Helper function for obtaining histone data through download.encode.chip.
+#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @param download.dir The folder where the downloaded files should be stored.
+#'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
+#' @param ... Other parameters to be passed to download.encode.chip.
+#' @return A list containing three elements: \describe{
+#' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
+#'     about all files which matched the query.}
+#' \item{Downloaded}{The list of files which were downloaded.}
+#' \item{Regions}{The processed peak regions.}}
+#' @export
+download.encode.histones <- function(biosample, assembly,
+                                     download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq", "histones"),
+                                     ...) {
+    return(download.encode.chip(biosample, assembly, 
+                                download.filter=histone.download.filter.chip, 
+                                download.dir=download.dir, ...))
+}
+
+#' Helper function for obtaining polymerase data through download.encode.chip.
+#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @param download.dir The folder where the downloaded files should be stored.
+#'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
+#' @param ... Other parameters to be passed to download.encode.chip.
+#' @return A list containing three elements: \describe{
+#' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
+#'     about all files which matched the query.}
+#' \item{Downloaded}{The list of files which were downloaded.}
+#' \item{Regions}{The processed peak regions.}}
+#' @export
+download.encode.polymerases <- function(biosample, assembly,
+                                        download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq", "polymerases"),
+                                        ...) {
+    return(download.encode.chip(biosample, assembly,
+                                download.filter=pol2.download.filter.chip, 
+                                download.dir=download.dir, ...))
 }
