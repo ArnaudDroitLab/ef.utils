@@ -6,7 +6,7 @@
 \usage{
 download.encode.rna(biosample, assembly,
   download.filter = default.download.filter.rna,
-  download.dir = file.path("input/ENCODE", biosample, "rna-seq"))
+  download.dir = file.path("input/ENCODE", biosample, assembly, "rna-seq"))
 }
 \arguments{
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are

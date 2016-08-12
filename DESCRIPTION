@@ -13,7 +13,8 @@ Imports:
     ChIPseeker,
     plyr,
     ENCODExplorer,
-    ggplot2
+    ggplot2,
+    csaw
 Suggests:
     BSgenome.Hsapiens.UCSC.hg38,
     TxDb.Hsapiens.UCSC.hg38.knownGene,
@@ -33,4 +34,4 @@ biocViews: Software
 License: GPL
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 5.0.1.9000
+RoxygenNote: 5.0.1

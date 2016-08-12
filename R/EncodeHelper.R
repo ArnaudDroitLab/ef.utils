@@ -213,6 +213,8 @@ isoform.download.filter.rna <- function(query.results, genome.assembly) {
 download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter.chip,
                                    download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq"), keep.signal = FALSE) {
     # Query ENCODE to obtain appropriate files.
+    # queryEncode has a bug and will fail if encode_df is not loaded.
+    data("encode_df", package="ENCODExplorer")
     query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", status="released")
 
     # Filter the ENCODE files using the supplied functions.  Only download relevant files.
@@ -222,8 +224,8 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
     # Separate narrow and broad peaks
     narrow.dir = file.path(download.dir, "narrow")
     broad.dir = file.path(download.dir, "broad")
-    dir.create(narrow.dir, recursive = TRUE)
-    dir.create(broad.dir, recursive = TRUE)
+    dir.create(narrow.dir, recursive = TRUE, showWarnings=FALSE)
+    dir.create(broad.dir, recursive = TRUE, showWarnings=FALSE)
     query.results.narrow = query.results
     query.results.narrow$experiment = query.results$experiment[query.results$experiment$file_format_type == "narrowPeak",]
     query.results.broad = query.results
@@ -300,6 +302,8 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
 #' @export
 download.encode.rna <- function(biosample, assembly, download.filter=default.download.filter.rna, download.dir=file.path("input/ENCODE", biosample, assembly, "rna-seq")) {
     # Query ENCODE to obtain appropriate files.
+    # queryEncode has a bug and will fail if encode_df is not loaded.
+    data("encode_df", package="ENCODExplorer")
     query.results = ENCODExplorer::queryEncode(assay="RNA-seq", biosample=biosample, file_format="tsv", status="released")
 
     # Filter the ENCODE files using the supplied functions.  Only download relevant files.

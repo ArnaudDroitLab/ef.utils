@@ -11,7 +11,6 @@ annotate.chia(chia.obj, chia.param, output.dir = ".", verbose = TRUE)
 
 \item{output.dir}{The name of the directory where to write the selected annotations.}
 
-
 \item{verbose}{If TRUE, console output is suppressed.}
 
 \item{input.chrom.state}{The name of the file containing the information about chromatin states.}
@@ -31,8 +30,6 @@ annotate.chia(chia.obj, chia.param, output.dir = ".", verbose = TRUE)
 \item{centrality.measures}{The metrics to be sued for assessing node centrality. See \code{\link{associate.centralities}}.}
 
 \item{weight.attr}{The name of the edge attribute to be used as weight, if any.}
-
-\item{verbose}{If TRUE, console output is suppressed.}
 }
 \value{
 The annotated "\code{chia.obj}".
