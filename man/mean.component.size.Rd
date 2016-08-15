@@ -4,7 +4,7 @@
 \alias{mean.component.size}
 \title{Return the mean component size of a CHIA object.}
 \usage{
-\method{mean}{component.size}(chia.obj)
+mean.component.size(chia.obj)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
