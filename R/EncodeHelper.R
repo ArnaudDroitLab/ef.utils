@@ -211,8 +211,10 @@ isoform.download.filter.rna <- function(query.results, genome.assembly) {
 #' @importMethodsFrom GenomicRanges findOverlaps
 #' @export
 download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter.chip,
-                                   download.dir=file.path("input/ENCODE", biosample, "chip-seq"), keep.signal = FALSE) {
+                                   download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq"), keep.signal = FALSE) {
     # Query ENCODE to obtain appropriate files.
+    # queryEncode has a bug and will fail if encode_df is not loaded.
+    data("encode_df", package="ENCODExplorer")
     query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", status="released")
 
     # Filter the ENCODE files using the supplied functions.  Only download relevant files.
@@ -222,8 +224,8 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
     # Separate narrow and broad peaks
     narrow.dir = file.path(download.dir, "narrow")
     broad.dir = file.path(download.dir, "broad")
-    dir.create(narrow.dir, recursive = TRUE)
-    dir.create(broad.dir, recursive = TRUE)
+    dir.create(narrow.dir, recursive = TRUE, showWarnings=FALSE)
+    dir.create(broad.dir, recursive = TRUE, showWarnings=FALSE)
     query.results.narrow = query.results
     query.results.narrow$experiment = query.results$experiment[query.results$experiment$file_format_type == "narrowPeak",]
     query.results.broad = query.results
@@ -298,8 +300,10 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
 #' @importFrom ENCODExplorer queryEncode
 #' @importFrom ENCODExplorer downloadEncode
 #' @export
-download.encode.rna <- function(biosample, assembly, download.filter=default.download.filter.rna, download.dir=file.path("input/ENCODE", biosample, "rna-seq")) {
+download.encode.rna <- function(biosample, assembly, download.filter=default.download.filter.rna, download.dir=file.path("input/ENCODE", biosample, assembly, "rna-seq")) {
     # Query ENCODE to obtain appropriate files.
+    # queryEncode has a bug and will fail if encode_df is not loaded.
+    data("encode_df", package="ENCODExplorer")
     query.results = ENCODExplorer::queryEncode(assay="RNA-seq", biosample=biosample, file_format="tsv", status="released")
 
     # Filter the ENCODE files using the supplied functions.  Only download relevant files.
@@ -326,4 +330,70 @@ download.encode.rna <- function(biosample, assembly, download.filter=default.dow
     return(list(Metadata=query.results$experiment,
                 Downloaded=downloaded.files,
                 Expression=rna.data))
+}
+
+#' Helper function for obtaining transcription factor data through download.encode.chip.
+#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @param download.dir The folder where the downloaded files should be stored.
+#'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
+#' @param ... Other parameters to be passed to download.encode.chip.
+#' @return A list containing three elements: \describe{
+#' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
+#'     about all files which matched the query.}
+#' \item{Downloaded}{The list of files which were downloaded.}
+#' \item{Regions}{The processed peak regions.}}
+#' @export
+download.encode.tf <- function(biosample, assembly, 
+                               download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf"),
+                               ...) {
+    return(download.encode.chip(biosample, assembly,
+                                download.filter=default.download.filter.chip, 
+                                download.dir=download.dir, ...))
+}
+
+#' Helper function for obtaining histone data through download.encode.chip.
+#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @param download.dir The folder where the downloaded files should be stored.
+#'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
+#' @param ... Other parameters to be passed to download.encode.chip.
+#' @return A list containing three elements: \describe{
+#' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
+#'     about all files which matched the query.}
+#' \item{Downloaded}{The list of files which were downloaded.}
+#' \item{Regions}{The processed peak regions.}}
+#' @export
+download.encode.histones <- function(biosample, assembly,
+                                     download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq", "histones"),
+                                     ...) {
+    return(download.encode.chip(biosample, assembly, 
+                                download.filter=histone.download.filter.chip, 
+                                download.dir=download.dir, ...))
+}
+
+#' Helper function for obtaining polymerase data through download.encode.chip.
+#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @param download.dir The folder where the downloaded files should be stored.
+#'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
+#' @param ... Other parameters to be passed to download.encode.chip.
+#' @return A list containing three elements: \describe{
+#' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
+#'     about all files which matched the query.}
+#' \item{Downloaded}{The list of files which were downloaded.}
+#' \item{Regions}{The processed peak regions.}}
+#' @export
+download.encode.polymerases <- function(biosample, assembly,
+                                        download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq", "polymerases"),
+                                        ...) {
+    return(download.encode.chip(biosample, assembly,
+                                download.filter=pol2.download.filter.chip, 
+                                download.dir=download.dir, ...))
 }

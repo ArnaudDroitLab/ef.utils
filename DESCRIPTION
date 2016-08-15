@@ -13,7 +13,8 @@ Imports:
     ChIPseeker,
     plyr,
     ENCODExplorer,
-    ggplot2
+    ggplot2,
+    csaw
 Suggests:
     BSgenome.Hsapiens.UCSC.hg38,
     TxDb.Hsapiens.UCSC.hg38.knownGene,

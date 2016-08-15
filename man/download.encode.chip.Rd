@@ -6,7 +6,7 @@
 \usage{
 download.encode.chip(biosample, assembly,
   download.filter = default.download.filter.chip,
-  download.dir = file.path("input/ENCODE", biosample, "chip-seq"),
+  download.dir = file.path("input/ENCODE", biosample, assembly, "chip-seq"),
   keep.signal = FALSE)
 }
 \arguments{
