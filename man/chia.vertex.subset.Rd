@@ -7,7 +7,7 @@
 chia.vertex.subset(chia.obj, indices)
 }
 \arguments{
-\item{chia.obj}{The chia object to eb subset.}
+\item{chia.obj}{The chia object to be subset.}
 
 \item{indices}{The indices of the vertices to be kept.}
 }

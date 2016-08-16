@@ -24,38 +24,78 @@ chia.right <- function(chia.obj) {
     return(chia.obj$Regions[as_edgelist(chia.obj$Graph)[,2]])
 }
 
+#' Determines if the given chia.obj has associated chromatin states.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has associated chromatin states.
+#' @export
 has.chrom.state <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Chrom.State))
 }
 
+#' Determines if the given chia.obj has associated components.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has associated components.
+#' @export
 has.components <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Component.Id) && !is.null(chia.obj$Regions$Component.size))
 }
 
+#' Determines if the given chia.obj has associated gene specificities.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has associated gene specificities.
+#' @export
 has.gene.specificity <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Gene.Representative) &&
            !is.null(chia.obj$Regions$Expression.Tau) &&
            !is.null(chia.obj$Regions$Expression.Category))
 }
 
-
+#' Determines if the given chia.obj has associated node degrees.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has associated node degrees.
+#' @export
 has.degree <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Degree))
 }
 
+#' Determines if the given chia.obj has associated gene representatives.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has associated gene representatives.
+#' @export
 has.gene.representative <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Gene.Representative))
 }
 
+#' Determines if the given chia.obj has associated expression levels.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has associated expression levels.
+#' @export
 has.expression.levels <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Gene.Representative) &&
            !is.null(chia.obj$Regions$Expr.mean))
 }
 
+#' Determines if the given chia.obj has associated gene annotations.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has associated gene annotations.
+#' @export
 has.gene.annotation <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Simple.annotation))
 }
-
 
 #' Return the number of nodes in a CHIA object.
 #'
@@ -155,6 +195,66 @@ proportion.active.genes <- function(chia.obj) {
     return(number.active.genes(chia.obj) / number.of.genes(chia.obj))
 }
 
+#' Returns a list of all statistics for a given ChIA object.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return A named list of calculated properties for the given ChIA object.
+#' @export
+all.statistics <- function(chia.obj) {
+    results = lapply(list("Number of nodes"            = number.of.nodes,
+                          "Number of contacts"         = number.of.contacts,
+                          "Number of components"       = number.of.components,
+                          "Average component size"     = average.component.size,
+                          "Number of genes"            = number.of.genes,
+                          "Number of active genes"     = number.active.genes,
+                          "Proportion of genes"        = proportion.genes,
+                          "Proportion of active genes" = proportion.active.genes),
+                    function(f) f(chia.obj))
+
+    return(results)
+}
+
+#' Given two sets of nodes, determine if one shows enrichment.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#' @param hit.functor A functor selecting the "white" elements.
+#' @param draw.functor A functor selecting the "drawn" elements.
+#'
+#' @return A vector with enrichment properties.
+#' @export
+node.enrichment <- function(chia.obj, hit.functor, draw.functor) {
+    # How many total nodes?
+    total = number.of.nodes(chia.obj)
+    
+    # How many are drawn?
+    selected.subset = draw.functor(chia.obj)
+    selected.number = number.of.nodes(selected.subset)
+    
+    # How many have the desired property in the complete set?
+    hit.all = number.of.nodes(hit.functor(chia.obj))
+    
+    # How many have the desired property in the selected set?
+    hit.selected = number.of.nodes(hit.functor(selected.subset))
+    
+    # How many hits would we expect by chance?
+    hit.expected = (hit.all/total) * selected.number
+    
+    # What is the enrichment?
+    hit.enrichment = hit.selected / hit.expected
+    
+    # Calculate enrichment
+    enrich = 1 - phyper(hit.selected, hit.all, total - hit.all, selected.number)
+    
+    return(c(Total        = total, 
+             Selected     = selected.number, 
+             Hit          = hit.all, 
+             Hit.selected = hit.selected, 
+             Expected     = hit.expected, 
+             Fold.change  = log2(hit.enrichment),
+             p.value      = enrich))
+}
+
 regions.to.vertex.attr <- function(chia.obj) {
   vertex_attr(chia.obj$Graph) <- as.data.frame(chia.obj$Regions, stringsAsFactors = FALSE)
   return(chia.obj)
@@ -225,7 +325,10 @@ load.chia <- function(input.chia) {
     chia.graph = make_graph(c(rbind(max.df$Left, max.df$Right)), directed=FALSE)
     edge_attr(chia.graph) <- max.df
     
-    return(list(Regions=single.set, Graph=chia.graph))
+    chia.obj = list(Regions=single.set, Graph=chia.graph)
+    class(chia.obj) = "ChIA"
+    
+    return(chia.obj)
 }
 
 #' Save annotated ChIA-PET data.
@@ -373,7 +476,7 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
 
 #' Subset a CHIA object.
 #'
-#' @param chia.obj The chia object to eb subset.
+#' @param chia.obj The chia object to be subset.
 #' @param indices The indices of the vertices to be kept.
 #'
 #' @return A chia object containing only the selected vertices.
@@ -382,6 +485,21 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
 chia.vertex.subset <- function(chia.obj, indices) {
     return(list(Regions = chia.obj$Regions[indices],
                 Graph = induced_subgraph(chia.obj$Graph, which(indices))))
+}
+
+#' Subset a chia object by keeping all components where at least one node is selected.
+#'
+#' @param chia.obj The chia object to be subset.
+#' @param indices The indices of the vertices to be kept.
+#'
+#' @return A chia object containing only the selected vertices.
+#' @importFrom igraph induced_subgraph
+#' @export
+chia.component.subset <- function(chia.obj, indices) {
+    stopifnot(has.components(chia.obj))
+    
+    all.selected.components = chia.obj$Component.Id[indices]
+    return(chia.vertex.subset(chia.obj, chia.obj$Component.Id %in% all.selected.components))
 }
 
 #' Analyze ChIA-PET data and produce graphs.
