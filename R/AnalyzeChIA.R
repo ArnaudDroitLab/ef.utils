@@ -467,6 +467,15 @@ analyze.chromatin.states <- function(chia.obj, output.dir="output") {
                      file.out = file.path(output.dir, "Proportion of chromatin state as a function of connectivity category.pdf"),
                      variable.name = "Chrom.State")
         contact.heatmap(chia.obj, "Chrom.State", "chromatin states", output.dir=output.dir)
+        
+        if(has.components(chia.obj)) {
+            size.categories <- categorize.by.components.size(chia.obj)
+            plot.metrics(chia.obj, level.counts, size.categories, 
+              x.lab = "Size category", y.lab = "Proportion",
+              graph.type = "line", facet.rows = 3,
+              file.out = file.path(output.dir, "Proportion of chromatin state as a function of size category.pdf"),
+              variable.name = "Chrom.State", proportion = TRUE)
+        }
     }
 }
 
@@ -488,6 +497,14 @@ analyze.annotation <- function(chia.obj, output.dir="output") {
                    file.out = file.path(output.dir, "Proportion of genomic location as a function of connectivity category.pdf"),
                    variable.name = "Simple.annotation")
         contact.heatmap(chia.obj, "Simple.annotation", "genomic location", output.dir)
+        
+        if(has.components(chia.obj)) {
+            size.categories <- categorize.by.components.size(chia.obj)
+            plot.metrics(chia.obj, level.counts, size.categories,
+                 x.lab = "Size category", y.lab = "Proportion", graph.type = "line", facet.rows = 3,
+                 file.out = file.path(output.dir, "Proportion of genomic location as a function of size category.pdf"),
+                 variable.name = "Simple.annotation", proportion = TRUE)
+        }
     }
 }
 
@@ -741,6 +758,29 @@ plot.network.heatmap <- function(chia.obj, size.limit, variable.name, label, out
   dev.off()
 }
 
+#' Performs all possible analysis regarding the central nodes.
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param output.dir The directory where output should be saved.
+#'
+#' @export
+analyze.central.nodes <- function(chia.obj, output.dir=".") {
+  centrality.categories <- NULL
+  if(has.centrality(chia.obj) {
+    centrality.categories <- categorize.by.centrality(chia.obj)
+  }
+  
+  if(has.chrom.state(chia.obj))
+    plot.metrics(chia.obj, level.counts, centrality.categories, graph.type = "heatmap",
+                 file.out = file.path(output.dir, "Heatmap of centrality vs chromatin states.pdf"), variable.name = "Chrom.State")
+  }
+  
+  if(has.gene.annotation(chia.obj))
+    plot.metrics(chia.obj, level.counts, centrality.categories.after.division, graph.type = "heatmap",
+             file.out = file.path(output.dir, "Heatmap of centrality vs genomic locations.pdf"), variable.name = "Simple.annotation")
+  }
+}
+
 #' Performs all possible analysis steps on a ChIA-PET object.
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
@@ -775,6 +815,8 @@ analyze.chia.pet <- function(chia.obj, output.dir=".", verbose=TRUE) {
     cat(date(), " : Analyzing gene specificity...\n",cat.sink)
     analyze.gene.specificity(chia.obj, output.dir)
 
+    cat(date(), " : Analyzing central nodes...\n",cat.sink)
+    analyze.central.nodes(chia.obj, output.dir)
     # Close dummy verbose stream.
     if(!verbose) {
         close(cat.sink)

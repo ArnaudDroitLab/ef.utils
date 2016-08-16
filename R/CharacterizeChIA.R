@@ -97,6 +97,16 @@ has.gene.annotation <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Simple.annotation))
 }
 
+#' Determines if the given chia.obj has associated node centralities.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has associated node centralities.
+#' @export
+has.centrality <- function(chia.obj) {
+    return(!is.null(chia.obj$Regions$Is.central))
+}
+
 #' Return the number of nodes in a CHIA object.
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
