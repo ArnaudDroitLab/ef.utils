@@ -67,7 +67,7 @@ has.gene.annotation <- function(chia.obj) {
 number.of.nodes <- function(chia.obj) {
     node.count = vcount(chia.obj$Graph)
     stopifnot(nrow(chia.obj$Regions) == node.count)
-    
+
     return(vcount(chia.obj$Graph))
 }
 
@@ -121,7 +121,7 @@ number.of.genes <- function(chia.obj) {
 #' @return The number of active genes represented in the chia object.
 #' @export
 number.active.genes <- function(chia.obj) {
-    return(chia.obj$Regions$Gene.Representative & chia.obj$Regions$Is.Gene.Active)
+    return(sum(chia.obj$Regions$Gene.Representative & chia.obj$Regions$Is.Gene.Active))
 }
 
 #' Return the number genes per component in the CHIA object.
@@ -187,7 +187,7 @@ vertex.attr.to.regions <- function(graph.obj) {
 #'
 #' @export
 load.chia <- function(input.chia) {
-    chia.raw = read.table(input.chia, sep="\t", 
+    chia.raw = read.table(input.chia, sep="\t",
                           col.names=c("L.chr", "L.start", "L.end", "R.chr", "R.start", "R.end", "Reads"))
 
     # Separate and extend on both sides
@@ -214,15 +214,15 @@ load.chia <- function(input.chia) {
     # Find and remove self loops.
     mapped.df = cbind(chia.raw, Left=chia.left.indices, Right=chia.right.indices)
     mapped.df = mapped.df[mapped.df$Left != mapped.df$Right,]
-    
+
     # Summarize multiple edges.
     max.df = ddply(mapped.df, ~Left*Right, summarize, L.chr=head(L.chr, n=1), L.start=min(L.start), L.end=max(L.end),
                                                       R.chr=head(R.chr, n=1), R.start=min(R.start), R.end=max(R.end), Reads=sum(Reads))
-    
+
     # Create iGraph object and set the original coordinates and the number of supporting reads as edge attributes.
     chia.graph = make_graph(c(rbind(max.df$Left, max.df$Right)), directed=FALSE)
     edge_attr(chia.graph) <- max.df
-    
+
     return(list(Regions=single.set, Graph=chia.graph))
 }
 
@@ -336,18 +336,18 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
     # Keep a record of edges marked for deletion, so that we can delete them all
     # at once. This prevents issues with edges being relabeled.
     marked.for.deletion = c()
-    
+
     # Loop over components one by one.
     components.out = components(chia.obj$Graph)
     for (i in 1:components.out$no){
       # Get the component subgraph.
       component.subgraph = induced_subgraph(chia.obj$Graph, components.out$membership==i)
-      
+
       # Split it into communities and record teh deleted edges.
       crossing.edges = identify.crossing.edges(component.subgraph, method = method, weight.attr=weight.attr)
       marked.for.deletion = c(marked.for.deletion, crossing.edges)
-    }  
-    
+    }
+
     # Delete removed edges in the original chia object.
     chia.obj$Graph = delete_edges(chia.obj$Graph, marked.for.deletion)
   } else {
@@ -358,7 +358,7 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
 
   # Remove the original.id edge attribute, since it won't be needed anymore.
   edge_attr(chia.obj$Graph)$original.id = NULL
-  
+
   # Update the degree attribute of regions if it is present.
   chia.obj$Regions$Degree = degree(chia.obj$Graph)
   return(chia.obj)
@@ -396,7 +396,7 @@ process.chia.pet <- function(input.chia, chia.param, output.dir="output", verbos
 
     # Analyze the ChIA network.
     analyze.chia.pet(chia.obj, output.dir)
-    
+
     # Return teh created object.
 	return(chia.obj)
 }
