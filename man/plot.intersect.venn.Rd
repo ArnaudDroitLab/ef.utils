@@ -4,7 +4,7 @@
 \alias{plot.intersect.venn}
 \title{Generates a venn diagram from an \code{intersect.object}.}
 \usage{
-\method{plot}{intersect.venn}(intersect.object, filename = NULL)
+plot.intersect.venn(intersect.object, filename = NULL)
 }
 \arguments{
 \item{intersect.object}{An intersect object returned by \code{\link{build.intersect}}.}

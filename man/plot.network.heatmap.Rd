@@ -4,8 +4,7 @@
 \alias{plot.network.heatmap}
 \title{Plot heatmaps in fonction of a ChIA-PET annotation}
 \usage{
-\method{plot}{network.heatmap}(chia.obj, size.limit, variable.name, label,
-  output.dir)
+plot.network.heatmap(chia.obj, size.limit, variable.name, label, output.dir)
 }
 \arguments{
 \item{chia.obj}{A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.}

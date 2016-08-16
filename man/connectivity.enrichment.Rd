@@ -8,7 +8,7 @@ connectivity.enrichment(chia.obj, variable.name, label, wrap.row = 3,
   wrap.col = 6, output.dir = "output")
 }
 \arguments{
-\item{chia.obj}{A list containing the annotated ChIA-PET data, as returned by annotate.chia.}
+\item{chia.obj}{A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.}
 
 \item{variable.name}{The name of the variable according to which the enrichment should be performed.}
 

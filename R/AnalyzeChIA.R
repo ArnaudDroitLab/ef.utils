@@ -1,48 +1,241 @@
-#' Perform enrichments by connectivity group.
+#' Plots a subset of ChIA-PET nodes
 #'
-#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by annotate.chia.
-#' @param variable.name The name of the variable according to which the enrichment should be performed.
-#' @param label The Name to give te the variable name in the resulting graph.
-#' @param wrap.row The number of rows in the final file.
-#' @param wrap.col The number of columns in the final file.
-#' @param output.dir The name of the directory where to save the graphs.
-#'
-#' @return The plots of enrichments by connectivity group.
-#'
-#' @importFrom GenomicRanges mcols
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param metric.function A function taking a chia.obj parameter and returning metrics in order to construct the plot.
+#' @param node.categories Indices of nodes representing subsets of these nodes.
+#' @param x.lab The label to add to the x axis of the gaph.
+#' @param y.lab The label to add to the y axis of the graph.
+#' @param title The title to add to the graph.
+#' @param graph.type Either "line", "histogram", "heatmap".
+#' @param facet.rows Optionnal graphic parameter.
+#' @param facet.cols Optionnal graphic parameter.
+#' @param file.out The name of the file where to save the plot, or NULL if none should be saved.
+#' @param \dots Paramters to pass to metric.function.
+#' @return The plot.
+#' @import ggplot2
 #' @importFrom reshape2 melt
-#' @importFrom ggplot2 ggplot
-#' @importFrom ggplot2 ggsave
-connectivity.enrichment <- function(chia.obj, variable.name, label, wrap.row=3, wrap.col=6, output.dir="output") {
-  # Define thresholds for different connectivity categories.
-  thresholds.list = list(Singles=c(0, 1), Low=c(1, 5), Intermediate=c(5, 20), High=c(20, 1000))
+#' @export
+plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab = NULL, y.lab = NULL,
+                         title = NULL, graph.type = "line", facet.rows = NULL, facet.cols = NULL,
+                         file.out=NULL, ...) {
+  # Verify the valididy of arguments
+  graph.type <- match.arg(graph.type, c("line", "histogram", "heatmap"))
 
-  all.values = mcols(chia.obj$Regions)[,variable.name]
-  results = matrix(0, nrow=length(levels(all.values)), ncol=length(thresholds.list))
-  rownames(results) = levels(all.values)
-  colnames(results) = names(thresholds.list)
-
-  # Loop over all thresholds, calculating the frequency of the given variable
-  # for each category.
-  for(i in 1:length(thresholds.list)) {
-    thresholds = thresholds.list[[i]]
-    indices = chia.obj$Regions$Degree > thresholds[1] & chia.obj$Regions$Degree <= thresholds[2]
-    proportions = table(all.values[indices]) / sum(indices)
-    results[,i] <- proportions[rownames(results)]
+  # Calculate metrics for all categories
+  metric.list = list()
+  proportions.list = list()
+  for(node.category in colnames(node.categories)) {
+    graph.subset = chia.vertex.subset(chia.obj, node.categories[,node.category])
+    metric.list[[node.category]] = metric.function(graph.subset, ...)
   }
 
-  melt.df = melt(results, factorsAsStrings=FALSE)
-  colnames(melt.df) <- c("Var.of.interest", "Connectivity", "Proportion")
-  melt.df$Connectivity = factor(melt.df$Connectivity, levels = names(thresholds.list))
+  # Get the metrics into a matrix
+  metric.matrix = matrix(unlist(metric.list), ncol=length(metric.list),
+                         dimnames = list(names(metric.list[[1]]), names(metric.list)))
 
-  ggplot(melt.df, aes(x=Connectivity, y=Proportion)) +
-    geom_line(group=1) +
-    facet_wrap(~Var.of.interest, nrow=wrap.row, ncol=wrap.col) +
-    ylab("Proportion of nodes in category") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-  ggsave(file.path(output.dir, paste0("Proportion of ", label, " as a function of connectivity category.pdf")))
+  # Convert it to data frame for plotting
+  metric.df = melt(metric.matrix)
 
-  return(results)
+  # Plot metrics
+  plot.obj = ggplot(data=metric.df) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+  # Type 1: line graph, comme nos graphs connectivity vs TF binding.
+  # Chaque métrique devient une facette, avec une valeur par sous-catégorie de noeud.
+  if(graph.type=="line") {
+    plot.obj = plot.obj + geom_line(mapping=aes(x=Var2, y=value), group = 1)
+  }
+
+  # Type 2: histogramme
+  # Même chose que les graphes en ligne, mais en histogramme.
+  if(graph.type=="histogram") {
+    plot.obj = plot.obj + geom_bar(mapping = aes(x = Var2, y = value), stat = "identity", colour = "black")
+  }
+
+  if((graph.type=="line" || graph.type == "histogram") && (nrow(metric.matrix) > 1)) {
+    plot.obj = plot.obj + facet_wrap(~Var1, nrow=facet.rows, ncol = facet.cols)
+  }
+
+  # Type 3: heatmap
+  # Chaque sous-catégorie de noeuds est une colonne. Chaque métrique est une rangée.
+  if(graph.type=="heatmap") {
+    plot.obj = plot.obj + geom_tile(mapping=aes(x=Var2, y=Var1, fill = value))
+  }
+
+  # Add labels and title to the graph
+  plot.obj = plot.obj + xlab(x.lab) + ylab(y.lab) + ggtitle(title)
+
+  if(!is.null(file.out)) {
+    ggsave(plot.obj, file=file.out)
+  }
+
+  return(plot.obj)
+}
+
+#' Counts the occurences of each factor
+#'
+#' @param chia.subset A list containing a graph and ChIA-PET regions, as returned by \code{\link{chia.vertex.subset}}.
+#' @param variable.name The name of the column containing a factor.
+#' @param proportion Should the number of occurences be converted to proportions?
+#' @return A named vector (table) with the number of occurences (or proportions) of each factor in the data.
+#' @importFrom GenomicRanges mcols
+#' @export
+level.counts <- function(chia.subset, variable.name, proportion = TRUE){
+  # Convert data into data frame
+  variable.data <- mcols(chia.subset$Regions)[,variable.name]
+  # Convert into factor if necessary
+  if(class(variable.data) != "factor"){
+    variable.data <- as.factor(variable.data)
+    warning("The column given as parameter is not a factor. It has been converted as one.")
+  }
+  # Count the occurence of each factor
+  table <- table(variable.data)
+  # If proportion are needed, divide by the total number of nodes
+  if (proportion){
+    table <- table / length(chia.subset$Regions)
+  }
+  return(table)
+}
+
+#' Counts the occurences of categories made with a variable
+#'
+#' @param chia.subset A list containing a graph and ChIA-PET regions, as returned by \code{\link{chia.vertex.subset}}.
+#' @param variable.name The name of the column containing a factor.
+#' @param proportion Should the number of occurences be converted to proportions?
+#' @return A named vector (table) with the number of occurences (or proportions) of each category.
+#' @importFrom GenomicRanges mcols
+#' @export
+cut.counts <- function(chia.subset, variable.name, proportion = TRUE, ...){
+  # Convert data into data frame
+  variable.data <- mcols(chia.subset$Regions)[,variable.name]
+  # Cut variable in categories
+  cut <- cut(variable.data, ...)
+  # Count the occurence of each category
+  table <- table(cut)
+  # If proportion are needed, divide by the total number of nodes
+  if (proportion){
+    table <- table / length(chia.subset$Regions)
+  }
+  return(table)
+}
+
+#' Counts the number of nodes respecting the given condition(s)
+#'
+#' @param chia.subset A list containing a graph and ChIA-PET regions, as returned by \code{\link{chia.vertex.subset}}.
+#' @param conditions a string with the condition to respect
+#' @param proportion Should the number of occurences be converted to proportions?
+#' @return A named vector (table) with the number of occurences (or proportions) of each category.
+#' @importFrom GenomicRanges mcols
+#' @export
+subset.counts <- function(chia.subset, all.conditions, proportion = TRUE) {
+  # Convert data into data frame
+  variable.data <- mcols(chia.subset$Regions)
+  # Count the number of nodes respecting the conditions
+  count <- nrow(subset(variable.data, subset = eval(parse(text = all.conditions))))
+  # If proportion are needed, divide by the total number of nodes
+  if (proportion){
+    count <- count / nrow(variable.data)
+  }
+  return(count)
+}
+
+#' Finds which transcription factors are present
+#'
+#' @param chia.subset A list containing a graph and ChIA-PET regions, as returned by \code{\link{chia.vertex.subset}}.
+#' @param number Shoul the number of overlap be counted?
+#' @return A named vector with the presence or absence of each transcription factor.
+#' @importFrom GenomicRanges mcols
+#' @export
+TF.presence <- function(chia.subset, number = FALSE) {
+  # Convert data into data frame
+  variable.data <- mcols(chia.subset$Regions)
+  # Extract the columns woth TF overlaps
+  columns <- grep("TF.overlap.", colnames(variable.data))
+  # Extract the names of these columns
+  names <- sub("TF.overlap.", "", colnames(variable.data)[columns])
+  # For each factor, counts the number of nodes overlapping
+  presence <- vector()
+  for (col in columns) {
+    presence <- c(presence, sum(variable.data[,col] > 0))
+  }
+  # If only the presence is to consider, attribute the value "1" if the TF is present, "0" if absent
+  if (!number) {
+    presence <- ifelse(presence > 0, 1, 0)
+  }
+  # Add names
+  names(presence) <- names
+  return(presence)
+}
+
+#' Creates categories based on a numeric variable
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param variable.name The name of the column to cut into categories.
+#' @param breaks The limits to use while cutting into categories.
+#' @return A data frame in which each column corresponds to a category. The data frame is as long as the
+#' "Regions" element of chia.obj, and the values indicate wheter or not a region belongs to a category.
+#' @importFrom GenomicRanges mcols
+#' @export
+categorize.by.breaks <- function(chia.obj, variable.name, breaks = NULL) {
+  # Convert data into data frame
+  chia.df <- mcols(chia.obj$Regions)
+ # Create the boolean matrix
+  bool.matrix <- matrix(FALSE, nrow = nrow(chia.df), ncol = (length(breaks) - 1))
+  for (i in 1:(length(breaks) - 1)) {
+    low = breaks[i]
+    high = breaks[i + 1]
+    bool.matrix[,i] <- ((chia.df[,variable.name] >= low) & (chia.df[,variable.name] < high))
+  }
+  # Convert to data frame and add names
+  bool.df <- as.data.frame(bool.matrix)
+  colnames(bool.df) <- paste0("[", breaks[1:(length(breaks) - 1)], ",", breaks[2:length(breaks)], ")")
+  return(bool.df)
+}
+
+#' Creates categories based on the connectivity of the nodes
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param breaks The limits to use while cutting into categories.
+#' @return A data frame in which each column corresponds to a category. The data frame is as long as the
+#' "Regions" element of chia.obj, and the values indicate wheter or not a region belongs to a category.
+#' @export
+categorize.by.connectivity <- function(chia.obj, breaks = c(1, 2, 6, 21, Inf)) {
+  return(categorize.by.breaks(chia.obj, "Degree", breaks))
+}
+
+#' Creates categories based on the size of the components
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param breaks The limits to use while cutting into categories.
+#' @return A data frame in which each column corresponds to a category. The data frame is as long as the
+#' "Regions" element of chia.obj, and the values indicate wheter or not a region belongs to a category.
+#' @export
+categorize.by.components.size <- function(chia.obj, breaks = c(2, 6, 11, 21, 41, Inf)) {
+  return(categorize.by.breaks(chia.obj, "Component.size", breaks))
+}
+
+#' Creates categories based on the centrality of the nodes
+#'
+#' @param A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @return A data frame in which each column corresponds to a category. The data frame is as long as the
+#' "Regions" element of chia.obj, and the values indicate wheter or not a region belongs to a category.
+#' @importFrom stats aggregate
+#' @export
+categorize.by.centrality <- function(chia.obj){
+  # Convert data into data frame
+  chia.df <- mcols(chia.obj$Regions)
+  # The central, perpheral nodes, and all nodes, can already be identified
+  centrality.df <- data.frame(Central.nodes = chia.df$Is.central,
+                              Peripheral.nodes = !(chia.df$Is.central),
+                              All.nodes = TRUE)
+  # Find the most central node for each network
+  central.info <- aggregate(Centrality.score~Component.Id, chia.df, max)
+  # Associate the maximum score of each network to the corresponding nodes
+  chia.df$max.centrality <- central.info$Centrality.score[match(chia.df$Component.Id, central.info$Component.Id)]
+  # Add a boolean indicating if the regions are the most central of their component
+  centrality.df$Most.central <- (chia.df$Centrality.score == chia.df$max.centrality) & chia.df$Is.central
+  # Reorder the columns
+  centrality.df <- centrality.df[,c(4,1,2,3)]
+  return(centrality.df)
 }
 
 #' Create a heatmap by connectivity group.
@@ -259,7 +452,7 @@ analyze.chromatin.states <- function(chia.obj, output.dir="output") {
         state.proportions = table(chia.obj$Regions$Chrom.State)/length(chia.obj$Regions)
         write.table(data.frame(State=names(state.proportions), Proportion=as.vector(state.proportions)),
                     file.path(output.dir, "Chromatin states summary.txt"), sep="\t", col.names=TRUE, row.names=FALSE, quote=FALSE)
-        
+
         # Plot histogram of degrees for each chromatin state
         degree.per.state.df = data.frame(Chrom.State=chia.obj$Regions$Chrom.State, Degree=chia.obj$Regions$Degree)
         ggplot(degree.per.state.df, aes(x=Degree)) +
@@ -267,8 +460,12 @@ analyze.chromatin.states <- function(chia.obj, output.dir="output") {
             scale_y_log10() +
             facet_wrap(~Chrom.State)
         ggsave(file.path(output.dir, "log Degree histogram per chromatin state.pdf"))
-        
-        connectivity.enrichment(chia.obj, "Chrom.State", "chromatin state", 3, 6, output.dir=output.dir)
+
+        connectivity.df <- categorize.by.connectivity(chia.obj)
+        plot.metrics(chia.obj, level.counts, connectivity.df, "Connectivity", "Proportion of nodes in category",
+                     graph.type = "line", facet.rows = 3, facet.cols = 6,
+                     file.out = file.path(output.dir, "Proportion of chromatin state as a function of connectivity category.pdf"),
+                     variable.name = "Chrom.State")
         contact.heatmap(chia.obj, "Chrom.State", "chromatin states", output.dir=output.dir)
     }
 }
@@ -285,7 +482,11 @@ analyze.annotation <- function(chia.obj, output.dir="output") {
     if(!has.gene.annotation(chia.obj)) {
         warning("No gene annotation to analyze!")
     } else {
-        connectivity.enrichment(chia.obj, "Simple.annotation", "genomic location", 3, 3, output.dir)
+        connectivity.df <- categorize.by.connectivity(chia.obj)
+        plot.metrics(chia.obj, level.counts, connectivity.df, "Connectivity", "Proportion of nodes in category",
+                   graph.type = "line", facet.rows = 3, facet.cols = 3,
+                   file.out = file.path(output.dir, "Proportion of genomic location as a function of connectivity category.pdf"),
+                   variable.name = "Simple.annotation")
         contact.heatmap(chia.obj, "Simple.annotation", "genomic location", output.dir)
     }
 }
@@ -310,7 +511,7 @@ analyze.expression <- function(chia.obj, output.dir="output") {
             geom_point() +
             geom_smooth(method='lm')
         ggsave(file.path(output.dir, "Expression vs Degree at promoter.pdf"))
-        
+
         boxplot.by.connectivity(chia.obj, "Expr.mean", "Boxplot of the expression in fct of Connectivity", output.dir)
     }
 }
@@ -340,10 +541,10 @@ analyze.gene.specificity <- function(chia.obj, output.dir="output") {
                                                         "Mixed low", "Mixed high",
                                                         "Moderately tissue enriched", "Highly tissue enriched", "Group enriched",
                                                         "Expressed in all low", "Expressed in all high"))
-        
+
         ggplot(tissue.specificity.df, aes(x=Tau, y=log2(Degree))) + geom_point()
         ggsave(file.path(output.dir, "Tau vs degree.pdf"))
-        
+
         # Plot category vs degree
         ggplot(tissue.specificity.df, aes(x=Category, y=log2(Degree))) +
             geom_boxplot() +
@@ -447,32 +648,32 @@ analyze.generic.topology <- function(chia.obj, output.dir="output") {
     component.table <- as.data.frame(mcols(chia.obj$Regions)[,c("Component.Id", "Component.size")])
     component.df <- data.frame(Size = unique(component.table)$Component.size, Number = 1)
     component.df <- aggregate(Number~Size, data = component.df, FUN = sum)
-    
+
     ggplot(component.df) + geom_point(mapping=aes(x=log2(Size), y=log2(Number)))
     ggsave(file.path(output.dir, "Log2(size of component) vs Log2(Number of components).pdf"))
-    
+
     annotate.component <- function(x) {
       result.df = data.frame(NumberOfTSS=sum(x$distanceToTSS==0),
                              Size=nrow(x),
                              data.frame(as.list((table(x$Simple.annotation)/nrow(x))), check.names=FALSE))
-    
+
       if(!is.null(x$Chrom.State)) {
         result.df = cbind(result.df, data.frame(as.list((table(x$Chrom.State)/nrow(x))), check.names=FALSE))
       }
-    
+
       return(result.df)
     }
-    
+
     component.table = ddply(as.data.frame(chia.obj$Regions), "Component.Id", annotate.component)
     write.table(component.table, file=file.path(output.dir, "Component table.txt"), sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
-    
+
     component.table = ddply(component.table, "Size", function(x) { return(cbind(x, NumberOfComponentsOfThisSize=nrow(x)))})
     proportion.per.size = ddply(component.table, ~NumberOfTSS * Size, function(x) { return(nrow(x)/x$NumberOfComponentsOfThisSize[1])})
     proportion.per.size[order(proportion.per.size$Size, proportion.per.size$NumberOfTSS),]
-    
+
     ggplot(subset(proportion.per.size, Size <= 5), aes(x=NumberOfTSS, y=V1)) + geom_bar(stat="identity") + facet_wrap(~Size)
     ggsave(file.path(output.dir, "Proportion of TSS in low connectivity nodes.pdf"))
-    
+
     ggplot(subset(component.table, Size >5), aes(x=NumberOfTSS/Size)) + geom_histogram()
     ggsave(file.path(output.dir, "Proportion of TSS in high connectivity nodes.pdf"))
   }
@@ -551,29 +752,29 @@ plot.network.heatmap <- function(chia.obj, size.limit, variable.name, label, out
 analyze.chia.pet <- function(chia.obj, output.dir=".", verbose=TRUE) {
     # If verbose output is turned off, redirect output to a NULL stream.
     cat.sink = ifelse(verbose, "", textConnection(NULL, w))
-    
+
     # Output the results of the annotation.
     output.annotated.chia(chia.obj, output.dir)
-    
+
     # Perform further in-depth analysis of the networks.
     cat(date(), " : Analyzing network topologies...\n",cat.sink)
     analyze.generic.topology(chia.obj, output.dir)
-    
+
     cat(date(), " : Analyzing genomic annotations...\n",cat.sink)
     analyze.annotation(chia.obj, output.dir)
-    
+
     cat(date(), " : Analyzing chromatin states...\n",cat.sink)
     analyze.chromatin.states(chia.obj, output.dir)
-    
+
     cat(date(), " : Analyzing gene expression...\n",cat.sink)
     analyze.expression(chia.obj, output.dir)
-    
+
     cat(date(), " : Analyzing transcription factor overlaps...\n",cat.sink)
     analyze.tf(chia.obj, output.dir)
 
     cat(date(), " : Analyzing gene specificity...\n",cat.sink)
     analyze.gene.specificity(chia.obj, output.dir)
-    
+
     # Close dummy verbose stream.
     if(!verbose) {
         close(cat.sink)
