@@ -496,7 +496,7 @@ get.crossing.edges <- function(input.graph, method = igraph::cluster_fast_greedy
 #' @importFrom igraph induced_subgraph
 #' @importFrom igraph set_edge_attr
 #' @export
-split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::cluster_fast_greedy, weight.attr=NULL) {
+community.split <- function(chia.obj, oneByOne = FALSE, method = igraph::cluster_fast_greedy, weight.attr=NULL) {
   edge_attr(chia.obj$Graph)$original.id = 1:ecount(chia.obj$Graph)
   if (oneByOne){
     # Keep a record of edges marked for deletion, so that we can delete them all

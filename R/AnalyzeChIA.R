@@ -181,6 +181,27 @@ calculate.tf.presence <- function(chia.obj, proportion=TRUE) {
     return(results)
 }
 
+#' Finds which transcription factors are present
+#'
+#' @param chia.subset A list containing a graph and ChIA-PET regions, as returned by \code{\link{chia.vertex.subset}}.
+#' @param variable.name The name of the boolean variable whose proportion should be calculated.
+#' @return The count/proportion of nodes whose attribute named "variable.name" is TRUE.
+#' @importFrom GenomicRanges mcols
+#' @export
+boolean.count <- function(chia.obj, variable.name, proportion=FALSE) {
+  # Convert data into data frame
+  variable.data <- as.logical(mcols(chia.obj$Regions)[[variable.name]])
+  
+  # Count the number of nodes respecting the conditions
+  results <- sum(variable.data)
+  
+  # If proportion are needed, divide by the total number of nodes
+  if (proportion){
+    results <- results / length(variable.data)
+  }
+  return(results)
+}
+
 #' Creates categories based on a numeric variable
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
@@ -793,6 +814,13 @@ analyze.central.nodes <- function(chia.obj, output.dir=".") {
   if(has.gene.annotation(chia.obj)) {
     chia.plot.metrics(chia.obj, level.counts, centrality.categories, graph.type = "heatmap",
                  file.out = file.path(output.dir, "Heatmap of centrality vs genomic locations.pdf"), variable.name = "Simple.annotation")
+  }
+  
+  if(has.transcription.factors(chia.obj)) {
+    chia.plot.metrics(chia.obj, tf.presence, centrality.categories, graph.type = "heatmap",
+     x.lab = "Centrality category", y.lab = "Proportion", 
+     file.out = file.path(output.dir, "Proportion of TF as a function of size centrality.pdf"),
+     proportion = TRUE)
   }
 }
 
