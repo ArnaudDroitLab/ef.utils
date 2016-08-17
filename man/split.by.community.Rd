@@ -4,7 +4,7 @@
 \alias{split.by.community}
 \title{Associates components ids and sizes to chia data, as returned by \code{\link{load.chia}}.}
 \usage{
-\method{split}{by.community}(chia.obj, oneByOne = FALSE,
+split.by.community(chia.obj, oneByOne = FALSE,
   method = igraph::cluster_fast_greedy, weight.attr = NULL)
 }
 \arguments{

@@ -791,8 +791,8 @@ analyze.central.nodes <- function(chia.obj, output.dir=".") {
   }
   
   if(has.gene.annotation(chia.obj)) {
-    plot.metrics(chia.obj, level.counts, centrality.categories.after.division, graph.type = "heatmap",
-             file.out = file.path(output.dir, "Heatmap of centrality vs genomic locations.pdf"), variable.name = "Simple.annotation")
+    plot.metrics(chia.obj, level.counts, centrality.categories, graph.type = "heatmap",
+                 file.out = file.path(output.dir, "Heatmap of centrality vs genomic locations.pdf"), variable.name = "Simple.annotation")
   }
 }
 
