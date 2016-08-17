@@ -226,13 +226,43 @@ get.tf <- function(chia.obj) {
     return(mcols(chia.obj$Regions)[,grepl("TF", colnames(mcols(chia.obj$Regions)))])
 }
 
+#' Select all nodes which are gene representatives.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return A subset of chia.obj containing only nodes which are gene representatives.
+#' @export
+select.gene.representative <- function(chia.obj) {
+    return(chia.vertex.subset(chia.obj, chia.obj$Regions$Gene.Representative))
+}                   
+
+#' Select all nodes which are central.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return A subset of chia.obj containing only nodes which are central.
+#' @export                   
+select.central.nodes <- function(chia.obj) {
+    return(chia.vertex.subset(chia.obj, chia.obj$Regions$Is.central))
+}
+
+#' Select all nodes which are in a factory.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return A subset of chia.obj containing only nodes which are in a factory.
+#' @export                   
+select.factories <- function(chia.obj) {
+    return(chia.vertex.subset(chia.obj, chia.obj$Regions$Is.In.Factory))
+}
+
 #' Returns a list of all statistics for a given ChIA object.
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
 #'
 #' @return A named list of calculated properties for the given ChIA object.
 #' @export
-all.statistics <- function(chia.obj) {
+get.all.statistics <- function(chia.obj) {
     results = lapply(list("Number of nodes"            = number.of.nodes,
                           "Number of contacts"         = number.of.contacts,
                           "Number of components"       = number.of.components,
@@ -446,7 +476,7 @@ output.annotated.chia <- function(chia.obj, output.dir="output") {
 #' @importFrom igraph as.undirected
 #' @importFrom igraph edge_attr
 #' @export
-identify.crossing.edges <- function(input.graph, method = igraph::cluster_fast_greedy, weight.attr=NULL){
+get.crossing.edges <- function(input.graph, method = igraph::cluster_fast_greedy, weight.attr=NULL){
   communities <- method(as.undirected(input.graph), weights = weight.attr)
   to.delete = crossing(communities, input.graph)
   return(edge_attr(input.graph)$original.id[to.delete])
@@ -480,7 +510,7 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
       component.subgraph = induced_subgraph(chia.obj$Graph, components.out$membership==i)
 
       # Split it into communities and record teh deleted edges.
-      crossing.edges = identify.crossing.edges(component.subgraph, method = method, weight.attr=weight.attr)
+      crossing.edges = get.crossing.edges(component.subgraph, method = method, weight.attr=weight.attr)
       marked.for.deletion = c(marked.for.deletion, crossing.edges)
     }
 
@@ -488,7 +518,7 @@ split.by.community <- function(chia.obj, oneByOne = FALSE, method = igraph::clus
     chia.obj$Graph = delete_edges(chia.obj$Graph, marked.for.deletion)
   } else {
     # Split it into communities and delete the necessary edges.
-    crossing.edges = identify.crossing.edges(chia.obj$Graph, method = method, weight.attr=weight.attr)
+    crossing.edges = get.crossing.edges(chia.obj$Graph, method = method, weight.attr=weight.attr)
     chia.obj$Graph = delete_edges(chia.obj$Graph, crossing.edges)
   }
 

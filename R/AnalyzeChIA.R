@@ -15,7 +15,7 @@
 #' @import ggplot2
 #' @importFrom reshape2 melt
 #' @export
-plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab = NULL, y.lab = NULL,
+chia.plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab = NULL, y.lab = NULL,
                          title = NULL, graph.type = "line", facet.rows = NULL, facet.cols = NULL,
                          file.out=NULL, ...) {
   # Verify the valididy of arguments
@@ -104,7 +104,7 @@ level.counts <- function(chia.subset, variable.name, proportion = TRUE){
 #' @return A named vector (table) with the number of occurences (or proportions) of each category.
 #' @importFrom GenomicRanges mcols
 #' @export
-cut.counts <- function(chia.subset, variable.name, proportion = TRUE, ...){
+count.cut <- function(chia.subset, variable.name, proportion = TRUE, ...){
   # Convert data into data frame
   variable.data <- mcols(chia.subset$Regions)[,variable.name]
   # Cut variable in categories
@@ -477,7 +477,7 @@ analyze.chromatin.states <- function(chia.obj, output.dir="output") {
         ggsave(file.path(output.dir, "log Degree histogram per chromatin state.pdf"))
 
         connectivity.df <- categorize.by.connectivity(chia.obj)
-        plot.metrics(chia.obj, level.counts, connectivity.df, "Connectivity", "Proportion of nodes in category",
+        chia.plot.metrics(chia.obj, level.counts, connectivity.df, "Connectivity", "Proportion of nodes in category",
                      graph.type = "line", facet.rows = 3, facet.cols = 6,
                      file.out = file.path(output.dir, "Proportion of chromatin state as a function of connectivity category.pdf"),
                      variable.name = "Chrom.State")
@@ -485,7 +485,7 @@ analyze.chromatin.states <- function(chia.obj, output.dir="output") {
         
         if(has.components(chia.obj)) {
             size.categories <- categorize.by.components.size(chia.obj)
-            plot.metrics(chia.obj, level.counts, size.categories, 
+            chia.plot.metrics(chia.obj, level.counts, size.categories, 
               x.lab = "Size category", y.lab = "Proportion",
               graph.type = "line", facet.rows = 3,
               file.out = file.path(output.dir, "Proportion of chromatin state as a function of size category.pdf"),
@@ -507,7 +507,7 @@ analyze.annotation <- function(chia.obj, output.dir="output") {
         warning("No gene annotation to analyze!")
     } else {
         connectivity.df <- categorize.by.connectivity(chia.obj)
-        plot.metrics(chia.obj, level.counts, connectivity.df, "Connectivity", "Proportion of nodes in category",
+        chia.plot.metrics(chia.obj, level.counts, connectivity.df, "Connectivity", "Proportion of nodes in category",
                    graph.type = "line", facet.rows = 3, facet.cols = 3,
                    file.out = file.path(output.dir, "Proportion of genomic location as a function of connectivity category.pdf"),
                    variable.name = "Simple.annotation")
@@ -515,7 +515,7 @@ analyze.annotation <- function(chia.obj, output.dir="output") {
         
         if(has.components(chia.obj)) {
             size.categories <- categorize.by.components.size(chia.obj)
-            plot.metrics(chia.obj, level.counts, size.categories,
+            chia.plot.metrics(chia.obj, level.counts, size.categories,
                  x.lab = "Size category", y.lab = "Proportion", graph.type = "line", facet.rows = 3,
                  file.out = file.path(output.dir, "Proportion of genomic location as a function of size category.pdf"),
                  variable.name = "Simple.annotation", proportion = TRUE)
@@ -727,7 +727,7 @@ analyze.generic.topology <- function(chia.obj, output.dir="output") {
 #' @importFrom NMF aheatmap
 #'
 #' @export
-plot.network.heatmap <- function(chia.obj, size.limit, variable.name, label, output.dir) {
+chia.plot.network.heatmap <- function(chia.obj, size.limit, variable.name, label, output.dir) {
   dir.create(output.dir, recursive = TRUE, showWarnings=FALSE)
 
   presence.by.tf <- function(chia.df){
@@ -786,12 +786,12 @@ analyze.central.nodes <- function(chia.obj, output.dir=".") {
   }
   
   if(has.chrom.state(chia.obj)) {
-    plot.metrics(chia.obj, level.counts, centrality.categories, graph.type = "heatmap",
+    chia.plot.metrics(chia.obj, level.counts, centrality.categories, graph.type = "heatmap",
                  file.out = file.path(output.dir, "Heatmap of centrality vs chromatin states.pdf"), variable.name = "Chrom.State")
   }
   
   if(has.gene.annotation(chia.obj)) {
-    plot.metrics(chia.obj, level.counts, centrality.categories, graph.type = "heatmap",
+    chia.plot.metrics(chia.obj, level.counts, centrality.categories, graph.type = "heatmap",
                  file.out = file.path(output.dir, "Heatmap of centrality vs genomic locations.pdf"), variable.name = "Simple.annotation")
   }
 }
