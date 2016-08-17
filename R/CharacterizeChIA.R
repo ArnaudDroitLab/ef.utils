@@ -107,6 +107,16 @@ has.centrality <- function(chia.obj) {
     return(!is.null(chia.obj$Regions$Is.central))
 }
 
+#' Determines if the given chia.obj has TF binding information.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has TF binding information.
+#' @export
+has.transcription.factors <- function(chia.obj) {
+    return(sum(grepl("^TF", names(mcol(chia.obj$Regions)))) > 0)
+}
+
 #' Return the number of nodes in a CHIA object.
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
@@ -203,6 +213,17 @@ proportion.genes <- function(chia.obj) {
 #' @export
 proportion.active.genes <- function(chia.obj) {
     return(number.active.genes(chia.obj) / number.of.genes(chia.obj))
+}
+
+#' Obtain the matrix of TF binding.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return A matrix indicating which TF binds to which regions.
+#' @export
+get.tf <- function(chia.obj) {
+    stopifnot(has.transcription.factors(chia.obj))
+    return(mcols(chia.obj$Regions)[,grepl("TF", colnames(mcols(chia.obj$Regions)))])
 }
 
 #' Returns a list of all statistics for a given ChIA object.

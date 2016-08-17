@@ -166,6 +166,21 @@ TF.presence <- function(chia.subset, number = FALSE) {
   return(presence)
 }
 
+calculate.tf.presence <- function(chia.obj, proportion=TRUE) {
+    # Get the count of regions where the TF is presence, and rename the output vector
+    # to remove the TF.overlap. prefix.
+    results = apply(as.matrix(get.tf(chia.obj)) > 0, 2, sum)
+    names(results) = gsub("TF.overlap.", "", names(results))
+    
+    # If we're calculating proportions, divide by the total number of regions.
+    if(proportion) {
+        results = results / sum(results)
+    }
+    
+    # Return the results.
+    return(results)
+}
+
 #' Creates categories based on a numeric variable
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
@@ -766,16 +781,16 @@ plot.network.heatmap <- function(chia.obj, size.limit, variable.name, label, out
 #' @export
 analyze.central.nodes <- function(chia.obj, output.dir=".") {
   centrality.categories <- NULL
-  if(has.centrality(chia.obj) {
+  if(has.centrality(chia.obj)) {
     centrality.categories <- categorize.by.centrality(chia.obj)
   }
   
-  if(has.chrom.state(chia.obj))
+  if(has.chrom.state(chia.obj)) {
     plot.metrics(chia.obj, level.counts, centrality.categories, graph.type = "heatmap",
                  file.out = file.path(output.dir, "Heatmap of centrality vs chromatin states.pdf"), variable.name = "Chrom.State")
   }
   
-  if(has.gene.annotation(chia.obj))
+  if(has.gene.annotation(chia.obj)) {
     plot.metrics(chia.obj, level.counts, centrality.categories.after.division, graph.type = "heatmap",
              file.out = file.path(output.dir, "Heatmap of centrality vs genomic locations.pdf"), variable.name = "Simple.annotation")
   }
