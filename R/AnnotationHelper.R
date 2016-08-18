@@ -96,7 +96,7 @@ select.annotations <- function(genome.build) {
                               "PWMEnrich.Mmusculus.background"), quietly=TRUE)) {
             data(PWMLogn.mm9.MotifDb.Mmus, package="PWMEnrich.Mmusculus.background")
 
-            return(list(TxDb=TxDxDb.Mmusculus.UCSC.mm10.knownGene::TxDxDb.Mmusculus.UCSC.mm10.knownGene,
+            return(list(TxDb=TxDb.Mmusculus.UCSC.mm10.knownGene::TxDb.Mmusculus.UCSC.mm10.knownGene,
                         OrgDbStr="org.Mm.eg.db",
                         OrgDb=org.Mm.eg.db::org.Mm.eg.db,
                         PWMBG=PWMLogn.mm9.MotifDb.Mmus,
