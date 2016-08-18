@@ -758,6 +758,66 @@ analyze.tf <- function(chia.obj, output.dir="output") {
     }
 }
 
+#' Analyze the components of ChIA-PET data
+#'
+#' Analyzes ChIA-PET data and produces graphs according to the topology of the nodes in the whole set
+#' of regions and in the separated components: \describe{
+#' \item{Log2(size of component) vs Log2(Number of components).pdf}{A plot of the number of components according to the size of the components.}
+#' \item{Component table.txt}{A file with the information about TSS for each component.}
+#' \item{Proportion of TSS in low connectivity nodes.pdf}{A plot of the proportion of TSS in nodes with low connectivity (component with 5 nodes or less).}
+#' \item{Proportion of TSS in high connectivity nodes.pdf}{A plot of the proportion of TSS in nodes with high connectivity (component with more than 5 nodes).}}
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param output.dir The name of the directory where to save the graphs.
+#'
+#' @import ggplot2
+#' @importFrom igraph components
+#' @importFrom igraph get.data.frame
+#' @importFrom utils write.table
+analyze.components <- function(chia.obj, output.dir="output") {
+  # Analyze components
+  if(has.components(chia.obj)) {
+    component.table <- as.data.frame(mcols(chia.obj$Regions)[,c("Component.Id", "Component.size")])
+    component.df <- data.frame(Size = unique(component.table)$Component.size, Number = 1)
+    component.df <- aggregate(Number~Size, data = component.df, FUN = sum)
+
+    ggplot(component.df) + geom_point(mapping=aes(x=log2(Size), y=log2(Number)))
+    ggsave(file.path(output.dir, "Log2(size of component) vs Log2(Number of components).pdf"))
+
+    annotate.component <- function(x) {
+      result.df = data.frame(NumberOfTSS=sum(x$distanceToTSS==0),
+                             Size=nrow(x),
+                             data.frame(as.list((table(x$Simple.annotation)/nrow(x))), check.names=FALSE))
+
+      if(!is.null(x$Chrom.State)) {
+        result.df = cbind(result.df, data.frame(as.list((table(x$Chrom.State)/nrow(x))), check.names=FALSE))
+      }
+
+      return(result.df)
+    }
+
+    component.table = ddply(as.data.frame(chia.obj$Regions), "Component.Id", annotate.component)
+    write.table(component.table, file=file.path(output.dir, "Component table.txt"), sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
+
+    component.table = ddply(component.table, "Size", function(x) { return(cbind(x, NumberOfComponentsOfThisSize=nrow(x)))})
+    proportion.per.size = ddply(component.table, ~NumberOfTSS * Size, function(x) { return(nrow(x)/x$NumberOfComponentsOfThisSize[1])})
+    proportion.per.size[order(proportion.per.size$Size, proportion.per.size$NumberOfTSS),]
+
+    ggplot(subset(proportion.per.size, Size <= 5), aes(x=NumberOfTSS, y=V1)) + geom_bar(stat="identity") + facet_wrap(~Size)
+    ggsave(file.path(output.dir, "Proportion of TSS in low connectivity nodes.pdf"))
+
+    ggplot(subset(component.table, Size >5), aes(x=NumberOfTSS/Size)) + geom_histogram()
+    ggsave(file.path(output.dir, "Proportion of TSS in high connectivity nodes.pdf"))
+    
+    if(has.gene.annotations(chia.obj)) {
+        tss.metric.function <- functor.constructor(boolean.count, "Is.TSS", proportion=TRUE)
+        chia.plot.metrics(chia.obj, apply.single.metric.by.component(tss.metric.function, "TSS proportion"),
+                          categorize.by.components.size(chia.obj), graph.type="boxplot",
+                          file.out=file.path(output.dir, "Boxplot of the proportion of TSS in fonction of the size of the networks.pdf"))
+    }
+  }
+}
+
 #' Analyze the topology of ChIA-PET data
 #'
 #' Analyzes ChIA-PET data and produces graphs according to the topology of the nodes in the whole set
@@ -797,41 +857,6 @@ analyze.generic.topology <- function(chia.obj, output.dir="output") {
   cluster.size.df = data.frame(Degree=degree(chia.obj$Graph), Width=width(chia.obj$Regions))
   ggplot(cluster.size.df, aes(x=Width, y=Degree)) + geom_point() + scale_x_log10() + scale_y_log10()
   ggsave(file.path(output.dir, "Degree vs cluster width.pdf"))
-
-  # Analyze components
-  if(has.components(chia.obj)) {
-    component.table <- as.data.frame(mcols(chia.obj$Regions)[,c("Component.Id", "Component.size")])
-    component.df <- data.frame(Size = unique(component.table)$Component.size, Number = 1)
-    component.df <- aggregate(Number~Size, data = component.df, FUN = sum)
-
-    ggplot(component.df) + geom_point(mapping=aes(x=log2(Size), y=log2(Number)))
-    ggsave(file.path(output.dir, "Log2(size of component) vs Log2(Number of components).pdf"))
-
-    annotate.component <- function(x) {
-      result.df = data.frame(NumberOfTSS=sum(x$distanceToTSS==0),
-                             Size=nrow(x),
-                             data.frame(as.list((table(x$Simple.annotation)/nrow(x))), check.names=FALSE))
-
-      if(!is.null(x$Chrom.State)) {
-        result.df = cbind(result.df, data.frame(as.list((table(x$Chrom.State)/nrow(x))), check.names=FALSE))
-      }
-
-      return(result.df)
-    }
-
-    component.table = ddply(as.data.frame(chia.obj$Regions), "Component.Id", annotate.component)
-    write.table(component.table, file=file.path(output.dir, "Component table.txt"), sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
-
-    component.table = ddply(component.table, "Size", function(x) { return(cbind(x, NumberOfComponentsOfThisSize=nrow(x)))})
-    proportion.per.size = ddply(component.table, ~NumberOfTSS * Size, function(x) { return(nrow(x)/x$NumberOfComponentsOfThisSize[1])})
-    proportion.per.size[order(proportion.per.size$Size, proportion.per.size$NumberOfTSS),]
-
-    ggplot(subset(proportion.per.size, Size <= 5), aes(x=NumberOfTSS, y=V1)) + geom_bar(stat="identity") + facet_wrap(~Size)
-    ggsave(file.path(output.dir, "Proportion of TSS in low connectivity nodes.pdf"))
-
-    ggplot(subset(component.table, Size >5), aes(x=NumberOfTSS/Size)) + geom_histogram()
-    ggsave(file.path(output.dir, "Proportion of TSS in high connectivity nodes.pdf"))
-  }
 }
 
 #' Plot heatmaps in fonction of a ChIA-PET annotation
@@ -945,6 +970,9 @@ analyze.chia.pet <- function(chia.obj, output.dir=".", verbose=TRUE) {
     cat(date(), " : Analyzing network topologies...\n",cat.sink)
     analyze.generic.topology(chia.obj, output.dir)
 
+    cat(date(), " : Analyzing network components...\n",cat.sink)
+    analyze.components(chia.obj, output.dir)
+    
     cat(date(), " : Analyzing genomic annotations...\n",cat.sink)
     analyze.annotation(chia.obj, output.dir)
 
