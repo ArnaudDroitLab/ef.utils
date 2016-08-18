@@ -117,6 +117,16 @@ has.transcription.factors <- function(chia.obj) {
     return(sum(grepl("^TF", names(mcols(chia.obj$Regions)))) > 0)
 }
 
+#' Determines if the given chia.obj has TF binding information.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return True if the object has TF binding information.
+#' @export
+has.fitness <- function(chia.obj) {
+    return(!is.null(chia.obj$Regions$Fitness))
+}
+
 #' Return the number of nodes in a CHIA object.
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
@@ -256,6 +266,20 @@ select.factories <- function(chia.obj) {
     return(chia.vertex.subset(chia.obj, chia.obj$Regions$Is.In.Factory))
 }
 
+#' Generate a function which selects all nodes whose ID is present in the passed-in chia.obj.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return A function which accepts a ChIA object and returns the subset of nodes whose
+#'   ID are in the ChIA object passed to this function.
+#' @export   
+select.from.chia.functor <- function(chia.obj) {
+    force(chia.obj)
+    return(function(x) {
+        return(chia.vertex.subset(x, x$Regions$ID %in% chia.obj$Regions$ID))
+    })
+}
+
 #' Returns a list of all statistics for a given ChIA object.
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
@@ -314,6 +338,58 @@ node.enrichment <- function(chia.obj, hit.functor, draw.functor) {
              Expected     = hit.expected, 
              Fold.change  = log2(hit.enrichment),
              p.value      = enrich))
+}
+
+#' Given a data-frame combining the results of multiple calls to node.enrichment, plot those enrichments.
+#'
+#' @param enrichment.df A dataframe combining the results of multiple node.enrichment calls.
+#' @param filename The name of the file where the plot should be saved.
+#' @param label A label for the categories represented by enrichment.df's rows.
+#' @export
+chia.plot.enrichment <- function(enrichment.df, filename, label="Category") {
+  # Reorder enrichment by fold-change.
+  categories = rownames(enrichment.df)
+  enrichment.df$Category = factor(categories, categories[order(enrichment.df$Fold.change)])
+
+  # Determine which enrichments are significative.
+  enrichment.df$Significative = factor(ifelse(enrichment.df$p.value < 0.05, "Significant", "Not significant"), levels=c("Not significant", "Significant"))
+  
+  # Plot.
+  ggplot(enrichment.df) +
+    geom_bar(aes(x=Category, y=Fold.change, fill = Significative), colour = "black", stat = "identity") +
+    ylab("log2(Hits/Expected hits)") + xlab(label) +
+    ggtitle("Transcription factor enrichment") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.key.size = unit(1, "cm")) +
+    coord_flip()
+    
+  ggsave(filename)
+}
+
+#' Calculate enrichment of transcription factors on a selection of nodes.
+#'
+#' @param chia.obj The network on which TF enrichment needs to be performed.
+#' @param draw.function A function which, given a ChIA object, returns a subset of the "drawn" nodes.
+#' @return A data-frame giving the enrichments of all transcription factors at the specified nodes.
+#' @export
+tf.enrichment <- function(chia.obj, draw.function) {
+  results = list()
+  
+  # Loop over all transcription factors, calculating enrichment for each.
+  all.tf = colnames(get.tf(chia.obj))
+  for(tf in all.tf) {
+      # Define a function for selecting the nodes bearing that factor.
+      tf.select = function(x) {return(chia.vertex.subset(x, mcols(x$Regions)[[tf]] > 0)) }
+      
+      # Perform enrichment of the TF.
+      results[[tf]] = node.enrichment(chia.obj, tf.select, draw.function)
+  }
+  
+  # Combine the results into a data-frame, and rename it appropriately.
+  retvat = do.call(rbind.data.frame, results)
+  colnames(retvat) <- names(results[[1]])
+  rownames(retval) <- gsub("TF.overlap.", "", rownames(retval))
+
+  return(retvat)
 }
 
 regions.to.vertex.attr <- function(chia.obj) {
@@ -556,11 +632,12 @@ chia.vertex.subset <- function(chia.obj, indices) {
 #' @return A chia object containing only the selected vertices.
 #' @importFrom igraph induced_subgraph
 #' @export
-chia.component.subset <- function(chia.obj, indices) {
+chia.component.subset <- function(chia.obj, indices, min.selection=1) {
     stopifnot(has.components(chia.obj))
     
-    all.selected.components = chia.obj$Component.Id[indices]
-    return(chia.vertex.subset(chia.obj, chia.obj$Component.Id %in% all.selected.components))
+    selected.nodes.per.component = table(chia.obj$Regions$Component.Id[indices])
+    selected.components = names(selected.nodes.per.component)[selected.nodes.per.component >= min.selection]
+    return(chia.vertex.subset(chia.obj, chia.obj$Regions$Component.Id %in% selected.components))
 }
 
 #' Analyze ChIA-PET data and produce graphs.

@@ -559,14 +559,35 @@ boxplot.by.connectivity <- function(chia.obj, variable.name, label, output.dir){
   ggsave(file.path(output.dir, paste0(label, ".pdf")))
 }
 
-#############################################################################################################
-# Functions that may not work:
-# Possible reasons:
-# analyze.chromatin.states: The column "Chrom.State" is not in chia.obj$Regions.
-# analyze.annotation: The column "Simple.annotation" is not in chia.obj$Regions.
-# analyze.expression: The column "Expr.mean" is not in chia.obj$Regions.
-# etc.
-#############################################################################################################
+#' Histogram of the proportion of "essential genes", by connectivity categories.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param essential.genes The ID's of the genes to anlayze. The ID's refer the the ChIA-PET ID's of the nodes.
+#' @param label.x The title of the histogram.
+#' @param output.dir The name of the directory where to save the plot.
+#' @import ggplot2
+#' @importFrom GenomicRanges mcols
+#' @export
+histogram.essential.genes <- function(chia.obj, essential.genes, label.x, output.dir){
+  # Convert to data.frame
+  chia.annotated.df <- as.data.frame(mcols(chia.obj$Regions))
+  # Cut the size into categories
+  chia.annotated.df$CutDegree <- cut(chia.annotated.df$Degree, breaks = c(1, 2, 6, 21, Inf), right = FALSE,
+                                     labels = c("Singles", "Low", "Intermediate", "High"))
+  # Keep only the ids that represent "essential genes"
+  chia.essential <- chia.annotated.df[chia.annotated.df$ID %in% essential.genes,]
+  # Prepare the mapping to add the percentage label over the bars of the histogram
+  mapping.df <- data.frame(x.pos = levels(chia.essential$CutDegree), y.pos = as.vector(table(chia.essential$CutDegree)),
+                           label = paste0(round(as.vector(table(chia.essential$CutDegree) / table(chia.annotated.df$CutDegree[chia.annotated.df$Gene.Representative]))*100, digits = 1), "%"))
+  # Create the histogram
+  ggplot(chia.essential) +
+    geom_bar(aes(CutDegree)) +
+    geom_text(data = mapping.df, aes(x = x.pos, y = y.pos, label = label), vjust = -1) +
+    xlab("connectivity") +
+    ggtitle(paste("Histogram of ", label.x))
+  ggsave(file.path(output.dir, paste0("Histogram of ", label.x, ".pdf")))
+}
+
 
 #' Analyze the chromatin state of ChIA-PET data
 #'
@@ -951,6 +972,20 @@ analyze.central.nodes <- function(chia.obj, output.dir=".") {
   }
 }
 
+#' Performs analyses which do not fit in any of the other sub-analyses.
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param output.dir The directory where output should be saved.
+#'
+#' @export
+analyze.misc <- function(chia.obj, output.dir=".") {
+    if(has.fitness(chia.obj)) {
+        chia.plot.metrics(chia.obj, subset.counts, categorize.by.connectivity(chia.obj), x.lab = "Connectivity",
+                          graph.type = "histogram", file.out = file.path(output.dir, "Histogram of the number of essential genes by connectivity category.pdf"),
+                          all.conditions = "(Gene.Representative & (Fitness > 0.5))", proportion = FALSE)
+    }
+}
+
 #' Performs all possible analysis steps on a ChIA-PET object.
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
@@ -990,6 +1025,10 @@ analyze.chia.pet <- function(chia.obj, output.dir=".", verbose=TRUE) {
 
     cat(date(), " : Analyzing central nodes...\n",cat.sink)
     analyze.central.nodes(chia.obj, output.dir)
+    
+    cat(date(), " : Analyzing miscellaneous...\n",cat.sink)
+    analyze.misc(chia.obj, output.dir)
+    
     # Close dummy verbose stream.
     if(!verbose) {
         close(cat.sink)
