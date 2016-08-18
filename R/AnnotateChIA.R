@@ -205,6 +205,7 @@ annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
                                                chia.param$genome.build,
                                                output.dir = output.dir,
                                                tssRegion = chia.param$tssRegion)
+  chia.obj$Regions$Is.TSS <- chia.obj$Regions$distanceToTSS == 0
 
   # Associate chromatin states
   if(!is.null(chia.param$input.chrom.state)) {

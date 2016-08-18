@@ -1,3 +1,44 @@
+#' Converts a list of metrics into a data-frame for plotting.
+#'
+#' @param The list of metrics returned by mulitple call to a metric.function.
+#' @return A data-frame representing the list values in a structure appropriate for ggplot.
+metric.list.to.df <- function(metric.list) {
+  # There are two posibilities: either we have multidimensional metrics (Multiple points per metric)
+  # or unidimensional metrics (one point by metric). Infer which case we are in by input type.
+  if(is.list(metric.list[[1]])) {
+    # Get the list of all values into a single vector.
+    all.values = unlist(lapply(metric.list, unlist))
+    
+    # Now, figure out which metric goes with each value. First, find out how
+    # many times each metric is repeated within each category.
+    per.category.metric.repeats = unlist(lapply(metric.list, function(x) { lapply(x, length) }))
+  
+    # Now just repeat the metric names this exact number of times.
+    all.metrics = rep(unlist(lapply(metric.list, names)), unlist(per.category.metric.repeats))
+    
+    # Finally, figure out which category each value belong to.
+    # Figure out the total number of metrics for each categoryé
+    category.repeats = lapply(lapply(metric.list, unlist), length)
+    
+    # Now repeat each category name that exact number of times.
+    all.categories = rep(names(metric.list), category.repeats)
+    
+    # Finally, get it all into the data.frame
+    metric.df = data.frame(value    = all.values,
+                           Metric   = factor(all.metrics, levels=names(metric.list[[1]])),
+                           Category = factor(all.categories, levels=names(metric.list)))
+  } else {
+    # Get the metrics into a matrix
+    metric.matrix = matrix(unlist(metric.list), ncol=length(metric.list),
+                           dimnames = list(names(metric.list[[1]]), names(metric.list)))
+    
+    # Convert it to data frame for plotting
+    metric.df = melt(metric.matrix, varnames=c("Metric", "Category"))  
+  }
+  
+  return(metric.df)
+}
+
 #' Plots a subset of ChIA-PET nodes
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
@@ -19,7 +60,7 @@ chia.plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab 
                          title = NULL, graph.type = "line", facet.rows = NULL, facet.cols = NULL,
                          file.out=NULL, ...) {
   # Verify the valididy of arguments
-  graph.type <- match.arg(graph.type, c("line", "histogram", "heatmap"))
+  graph.type <- match.arg(graph.type, c("line", "histogram", "heatmap", "boxplot"))
 
   # Calculate metrics for all categories
   metric.list = list()
@@ -29,12 +70,8 @@ chia.plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab 
     metric.list[[node.category]] = metric.function(graph.subset, ...)
   }
 
-  # Get the metrics into a matrix
-  metric.matrix = matrix(unlist(metric.list), ncol=length(metric.list),
-                         dimnames = list(names(metric.list[[1]]), names(metric.list)))
-
-  # Convert it to data frame for plotting
-  metric.df = melt(metric.matrix)
+  # Convert the list into a data.frame
+  metric.df = metric.list.to.df(metric.list)
 
   # Plot metrics
   plot.obj = ggplot(data=metric.df) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
@@ -42,23 +79,27 @@ chia.plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab 
   # Type 1: line graph, comme nos graphs connectivity vs TF binding.
   # Chaque métrique devient une facette, avec une valeur par sous-catégorie de noeud.
   if(graph.type=="line") {
-    plot.obj = plot.obj + geom_line(mapping=aes(x=Var2, y=value), group = 1)
+    plot.obj = plot.obj + geom_line(mapping=aes(x=Category, y=value), group = 1)
   }
 
   # Type 2: histogramme
   # Même chose que les graphes en ligne, mais en histogramme.
   if(graph.type=="histogram") {
-    plot.obj = plot.obj + geom_bar(mapping = aes(x = Var2, y = value), stat = "identity", colour = "black")
+    plot.obj = plot.obj + geom_bar(mapping = aes(x = Category, y = value), stat = "identity", colour = "black")
   }
 
-  if((graph.type=="line" || graph.type == "histogram") && (nrow(metric.matrix) > 1)) {
-    plot.obj = plot.obj + facet_wrap(~Var1, nrow=facet.rows, ncol = facet.cols)
+  if(graph.type=="boxplot") {
+    plot.obj = plot.obj + geom_boxplot(mapping = aes(x=Category, y=value))
+  }
+  
+  if((graph.type=="line" || graph.type == "histogram" || graph.type == "boxplot") && (length(unique(metric.df$Metric)) > 1)) {
+    plot.obj = plot.obj + facet_wrap(~Metric, nrow=facet.rows, ncol = facet.cols)
   }
 
   # Type 3: heatmap
   # Chaque sous-catégorie de noeuds est une colonne. Chaque métrique est une rangée.
   if(graph.type=="heatmap") {
-    plot.obj = plot.obj + geom_tile(mapping=aes(x=Var2, y=Var1, fill = value))
+    plot.obj = plot.obj + geom_tile(mapping=aes(x=Category, y=Metric, fill = value))
   }
 
   # Add labels and title to the graph
@@ -202,6 +243,50 @@ boolean.count <- function(chia.obj, variable.name, proportion=FALSE) {
   return(results)
 }
 
+#' Builds a function object for extracting metrics using a variable name.
+#'
+#' @param method The method to be used by the resulting function object. Valid values could be
+#'   levels.count, count.cut, boolean.count, etc.
+#' @param variable.name The name of the variable whose proportion/counts should be calculated.
+#' @param proportion If true, proportions are returned instead of counts.
+#' @return A function to calculate the desired metric.
+#' @export
+functor.constructor <- function(method, variable.name, proportion=FALSE) {
+    return(function(x) {
+        method(x, variable.name=variable.name, proportion=proportion)
+    })
+}
+
+#' Apply a metric function to each component in the ChIA object.
+#'
+#' @param chia.obj The chia object whose compoennts should have their metrics evaluated.
+#' @param metric.function The metric function to apply to all components.
+#' @return A list containing the measures metrics for all components.
+#' @export
+apply.by.component <- function(chia.obj, metric.function) {
+    components.categories = categorize.by.component(chia.obj)
+    results = lapply(components.categories, function(x) { metric.function(chia.vertex.subset(chia.obj, x)) })
+    names(results) = colnames(components.categories)
+    
+    return(results)
+}
+
+#' Apply a metric function returning a single metric to all components of a ChIA object,
+#' and return teh resulting values as a single multi-value metric.
+#'
+#' @param metric.function The metric function to apply to all components.
+#' @param metric.name The name for the resulting combined metric.
+#' @return A list containing the measures metrics for all components.
+#' @export
+apply.single.metric.by.component <- function(metric.function, metric.name) {
+    function(chia.obj) {
+        results = list(unlist(apply.by.component(chia.obj, function(x) { metric.function(x) })))
+        names(results) = metric.name
+        return(results)
+    }
+}
+
+
 #' Creates categories based on a numeric variable
 #'
 #' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
@@ -251,7 +336,7 @@ categorize.by.components.size <- function(chia.obj, breaks = c(2, 6, 11, 21, 41,
 
 #' Creates categories based on the centrality of the nodes
 #'
-#' @param A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
 #' @return A data frame in which each column corresponds to a category. The data frame is as long as the
 #' "Regions" element of chia.obj, and the values indicate wheter or not a region belongs to a category.
 #' @importFrom stats aggregate
@@ -273,6 +358,23 @@ categorize.by.centrality <- function(chia.obj){
   centrality.df <- centrality.df[,c(4,1,2,3)]
   return(centrality.df)
 }
+
+#' Creates categories based on the component of each node.
+#'
+#' @param chia.obj A list containing the annotated ChIA-PET data, as returned by \code{\link{annotate.chia}}.
+#' @return A data frame in which each column corresponds to a category. The data frame is as long as the
+#' "Regions" element of chia.obj, and the values indicate wheter or not a region belongs to a category.
+#' @export
+categorize.by.component <- function(chia.obj) {
+    stopifnot(has.components(chia.obj))
+    
+    all.components = sort(unique(mcols(chia.obj$Regions)$Component.Id))
+    indices.list = lapply(all.components, function(x) { mcols(chia.obj$Regions)$Component.Id == x })
+    indices.df = as.data.frame(indices.list)
+    colnames(indices.df) <- all.components
+    return(indices.df)
+}
+
 
 #' Create a heatmap by connectivity group.
 #'
@@ -817,7 +919,7 @@ analyze.central.nodes <- function(chia.obj, output.dir=".") {
   }
   
   if(has.transcription.factors(chia.obj)) {
-    chia.plot.metrics(chia.obj, tf.presence, centrality.categories, graph.type = "heatmap",
+    chia.plot.metrics(chia.obj, calculate.tf.presence, centrality.categories, graph.type = "heatmap",
      x.lab = "Centrality category", y.lab = "Proportion", 
      file.out = file.path(output.dir, "Proportion of TF as a function of size centrality.pdf"),
      proportion = TRUE)

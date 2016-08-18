@@ -114,7 +114,7 @@ has.centrality <- function(chia.obj) {
 #' @return True if the object has TF binding information.
 #' @export
 has.transcription.factors <- function(chia.obj) {
-    return(sum(grepl("^TF", names(mcol(chia.obj$Regions)))) > 0)
+    return(sum(grepl("^TF", names(mcols(chia.obj$Regions)))) > 0)
 }
 
 #' Return the number of nodes in a CHIA object.
