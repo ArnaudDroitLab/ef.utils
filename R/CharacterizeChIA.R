@@ -462,6 +462,12 @@ load.chia <- function(input.chia) {
     chia.graph = make_graph(c(rbind(max.df$Left, max.df$Right)), directed=FALSE)
     edge_attr(chia.graph) <- max.df
 
+    # Regions which were only part of a self-loop will have been filtered above
+    # and will not be part of the graph object. This will cause a difference between
+    # the lengths of single.set and chia.graph.
+    # To fix this, we remove all regions which are not in max.df.
+    single.set = single.set[sort(unique(c(max.df$Left, max.df$Right)))]
+    
     chia.obj = list(Regions=single.set, Graph=chia.graph)
     class(chia.obj) = "ChIA"
     
