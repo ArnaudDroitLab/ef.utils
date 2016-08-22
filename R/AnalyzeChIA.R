@@ -830,7 +830,7 @@ analyze.components <- function(chia.obj, output.dir="output") {
     ggplot(subset(component.table, Size >5), aes(x=NumberOfTSS/Size)) + geom_histogram()
     ggsave(file.path(output.dir, "Proportion of TSS in high connectivity nodes.pdf"))
     
-    if(has.gene.annotations(chia.obj)) {
+    if(has.gene.annotation(chia.obj)) {
         tss.metric.function <- functor.constructor(boolean.count, "Is.TSS", proportion=TRUE)
         chia.plot.metrics(chia.obj, apply.single.metric.by.component(tss.metric.function, "TSS proportion"),
                           categorize.by.components.size(chia.obj), graph.type="boxplot",
