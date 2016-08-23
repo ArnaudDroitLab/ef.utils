@@ -646,6 +646,30 @@ chia.component.subset <- function(chia.obj, indices, min.selection=1) {
     return(chia.vertex.subset(chia.obj, chia.obj$Regions$Component.Id %in% selected.components))
 }
 
+#' Applies a function to a set chia object subsets.
+#'
+#' For each column of node.categories, generates a subset of chia.obj and applies chia.function.
+#' The results of all calls are returned in a named list.
+#'
+#' @param chia.obj The chia object on which the functions must be applied.
+#' @param chia.function The function to be applied to all given subsets of the chia object.
+#' @param node.categories A data-frame with a number of rows equal to the number of regions
+#'   in chia.obj, where each column represents a set of indices indicating which nodes belong
+#'   in a givenc ategory.
+#'
+#' @return A list containing th results of the calls to chia.function.
+#' @export
+category.apply <- function(chia.obj, chia.function, node.categories, ...) {
+  # Calculate metrics for all categories
+  result.list = list()
+  for(node.category in colnames(node.categories)) {
+    graph.subset = chia.vertex.subset(chia.obj, node.categories[,node.category])
+    result.list[[node.category]] = chia.function(graph.subset, ...)
+  }
+  
+  return(result.list)
+}
+
 #' Analyze ChIA-PET data and produce graphs.
 #'
 #' @param input.chia The file containing processed ChIA-PET data.
