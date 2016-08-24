@@ -1,241 +1,3 @@
-#############################################################################################################
-# Functions That should always run:
-#############################################################################################################
-
-#' Return the left part of the ChIA-PET data.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return A \linkS4class{GRanges} object with the \code{Regions} from the "\code{chia.obj}" parameter corresponding the the "left side".
-#' of the original data.
-#' @importFrom igraph as_edgelist
-chia.left <- function(chia.obj) {
-    return(chia.obj$Regions[as_edgelist(chia.obj$Graph)[,1]])
-}
-
-#' Return the right part of the ChIA-PET data.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return A \linkS4class{GRanges} object with the \code{Regions} from the "\code{chia.obj}" parameter corresponding the the "right side".
-#' of the original data.
-#' @importFrom igraph as_edgelist
-chia.right <- function(chia.obj) {
-    return(chia.obj$Regions[as_edgelist(chia.obj$Graph)[,2]])
-}
-
-#' Determines if the given chia.obj has associated chromatin states.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has associated chromatin states.
-#' @export
-has.chrom.state <- function(chia.obj) {
-    return(!is.null(chia.obj$Regions$Chrom.State))
-}
-
-#' Determines if the given chia.obj has associated components.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has associated components.
-#' @export
-has.components <- function(chia.obj) {
-    return(!is.null(chia.obj$Regions$Component.Id) && !is.null(chia.obj$Regions$Component.size))
-}
-
-#' Determines if the given chia.obj has associated gene specificities.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has associated gene specificities.
-#' @export
-has.gene.specificity <- function(chia.obj) {
-    return(!is.null(chia.obj$Regions$Gene.Representative) &&
-           !is.null(chia.obj$Regions$Expression.Tau) &&
-           !is.null(chia.obj$Regions$Expression.Category))
-}
-
-#' Determines if the given chia.obj has associated node degrees.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has associated node degrees.
-#' @export
-has.degree <- function(chia.obj) {
-    return(!is.null(chia.obj$Regions$Degree))
-}
-
-#' Determines if the given chia.obj has associated gene representatives.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has associated gene representatives.
-#' @export
-has.gene.representative <- function(chia.obj) {
-    return(!is.null(chia.obj$Regions$Gene.Representative))
-}
-
-#' Determines if the given chia.obj has associated expression levels.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has associated expression levels.
-#' @export
-has.expression.levels <- function(chia.obj) {
-    return(!is.null(chia.obj$Regions$Gene.Representative) &&
-           !is.null(chia.obj$Regions$Expr.mean))
-}
-
-#' Determines if the given chia.obj has associated gene annotations.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has associated gene annotations.
-#' @export
-has.gene.annotation <- function(chia.obj) {
-    return(!is.null(chia.obj$Regions$Simple.annotation))
-}
-
-#' Determines if the given chia.obj has associated node centralities.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has associated node centralities.
-#' @export
-has.centrality <- function(chia.obj) {
-    return(!is.null(chia.obj$Regions$Is.central))
-}
-
-#' Determines if the given chia.obj has TF binding information.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has TF binding information.
-#' @export
-has.transcription.factors <- function(chia.obj) {
-    return(sum(grepl("^TF", names(mcols(chia.obj$Regions)))) > 0)
-}
-
-#' Determines if the given chia.obj has TF binding information.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return True if the object has TF binding information.
-#' @export
-has.fitness <- function(chia.obj) {
-    return(!is.null(chia.obj$Regions$Fitness))
-}
-
-#' Return the number of nodes in a CHIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return The number of nodes in the chia object.
-#' @importFrom igraph vcount
-#' @export
-number.of.nodes <- function(chia.obj) {
-    node.count = vcount(chia.obj$Graph)
-    stopifnot(nrow(chia.obj$Regions) == node.count)
-
-    return(vcount(chia.obj$Graph))
-}
-
-#' Return the number of contacts in a CHIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return The number of contacts in the chia object.
-#' @importFrom igraph ecount
-#' @export
-number.of.contacts <- function(chia.obj) {
-    return(ecount(chia.obj$Graph))
-}
-
-#' Return the number of components in a CHIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return The number of components in the chia object.
-#' @importFrom igraph components
-#' @export
-number.of.components <- function(chia.obj) {
-    return(components(chia.obj$Graph)$no)
-}
-
-#' Return the mean component size of a CHIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return The mean component size of the chia object.
-#' @importFrom igraph components
-#' @export
-average.component.size <- function(chia.obj) {
-    return(mean(components(chia.obj$Graph)$csize))
-}
-
-#' Return the number of genes represented in a CHIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return The number of genes represented in the chia object.
-#' @export
-number.of.genes <- function(chia.obj) {
-    return(sum(chia.obj$Regions$Gene.Representative))
-}
-
-#' Return the number of active genes represented in a CHIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return The number of active genes represented in the chia object.
-#' @export
-number.active.genes <- function(chia.obj) {
-    return(sum(chia.obj$Regions$Gene.Representative & chia.obj$Regions$Is.Gene.Active))
-}
-
-#' Return the number genes per component in the CHIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return The number of active genes represented in the chia object.
-#' @export
-genes.by.component <- function(chia.obj) {
-    stopifnot(has.gene.representative(chia.obj) && has.components(chia.obj))
-    return(aggregate(Gene.Representative~Component.Id, as.data.frame(chia.obj$Regions), sum))
-}
-
-#' Return the proportion of nodes representing genes in a CHIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return The number of active genes represented in the chia object.
-#' @export
-proportion.genes <- function(chia.obj) {
-    return(number.of.genes(chia.obj) / number.of.nodes(chia.obj))
-}
-
-#' Return the proportion of active genes among all genes in a CHIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return The proportion of active genes among all genes in the chia object.
-#' @export
-proportion.active.genes <- function(chia.obj) {
-    return(number.active.genes(chia.obj) / number.of.genes(chia.obj))
-}
-
-#' Obtain the matrix of TF binding.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return A matrix indicating which TF binds to which regions.
-#' @export
-get.tf <- function(chia.obj) {
-    stopifnot(has.transcription.factors(chia.obj))
-    return(mcols(chia.obj$Regions)[,grepl("TF", colnames(mcols(chia.obj$Regions)))])
-}
-
 #' Select all nodes which are gene representatives.
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
@@ -278,118 +40,6 @@ select.from.chia.functor <- function(chia.obj) {
     return(function(x) {
         return(chia.vertex.subset(x, x$Regions$ID %in% chia.obj$Regions$ID))
     })
-}
-
-#' Returns a list of all statistics for a given ChIA object.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#'
-#' @return A named list of calculated properties for the given ChIA object.
-#' @export
-get.all.statistics <- function(chia.obj) {
-    results = lapply(list("Number of nodes"            = number.of.nodes,
-                          "Number of contacts"         = number.of.contacts,
-                          "Number of components"       = number.of.components,
-                          "Average component size"     = average.component.size,
-                          "Number of genes"            = number.of.genes,
-                          "Number of active genes"     = number.active.genes,
-                          "Proportion of genes"        = proportion.genes,
-                          "Proportion of active genes" = proportion.active.genes),
-                    function(f) f(chia.obj))
-
-    return(results)
-}
-
-#' Given two sets of nodes, determine if one shows enrichment.
-#'
-#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
-#' @param hit.functor A functor selecting the "white" elements.
-#' @param draw.functor A functor selecting the "drawn" elements.
-#'
-#' @return A vector with enrichment properties.
-#' @export
-node.enrichment <- function(chia.obj, hit.functor, draw.functor) {
-    # How many total nodes?
-    total = number.of.nodes(chia.obj)
-    
-    # How many are drawn?
-    selected.subset = draw.functor(chia.obj)
-    selected.number = number.of.nodes(selected.subset)
-    
-    # How many have the desired property in the complete set?
-    hit.all = number.of.nodes(hit.functor(chia.obj))
-    
-    # How many have the desired property in the selected set?
-    hit.selected = number.of.nodes(hit.functor(selected.subset))
-    
-    # How many hits would we expect by chance?
-    hit.expected = (hit.all/total) * selected.number
-    
-    # What is the enrichment?
-    hit.enrichment = hit.selected / hit.expected
-    
-    # Calculate enrichment
-    enrich = 1 - phyper(hit.selected, hit.all, total - hit.all, selected.number)
-    
-    return(c(Total        = total, 
-             Selected     = selected.number, 
-             Hit          = hit.all, 
-             Hit.selected = hit.selected, 
-             Expected     = hit.expected, 
-             Fold.change  = log2(hit.enrichment),
-             p.value      = enrich))
-}
-
-#' Given a data-frame combining the results of multiple calls to node.enrichment, plot those enrichments.
-#'
-#' @param enrichment.df A dataframe combining the results of multiple node.enrichment calls.
-#' @param filename The name of the file where the plot should be saved.
-#' @param label A label for the categories represented by enrichment.df's rows.
-#' @export
-chia.plot.enrichment <- function(enrichment.df, filename, label="Category") {
-  # Reorder enrichment by fold-change.
-  categories = rownames(enrichment.df)
-  enrichment.df$Category = factor(categories, categories[order(enrichment.df$Fold.change)])
-
-  # Determine which enrichments are significative.
-  enrichment.df$Significative = factor(ifelse(enrichment.df$p.value < 0.05, "Significant", "Not significant"), levels=c("Not significant", "Significant"))
-  
-  # Plot.
-  ggplot(enrichment.df) +
-    geom_bar(aes(x=Category, y=Fold.change, fill = Significative), colour = "black", stat = "identity") +
-    ylab("log2(Hits/Expected hits)") + xlab(label) +
-    ggtitle("Transcription factor enrichment") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.key.size = unit(1, "cm")) +
-    coord_flip()
-    
-  ggsave(filename)
-}
-
-#' Calculate enrichment of transcription factors on a selection of nodes.
-#'
-#' @param chia.obj The network on which TF enrichment needs to be performed.
-#' @param draw.function A function which, given a ChIA object, returns a subset of the "drawn" nodes.
-#' @return A data-frame giving the enrichments of all transcription factors at the specified nodes.
-#' @export
-tf.enrichment <- function(chia.obj, draw.function) {
-  results = list()
-  
-  # Loop over all transcription factors, calculating enrichment for each.
-  all.tf = colnames(get.tf(chia.obj))
-  for(tf in all.tf) {
-      # Define a function for selecting the nodes bearing that factor.
-      tf.select = function(x) {return(chia.vertex.subset(x, mcols(x$Regions)[[tf]] > 0)) }
-      
-      # Perform enrichment of the TF.
-      results[[tf]] = node.enrichment(chia.obj, tf.select, draw.function)
-  }
-  
-  # Combine the results into a data-frame, and rename it appropriately.
-  retvat = do.call(rbind.data.frame, results)
-  colnames(retvat) <- names(results[[1]])
-  rownames(retval) <- gsub("TF.overlap.", "", rownames(retval))
-
-  return(retvat)
 }
 
 regions.to.vertex.attr <- function(chia.obj) {
@@ -669,6 +319,32 @@ category.apply <- function(chia.obj, chia.function, node.categories, ...) {
   
   return(result.list)
 }
+
+#' Apply a metric function to each component in the ChIA object.
+#'
+#' @param chia.obj The chia object whose compoennts should have their metrics evaluated.
+#' @param metric.function The metric function to apply to all components.
+#' @return A list containing the measures metrics for all components.
+#' @export
+apply.by.component <- function(chia.obj, metric.function, ...) {
+    return(category.apply(chia.obj, metric.function, categorize.by.component(chia.obj), ...))
+}
+
+#' Apply a metric function returning a single metric to all components of a ChIA object,
+#' and return teh resulting values as a single multi-value metric.
+#'
+#' @param metric.function The metric function to apply to all components.
+#' @param metric.name The name for the resulting combined metric.
+#' @return A list containing the measures metrics for all components.
+#' @export
+apply.single.metric.by.component <- function(metric.function, metric.name) {
+    function(chia.obj) {
+        results = list(unlist(apply.by.component(chia.obj, function(x) { metric.function(x) })))
+        names(results) = metric.name
+        return(results)
+    }
+}
+
 
 #' Analyze ChIA-PET data and produce graphs.
 #'
