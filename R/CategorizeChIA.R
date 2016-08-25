@@ -20,7 +20,9 @@ categorize.by.breaks <- function(chia.obj, variable.name, breaks = NULL) {
   # Convert to data frame and add names
   bool.df <- as.data.frame(bool.matrix)
   colnames(bool.df) <- paste0("[", breaks[1:(length(breaks) - 1)], ",", breaks[2:length(breaks)], ")")
-  return(bool.df)
+  
+  res = bool.df
+  return(lapply(res, which))
 }
 
 #' Creates categories based on the connectivity of the nodes
@@ -31,7 +33,8 @@ categorize.by.breaks <- function(chia.obj, variable.name, breaks = NULL) {
 #' "Regions" element of chia.obj, and the values indicate wheter or not a region belongs to a category.
 #' @export
 categorize.by.connectivity <- function(chia.obj, breaks = c(1, 2, 6, 21, Inf)) {
-  return(categorize.by.breaks(chia.obj, "Degree", breaks))
+  res = categorize.by.breaks(chia.obj, "Degree", breaks)
+  return(lapply(res, which))
 }
 
 #' Creates categories based on the size of the components
@@ -42,7 +45,8 @@ categorize.by.connectivity <- function(chia.obj, breaks = c(1, 2, 6, 21, Inf)) {
 #' "Regions" element of chia.obj, and the values indicate wheter or not a region belongs to a category.
 #' @export
 categorize.by.components.size <- function(chia.obj, breaks = c(2, 6, 11, 21, 41, Inf)) {
-  return(categorize.by.breaks(chia.obj, "Component.size", breaks))
+  res = categorize.by.breaks(chia.obj, "Component.size", breaks)
+  return(res)
 }
 
 #' Creates categories based on the centrality of the nodes
@@ -67,7 +71,9 @@ categorize.by.centrality <- function(chia.obj){
   centrality.df$Most.central <- (chia.df$Centrality.score == chia.df$max.centrality) & chia.df$Is.central
   # Reorder the columns
   centrality.df <- centrality.df[,c(4,1,2,3)]
-  return(centrality.df)
+  
+  res = centrality.df
+  return(lapply(res, which))
 }
 
 #' Creates categories based on the component of each node.
@@ -83,5 +89,7 @@ categorize.by.component <- function(chia.obj) {
     indices.list = lapply(all.components, function(x) { mcols(chia.obj$Regions)$Component.Id == x })
     indices.df = as.data.frame(indices.list)
     colnames(indices.df) <- all.components
-    return(indices.df)
+    
+    res = indices.df
+    return(lapply(res, which))
 }

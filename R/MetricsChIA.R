@@ -63,7 +63,7 @@ chia.plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab 
   graph.type <- match.arg(graph.type, c("line", "histogram", "heatmap", "boxplot"))
 
   # Calculate metrics for all categories
-  category.apply(chia.obj, metric.function, node.categories, ...)
+  metric.list = category.apply(chia.obj, metric.function, node.categories, ...)
 
   # Convert the list into a data.frame
   metric.df = metric.list.to.df(metric.list)
