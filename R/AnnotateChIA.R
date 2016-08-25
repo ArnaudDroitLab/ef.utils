@@ -45,6 +45,8 @@ calculate.centralities <- function(chia.obj, which.measures=c("Degree", "Between
   # to identify a component specific  central node.
   components.out = components(chia.obj$Graph)
   for(i in 1:components.out$no) {
+    cat("Processing", i, "out of", components.out$no, "\n")
+  
     # Generate a subgraph for the component.
     which.nodes = components.out$membership==i
     component.subgraph = induced_subgraph(chia.obj$Graph, which.nodes)
@@ -212,7 +214,7 @@ add.gene.annotation <- function(chia.obj, annotation.df, label) {
 #' @importFrom igraph degree
 #'
 #' @export
-annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
+annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE, skip.centrality=FALSE) {
   # Create the output directory.
   dir.create(output.dir, recursive = TRUE, showWarnings=FALSE)
 
@@ -282,10 +284,12 @@ annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
   chia.obj = associate.components(chia.obj)
 
   # Associate centrality scores
-  cat(date(), " : Associating centrality scores...\n",cat.sink)
-  chia.obj = associate.centralities(chia.obj,
-                                    which.measures=chia.param$centrality.measures,
-                                    weight.attr=chia.param$weight.attr)
+  if(!skip.centrality) {
+    cat(date(), " : Associating centrality scores...\n",cat.sink)
+    chia.obj = associate.centralities(chia.obj,
+                                      which.measures=chia.param$centrality.measures,
+                                      weight.attr=chia.param$weight.attr)
+  }
 
   # Associate miscellaneous useful defnitions
   chia.obj$Regions = associate.is.gene.active(chia.obj$Regions)

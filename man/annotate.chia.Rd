@@ -4,7 +4,8 @@
 \alias{annotate.chia}
 \title{Annotate "chia.obj", given as parameter.}
 \usage{
-annotate.chia(chia.obj, chia.param, output.dir = ".", verbose = TRUE)
+annotate.chia(chia.obj, chia.param, output.dir = ".", verbose = TRUE,
+  skip.centrality = FALSE)
 }
 \arguments{
 \item{chia.obj}{A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.}
