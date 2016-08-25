@@ -220,17 +220,18 @@ annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
   cat.sink = ifelse(verbose, "", textConnection(NULL, w))
 
   # Add an ID to every region.
-  chia.obj$Regions$ID = 1:length(chia.obj$Regions)
+  chia.obj$Regions$ID = 1:nrow(chia.obj$Regions)
 
   # Add degree count directly to chia.obj$Regions
   chia.obj$Regions$Degree = degree(chia.obj$Graph)
 
   # Associate genomic regions
   cat(date(), " : Associating genomic regions...\n",cat.sink)
-  chia.obj$Regions <- associate.genomic.region(chia.obj$Regions,
-                                               chia.param$genome.build,
-                                               output.dir = output.dir,
-                                               tssRegion = chia.param$tssRegion)
+  tmp = associate.genomic.region(get.granges(chia.obj),
+                                 chia.param$genome.build,
+                                 output.dir = output.dir,
+                                 tssRegion = chia.param$tssRegion)
+  chia.obj$Regions <- as.data.frame(tmp)
   chia.obj$Regions$Is.TSS <- chia.obj$Regions$distanceToTSS == 0
 
   # Associate chromatin states
@@ -243,7 +244,8 @@ annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
   # Associate transcription factors
   if(!is.null(chia.param$tf.regions)) {
     cat(date(), " : Associating transcription factors...\n",cat.sink)
-    chia.obj$Regions = associate.tf(chia.obj$Regions, chia.param$tf.regions)
+    tmp = associate.tf(get.granges(chia.obj), chia.param$tf.regions)
+    chia.obj$Regions = as.data.frame(tmp)
   }
 
   # Associate histone marks
@@ -262,14 +264,17 @@ annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
 
   # Associate genes to regions
   cat(date(), " : Associating genes...\n",cat.sink)
-  chia.obj$Regions = associate.gene(chia.obj$Regions, chia.param$expression.data)
+  tmp = associate.gene(get.granges(chia.obj), chia.param$expression.data)
+  chia.obj$Regions = as.data.frame(tmp)
 
   # Associate tissue specificity and fitness scores if the organism allows it.
   if(chia.param$genome.build=="hg19" || chia.param$genome.build=="hg38") {
     cat(date(), " : Associating tissue specificity...\n",cat.sink)
-    chia.obj$Regions = associate.tissue.specificity.human(chia.obj$Regions)
+    tmp = associate.tissue.specificity.human(get.granges(chia.obj))
+    chia.obj$Regions = as.data.frame(tmp)
     cat(date(), " : Associating fitness score...\n",cat.sink)
-    chia.obj$Regions = associate.fitness.genes(chia.obj$Regions)
+    tmp = associate.fitness.genes(get.granges(chia.obj))
+    chia.obj$Regions = as.data.frame(tmp)
   }
 
   # Associate components ids and sizes

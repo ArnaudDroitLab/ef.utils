@@ -6,7 +6,7 @@
 #' of the original data.
 #' @importFrom igraph as_edgelist
 chia.left <- function(chia.obj) {
-    return(chia.obj$Regions[as_edgelist(chia.obj$Graph)[,1]])
+    return(chia.obj$Regions[as_edgelist(chia.obj$Graph)[,1],])
 }
 
 #' Return the right part of the ChIA-PET data.
@@ -17,7 +17,7 @@ chia.left <- function(chia.obj) {
 #' of the original data.
 #' @importFrom igraph as_edgelist
 chia.right <- function(chia.obj) {
-    return(chia.obj$Regions[as_edgelist(chia.obj$Graph)[,2]])
+    return(chia.obj$Regions[as_edgelist(chia.obj$Graph)[,2],])
 }
 
 #' Return the right part of the ChIA-PET data.

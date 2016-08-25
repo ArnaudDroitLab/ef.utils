@@ -17,7 +17,7 @@ metric.list.to.df <- function(metric.list) {
     all.metrics = rep(unlist(lapply(metric.list, names)), unlist(per.category.metric.repeats))
     
     # Finally, figure out which category each value belong to.
-    # Figure out the total number of metrics for each categoryé
+    # Figure out the total number of metrics for each category
     category.repeats = lapply(lapply(metric.list, unlist), length)
     
     # Now repeat each category name that exact number of times.
@@ -71,14 +71,14 @@ chia.plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab 
   # Plot metrics
   plot.obj = ggplot(data=metric.df) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-  # Type 1: line graph, comme nos graphs connectivity vs TF binding.
-  # Chaque métrique devient une facette, avec une valeur par sous-catégorie de noeud.
+  # Type 1: line graphs
+  # Each metric becomes a facet, with one value per category.
   if(graph.type=="line") {
     plot.obj = plot.obj + geom_line(mapping=aes(x=Category, y=value), group = 1)
   }
 
-  # Type 2: histogramme
-  # Même chose que les graphes en ligne, mais en histogramme.
+  # Type 2: histograms
+  # Same thing as lines, but using bars.
   if(graph.type=="histogram") {
     plot.obj = plot.obj + geom_bar(mapping = aes(x = Category, y = value), stat = "identity", colour = "black")
   }
@@ -92,7 +92,7 @@ chia.plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab 
   }
 
   # Type 3: heatmap
-  # Chaque sous-catégorie de noeuds est une colonne. Chaque métrique est une rangée.
+  # Each node category is a column, each metric is a row.
   if(graph.type=="heatmap") {
     plot.obj = plot.obj + geom_tile(mapping=aes(x=Category, y=Metric, fill = value))
   }

@@ -89,7 +89,7 @@ analyze.expression <- function(chia.obj, output.dir="output") {
     if(!(has.degree(chia.obj) && has.expression.levels(chia.obj))) {
         warning("No expression levels to analyze!")
     } else {
-        gene.reps = chia.obj$Regions[chia.obj$Regions$Gene.Representative==TRUE]
+        gene.reps = chia.obj$Regions[chia.obj$Regions$Gene.Representative==TRUE,]
         degree.exp.df <- data.frame(Degree=gene.reps$Degree,
                                     Exp.Mean=gene.reps$Expr.mean)
         ggplot(degree.exp.df, aes(x=log2(Degree), y=log2(Exp.Mean))) +
@@ -117,7 +117,7 @@ analyze.gene.specificity <- function(chia.obj, output.dir="output") {
         warning("No gene specificity to analyze!")
     } else {
         # Plot Tau and category vs degree
-        tissue.specificity.df = with(chia.obj$Regions[chia.obj$Regions$Gene.Representative],
+        tissue.specificity.df = with(chia.obj$Regions[chia.obj$Regions$Gene.Representative,],
                                     data.frame(Degree=degree(chia.obj$Graph),
                                                Tau=chia.obj$Regions$Expression.Tau,
                                                Category=chia.obj$Regions$Expression.Category))
@@ -269,7 +269,7 @@ analyze.components <- function(chia.obj, output.dir="output") {
 analyze.generic.topology <- function(chia.obj, output.dir="output") {
   # Plot an histogram of the number of edges.
   #hist(log2(degree(chia.obj$Graph)), breaks=seq(0, 300, by=5))
-  ggplot(as.data.frame(chia.obj$Regions)) + geom_histogram(aes(Degree)) + scale_y_log10() + scale_x_log10()
+  ggplot(chia.obj$Regions) + geom_histogram(aes(Degree)) + scale_y_log10() + scale_x_log10()
   ggsave(file.path(output.dir, "Histogram of number of edges.pdf"))
 
   # Plot a scatter plot showing the relation between the left and right vertices' degree.
@@ -283,7 +283,7 @@ analyze.generic.topology <- function(chia.obj, output.dir="output") {
   ggsave(file.path(output.dir, "Scatter plot of degrees of the left node versus the right node.pdf"))
 
   # Degree vs cluster size
-  cluster.size.df = data.frame(Degree=degree(chia.obj$Graph), Width=width(chia.obj$Regions))
+  cluster.size.df = data.frame(Degree=degree(chia.obj$Graph), Width=chia.obj$Regions$width)
   ggplot(cluster.size.df, aes(x=Width, y=Degree)) + geom_point() + scale_x_log10() + scale_y_log10()
   ggsave(file.path(output.dir, "Degree vs cluster width.pdf"))
 }

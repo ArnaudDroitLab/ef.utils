@@ -34,7 +34,7 @@ categorize.by.breaks <- function(chia.obj, variable.name, breaks = NULL) {
 #' @export
 categorize.by.connectivity <- function(chia.obj, breaks = c(1, 2, 6, 21, Inf)) {
   res = categorize.by.breaks(chia.obj, "Degree", breaks)
-  return(lapply(res, which))
+  return(res)
 }
 
 #' Creates categories based on the size of the components

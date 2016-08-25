@@ -280,7 +280,7 @@ chia.vertex.subset <- function(chia.obj, indices) {
       indices = which(indices)
     }
     
-    return(list(Regions = chia.obj$Regions[indices],
+    return(list(Regions = chia.obj$Regions[indices,],
                 Graph = induced_subgraph(chia.obj$Graph, indices)))
 }
 
