@@ -117,7 +117,7 @@ chia.plot.metrics <- function(chia.obj, metric.function, node.categories, x.lab 
 #' @export
 level.counts <- function(chia.subset, variable.name, proportion = TRUE){
   # Convert data into data frame
-  variable.data <- mcols(chia.subset$Regions)[,variable.name]
+  variable.data <- chia.subset$Regions[,variable.name]
   # Convert into factor if necessary
   if(class(variable.data) != "factor"){
     variable.data <- as.factor(variable.data)
@@ -142,7 +142,7 @@ level.counts <- function(chia.subset, variable.name, proportion = TRUE){
 #' @export
 count.cut <- function(chia.subset, variable.name, proportion = TRUE, ...){
   # Convert data into data frame
-  variable.data <- mcols(chia.subset$Regions)[,variable.name]
+  variable.data <- chia.subset$Regions[,variable.name]
   # Cut variable in categories
   cut <- cut(variable.data, ...)
   # Count the occurence of each category
@@ -164,7 +164,7 @@ count.cut <- function(chia.subset, variable.name, proportion = TRUE, ...){
 #' @export
 subset.counts <- function(chia.subset, all.conditions, proportion = TRUE) {
   # Convert data into data frame
-  variable.data <- mcols(chia.subset$Regions)
+  variable.data <- chia.subset$Regions
   # Count the number of nodes respecting the conditions
   count <- nrow(subset(variable.data, subset = eval(parse(text = all.conditions))))
   # If proportion are needed, divide by the total number of nodes
@@ -226,7 +226,7 @@ calculate.tf.presence <- function(chia.obj, proportion=TRUE) {
 #' @export
 boolean.count <- function(chia.obj, variable.name, proportion=FALSE) {
   # Convert data into data frame
-  variable.data <- as.logical(mcols(chia.obj$Regions)[[variable.name]])
+  variable.data <- as.logical(chia.obj$Regions[[variable.name]])
   
   # Count the number of nodes respecting the conditions
   results <- sum(variable.data)

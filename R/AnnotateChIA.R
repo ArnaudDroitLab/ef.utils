@@ -10,7 +10,7 @@
 #' @return The annotated chia.obj.
 associate.centralities <- function(chia.obj, which.measures=c("Degree", "Betweenness", "Eigenvector"), weight.attr=NULL) {
   centralities = calculate.centralities(chia.obj, which.measures, weight.attr)
-  mcols(chia.obj$Regions) <- cbind(mcols(chia.obj$Regions), centralities)
+  chia.obj$Regions <- cbind(chia.obj$Regions, centralities)
 
   return(chia.obj)
 }
@@ -187,7 +187,7 @@ add.gene.annotation <- function(chia.obj, annotation.df, label) {
     values[!chia.obj$Regions$Gene.Representative] <- NA
     
     # Add the values to the chia.obj's regions.
-    mcols(chia.obj$Regions)[,label] = values
+    chia.obj$Regions[,label] = values
     
     return(chia.obj)
 }
@@ -236,7 +236,8 @@ annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
   # Associate chromatin states
   if(!is.null(chia.param$input.chrom.state)) {
     cat(date(), " : Associating chromatin states...\n",cat.sink)
-    chia.obj$Regions = associate.chrom.state(chia.obj$Regions, chia.param$input.chrom.state)
+    tmp = associate.chrom.state(get.granges(chia.obj), chia.param$input.chrom.state)
+    chia.obj$Regions = as.data.frame(tmp)
   }
 
   # Associate transcription factors
@@ -248,13 +249,15 @@ annotate.chia <- function(chia.obj, chia.param, output.dir=".", verbose=TRUE) {
   # Associate histone marks
   if(!is.null(chia.param$histone.regions)) {
     cat(date(), " : Associating histone marks...\n",cat.sink)
-    chia.obj$Regions = associate.histone.marks(chia.obj$Regions, chia.param$histone.regions)
+    tmp = associate.histone.marks(get.granges(chia.obj), chia.param$histone.regions)
+    chia.obj$Regions = as.data.frame(tmp)
   }
 
   # Associate known polymerase binding
   if(!is.null(chia.param$pol.regions)) {
     cat(date(), " : Associating polymerase II regions...\n",cat.sink)
-    chia.obj$Regions = associate.histone.marks(chia.obj$Regions, chia.param$pol.regions)
+    tmp = associate.histone.marks(get.granges(chia.obj), chia.param$pol.regions)    
+    chia.obj$Regions = as.data.frame(tmp)
   }
 
   # Associate genes to regions

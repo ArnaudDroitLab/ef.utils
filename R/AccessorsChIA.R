@@ -20,6 +20,17 @@ chia.right <- function(chia.obj) {
     return(chia.obj$Regions[as_edgelist(chia.obj$Graph)[,2]])
 }
 
+#' Return the right part of the ChIA-PET data.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return A \linkS4class{GRanges} object with the \code{Regions} from the "\code{chia.obj}" parameter corresponding the the "right side".
+#' of the original data.
+#' @export
+get.granges <- function(chia.obj) {
+    return(GRanges(chia.obj$Regions))
+}
+
 #' Determines if the given chia.obj has associated chromatin states.
 #'
 #' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
@@ -110,7 +121,7 @@ has.centrality <- function(chia.obj) {
 #' @return True if the object has TF binding information.
 #' @export
 has.transcription.factors <- function(chia.obj) {
-    return(sum(grepl("^TF", names(mcols(chia.obj$Regions)))) > 0)
+    return(sum(grepl("^TF", colnames(chia.obj$Regions))) > 0)
 }
 
 #' Determines if the given chia.obj has TF binding information.
@@ -229,7 +240,7 @@ proportion.active.genes <- function(chia.obj) {
 #' @export
 get.tf <- function(chia.obj) {
     stopifnot(has.transcription.factors(chia.obj))
-    return(mcols(chia.obj$Regions)[,grepl("TF", colnames(mcols(chia.obj$Regions)))])
+    return(chia.obj$Regions[,grepl("TF", colnames(chia.obj$Regions))])
 }
 
 #' Returns a list of all statistics for a given ChIA object.

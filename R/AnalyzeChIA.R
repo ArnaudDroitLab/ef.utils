@@ -11,11 +11,11 @@
 #' @importFrom ggplot2 ggsave
 #' @importFrom reshape2 melt
 contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
-  type.df = data.frame(Left=mcols(chia.left(chia.obj))[,variable.name],
-                       Right=mcols(chia.right(chia.obj))[,variable.name],
+  type.df = data.frame(Left=chia.left(chia.obj)[,variable.name],
+                       Right=chia.right(chia.obj)[,variable.name],
                        stringsAsFactors=FALSE)
 
-  var.levels = levels(mcols(chia.left(chia.obj))[,variable.name])
+  var.levels = levels(chia.left(chia.obj)[,variable.name])
   results.matrix = matrix(NA, nrow=length(var.levels), ncol=length(var.levels), dimnames=list(var.levels, var.levels))
 
   for(i in 1:(length(var.levels))) {
@@ -66,7 +66,7 @@ contact.heatmap <- function(chia.obj, variable.name, label, output.dir) {
 boxplot.per.tf <- function(chip.data, biosample, genome.build, chia.obj, output.dir, TSS = TRUE, tssRegion = c(-3000, 3000)) {
 
   # Extract ChIA-PET regions
-  chia.data <- chia.obj$Regions
+  chia.data <- get.granges(chia.obj$Regions)
 
   # Exctract all TF
   if (genome.build == "hg19"){
@@ -168,7 +168,7 @@ boxplot.per.tf <- function(chip.data, biosample, genome.build, chia.obj, output.
 #'
 #' @export
 boxplot.by.connectivity <- function(chia.obj, variable.name, label, output.dir){
-  data.for.boxplot <- as.data.frame(mcols(chia.obj$Regions)[, c(variable.name, "Degree")])
+  data.for.boxplot <- chia.obj$Regions[, c(variable.name, "Degree")]
   data.for.boxplot$CutDegree <- cut(data.for.boxplot$Degree, breaks = c(1, 2, 6, 21, Inf), right = FALSE,
                                     labels = c("Singles", "Low", "Intermediate", "High"))
   data.for.boxplot <- data.for.boxplot[!is.na(data.for.boxplot[,variable.name]),]
@@ -192,7 +192,7 @@ boxplot.by.connectivity <- function(chia.obj, variable.name, label, output.dir){
 #' @export
 histogram.essential.genes <- function(chia.obj, essential.genes, label.x, output.dir){
   # Convert to data.frame
-  chia.annotated.df <- as.data.frame(mcols(chia.obj$Regions))
+  chia.annotated.df <- chia.obj$Regions
   # Cut the size into categories
   chia.annotated.df$CutDegree <- cut(chia.annotated.df$Degree, breaks = c(1, 2, 6, 21, Inf), right = FALSE,
                                      labels = c("Singles", "Low", "Intermediate", "High"))

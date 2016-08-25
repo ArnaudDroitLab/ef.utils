@@ -118,7 +118,7 @@ load.chia <- function(input.chia) {
     # To fix this, we remove all regions which are not in max.df.
     single.set = single.set[sort(unique(c(max.df$Left, max.df$Right)))]
     
-    chia.obj = list(Regions=single.set, Graph=chia.graph)
+    chia.obj = list(Regions=as.data.frame(single.set), Graph=chia.graph)
     class(chia.obj) = "ChIA"
     
     return(chia.obj)

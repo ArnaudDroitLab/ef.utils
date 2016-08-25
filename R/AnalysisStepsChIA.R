@@ -150,11 +150,9 @@ analyze.gene.specificity <- function(chia.obj, output.dir="output") {
 #' @importFrom ggplot2 ggsave
 #' @importFrom reshape2 melt
 analyze.tf <- function(chia.obj, output.dir="output") {
-    tf.columns = grepl("^TF\\.", colnames(mcols(chia.obj$Regions)))
-
-    if(sum(tf.columns) > 0) {
+    if(has.transcription.factors(chia.obj)) {
         # Extract the overlap matrix from the region annotations.
-        overlap.matrix <- as.matrix(mcols(chia.obj$Regions)[,tf.columns])
+        overlap.matrix <- as.matrix(get.tf(chia.obj))
 
         # Look at TF presence curves as a function of connectivity
         boundaries.list = list(Singles=c(0, 1), Low=c(1, 5), Intermediate=c(5, 20), High=c(20, 1000))
@@ -207,7 +205,7 @@ analyze.tf <- function(chia.obj, output.dir="output") {
 analyze.components <- function(chia.obj, output.dir="output") {
   # Analyze components
   if(has.components(chia.obj)) {
-    component.table <- as.data.frame(mcols(chia.obj$Regions)[,c("Component.Id", "Component.size")])
+    component.table <- chia.obj$Regions[,c("Component.Id", "Component.size")]
     component.df <- data.frame(Size = unique(component.table)$Component.size, Number = 1)
     component.df <- aggregate(Number~Size, data = component.df, FUN = sum)
 

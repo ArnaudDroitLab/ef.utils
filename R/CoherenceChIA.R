@@ -78,7 +78,7 @@ active.gene.coherence <- function(chia.obj) {
 fold.change.coherence <- function(fc.column) {
     force(fc.column)
     function(chia.obj) {
-        values = mcols(chia.obj$Regions)[,fc.column]
+        values = chia.obj$Regions[,fc.column]
         direction = factor(ifelse(values > 0, "Upregulated", "Downregulated"), levels=c("Downregulated", "Upregulated"))
         
         return(direction)

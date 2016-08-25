@@ -9,7 +9,7 @@
 #' @export
 categorize.by.breaks <- function(chia.obj, variable.name, breaks = NULL) {
   # Convert data into data frame
-  chia.df <- mcols(chia.obj$Regions)
+  chia.df <- chia.obj$Regions
  # Create the boolean matrix
   bool.matrix <- matrix(FALSE, nrow = nrow(chia.df), ncol = (length(breaks) - 1))
   for (i in 1:(length(breaks) - 1)) {
@@ -54,7 +54,7 @@ categorize.by.components.size <- function(chia.obj, breaks = c(2, 6, 11, 21, 41,
 #' @export
 categorize.by.centrality <- function(chia.obj){
   # Convert data into data frame
-  chia.df <- mcols(chia.obj$Regions)
+  chia.df <- chia.obj$Regions
   # The central, perpheral nodes, and all nodes, can already be identified
   centrality.df <- data.frame(Central.nodes = chia.df$Is.central,
                               Peripheral.nodes = !(chia.df$Is.central),
@@ -79,8 +79,8 @@ categorize.by.centrality <- function(chia.obj){
 categorize.by.component <- function(chia.obj) {
     stopifnot(has.components(chia.obj))
     
-    all.components = sort(unique(mcols(chia.obj$Regions)$Component.Id))
-    indices.list = lapply(all.components, function(x) { mcols(chia.obj$Regions)$Component.Id == x })
+    all.components = sort(unique(chia.obj$Regions$Component.Id))
+    indices.list = lapply(all.components, function(x) { chia.obj$Regions$Component.Id == x })
     indices.df = as.data.frame(indices.list)
     colnames(indices.df) <- all.components
     return(indices.df)
