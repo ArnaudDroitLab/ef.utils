@@ -27,7 +27,7 @@ coherence.test <- function(chia.obj, coherence.function, node.categories, output
   # Turn the count list into a data-frame.
   coherence.df = data.frame(matrix(unlist(coherence.counts), ncol=2, byrow=TRUE))
   colnames(coherence.df) <- names(coherence.counts[[1]])
-  rownames(coherence.df) <- colnames(node.categories)
+  rownames(coherence.df) <- names(node.categories)
   
   # Calculate additional statistics
   coherence.df$Ratio = coherence.df[,2] / coherence.df[,1]

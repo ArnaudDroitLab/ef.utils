@@ -276,8 +276,12 @@ community.split <- function(chia.obj, oneByOne = FALSE, method = igraph::cluster
 #' @importFrom igraph induced_subgraph
 #' @export
 chia.vertex.subset <- function(chia.obj, indices) {
+    if(mode(indices) == "logical") {
+      indices = which(indices)
+    }
+    
     return(list(Regions = chia.obj$Regions[indices],
-                Graph = induced_subgraph(chia.obj$Graph, which(indices))))
+                Graph = induced_subgraph(chia.obj$Graph, indices)))
 }
 
 #' Subset a chia object by keeping all components where at least one node is selected.
@@ -312,8 +316,8 @@ chia.component.subset <- function(chia.obj, indices, min.selection=1) {
 category.apply <- function(chia.obj, chia.function, node.categories, ...) {
   # Calculate metrics for all categories
   result.list = list()
-  for(node.category in colnames(node.categories)) {
-    graph.subset = chia.vertex.subset(chia.obj, node.categories[,node.category])
+  for(node.category in names(node.categories)) {
+    graph.subset = chia.vertex.subset(chia.obj, node.categories[[node.category]])
     result.list[[node.category]] = chia.function(graph.subset, ...)
   }
   

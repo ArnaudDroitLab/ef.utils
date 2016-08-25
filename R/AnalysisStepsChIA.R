@@ -202,6 +202,7 @@ analyze.tf <- function(chia.obj, output.dir="output") {
 #' @importFrom igraph components
 #' @importFrom igraph get.data.frame
 #' @importFrom utils write.table
+#' @export
 analyze.components <- function(chia.obj, output.dir="output") {
   # Analyze components
   if(has.components(chia.obj)) {
