@@ -60,7 +60,7 @@ chia.plot.enrichment <- function(enrichment.df, filename, label="Category") {
     theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.key.size = unit(1, "cm")) +
     coord_flip()
     
-  ggsave(filename)
+  ggsave(filename, width=7, height=14)
 }
 
 #' Calculate enrichment of transcription factors on a selection of nodes.
@@ -76,16 +76,16 @@ tf.enrichment <- function(chia.obj, draw.function) {
   all.tf = colnames(get.tf(chia.obj))
   for(tf in all.tf) {
       # Define a function for selecting the nodes bearing that factor.
-      tf.select = function(x) {return(chia.vertex.subset(x, mcols(x$Regions)[[tf]] > 0)) }
+      tf.select = function(x) {return(chia.vertex.subset(x, x$Regions[[tf]] > 0)) }
       
       # Perform enrichment of the TF.
       results[[tf]] = node.enrichment(chia.obj, tf.select, draw.function)
   }
   
   # Combine the results into a data-frame, and rename it appropriately.
-  retvat = do.call(rbind.data.frame, results)
-  colnames(retvat) <- names(results[[1]])
+  retval = do.call(rbind.data.frame, results)
+  colnames(retval) <- names(results[[1]])
   rownames(retval) <- gsub("TF.overlap.", "", rownames(retval))
 
-  return(retvat)
+  return(retval)
 }

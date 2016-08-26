@@ -42,6 +42,30 @@ select.from.chia.functor <- function(chia.obj) {
     })
 }
 
+#' Select all nodes which are in the given components.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return A subset of chia.obj containing only nodes which are in the given components.
+#' @export  
+select.by.components <- function(chia.obj, component.ids) {
+    return(chia.vertex.subset(chia.obj, chia.obj$Regions$Component.Id %in% component.ids))
+}
+
+#' Generate a function similar to select.by.components where the components.ids parameter is bound.
+#'
+#' @param chia.obj A list containing the ChIA-PET data, as returned by \code{\link{load.chia}}.
+#'
+#' @return A function which accepts a ChIA object and returns the subset of nodes whose
+#'   component is in component.ids.
+#' @export   
+select.by.component.functor <- function(component.ids) {
+    force(component.ids)
+    function(chia.obj) {
+        return(select.by.components(chia.obj, component.ids))
+    }
+}
+
 regions.to.vertex.attr <- function(chia.obj) {
   vertex_attr(chia.obj$Graph) <- as.data.frame(chia.obj$Regions, stringsAsFactors = FALSE)
   return(chia.obj)
