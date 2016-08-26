@@ -631,6 +631,13 @@ characterize.gene.set <- function(gene.set, annotations.list, skip.motif=FALSE, 
 #' Associates a boolean in fonction of the activity of the gene
 #'
 #' Is.Gene.Active is \code{TRUE} if FPKM > 1
+
+#' Associate gene activity marker to a \linkS4class{GRanges} object.
+#'
+#' @param regions A \linkS4class{GRanges} object to annotate.
+#'
+#' @return The \linkS4class{GRanges} object with associated histone overlap percentage.
+#' @export
 associate.is.gene.active <- function(regions){
   regions.df <- as.data.frame(regions)
   #colname.CDK9 <- colnames(regions.df)[grep("CDK9", colnames(regions.df))][1]
@@ -659,6 +666,7 @@ associate.is.gene.active <- function(regions){
 #' @importFrom stats aggregate
 #' @importFrom GenomicRanges reduce
 #' @importFrom GenomicRanges mcols
+#' @export
 associate.histone.marks <- function(regions, histone.regions){
   all.columns <- data.frame(matrix(nrow = length(regions@seqnames), ncol = length(names(histone.regions))))
   column = 1
@@ -705,6 +713,7 @@ associate.histone.marks <- function(regions, histone.regions){
 #'
 #' @return The \linkS4class{GRanges} object with associated genomic regions.
 #' @importFrom GenomicRanges mcols
+#' @export
 associate.genomic.region <- function(regions, genome.build, output.dir, tssRegion = c(-3000, 3000)) {
   # Annotate with proximity to gene regions
   annotations.list = select.annotations(genome.build)
@@ -736,6 +745,7 @@ associate.genomic.region <- function(regions, genome.build, output.dir, tssRegio
 #'
 #' @return The \linkS4class{GRanges} object with associated genes.
 #' @importFrom plyr ddply mutate
+#' @export
 associate.gene.chip <- function(regions, expression.data=NULL, biosample, genome.build){
   # Associate a gene to a contact only if it's in the promoter.
   promoter.subset = regions$Simple.annotation == "Promoter"
@@ -778,6 +788,7 @@ associate.gene.chip <- function(regions, expression.data=NULL, biosample, genome
 #' @return The \linkS4class{GRanges} object with associated chromatin states.
 #' @importFrom rtracklayer import
 #' @importMethodsFrom GenomicRanges findOverlaps
+#' @export
 associate.chrom.state <- function(regions, input.chrom.state) {
   # Annotate with chromatin states
   # Load and rename chromatin states (for easier lexical ordering)
@@ -804,6 +815,7 @@ associate.chrom.state <- function(regions, input.chrom.state) {
 #' @return The \linkS4class{GRanges} object with associated TF overlaps.
 #' @importMethodsFrom GenomicRanges countOverlaps
 #' @importFrom GenomicRanges mcols
+#' @export
 associate.tf <- function(regions, tf.regions) {
   # Calculate TF overlap with contact regions
   overlap.matrix = matrix(0, nrow=length(regions), ncol=length(tf.regions))
@@ -822,6 +834,7 @@ associate.tf <- function(regions, tf.regions) {
 #' @param regions A \linkS4class{GRanges} object to annotate.
 #'
 #' @return The \linkS4class{GRanges} object with associated tissue scpecificity.
+#' @export
 associate.tissue.specificity.human <- function(regions) {
 
   # Annotate regions with Tau, Expression category.
@@ -847,6 +860,7 @@ associate.tissue.specificity.human <- function(regions) {
 #' @param regions A \linkS4class{GRanges} object to annotate.
 #'
 #' @return The \linkS4class{GRanges} object with identified essential genes.
+#' @export
 associate.fitness.genes <- function(regions){
 
   # Add the "essential ratio" to the data
