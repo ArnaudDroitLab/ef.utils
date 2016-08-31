@@ -7,6 +7,7 @@
 #' @return The name and path of the downloaded and unzipped files.
 #'
 #' @importFrom utils download.file
+#' @export
 import.chrom.states <- function(biosample, download.dir){
     # Grab the ENCODE identifier for the cell line. If there are more than
     # one (IE the biosample is ambiguous), we'll use the first.
