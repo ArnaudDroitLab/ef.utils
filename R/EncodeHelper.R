@@ -1,3 +1,67 @@
+#' Given a biosample's name, tries to match it with an ENCODE mnemonic.
+#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or HeLa.
+#'
+#' @return The ENCODE mnemonic associated with the biosample.
+#' @export
+get.encode.mnemonic <- function(biosample) {
+    return(biosample.code$EID[grep(biosample, biosample.code$E.Mnemonic, ignore.case = TRUE)])
+}
+
+#' Given a mnemonic and a number of states, builds the download URL for a chromatin state map.
+#'
+#' @param mnemonic The ENCODE mnemonic for the cell type (for example, "E123")
+#' @param number.of.states Which chromatin state map to download, either 15 or 18.
+#'
+#' @return The URL to download the requested chromatin state map.
+get.chrom.state.url <- function(mnemonic, number.of.states) {
+    base.marks = ifelse(number.of.states==18, "core_K27ac", "coreMarks")
+    url = paste0("http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/",
+                 base.marks,
+                 "/jointModel/final/",
+                 mnemonic, "_", number.of.states, "_",
+                 base.marks, "_mnemonics.bed.gz")
+}
+
+#' Download a single chromatin state map from ENCODE.
+#'
+#' @param mnemonic The ENCODE mnemonic for the cell type (for example, "E123")
+#' @param number.of.states Which chromatin state map to download, either 15 or 18.
+#' @param download.dir The folder where the downloaded files should be stored.
+#'
+#' @return The path of the downloaded file, if it was found.
+#'
+#' @importFrom utils download.file
+download.one.chrom.state <- function(mnemonic, number.of.states, download.dir) {
+    download.url = get.chrom.state.url(mnemonic, number.of.states)
+    dest.file = file.path(download.dir, paste0(number.of.states, ".chrom.states.bed"))
+    if(download.file(download.url, dest.file) == 0) {
+        return(dest.file)
+    } else {
+        return(NULL)
+    }
+}
+
+#' Attempts to download 15 and 18 chromatin state maps from ENCODE for a given cell type.
+#'
+#' @param mnemonic The ENCODE mnemonic for the cell type (for example, "E123")
+#' @param download.dir The folder where the downloaded files should be stored.
+#'
+#' @return A list containing the names of the unzipped chromatin state files, if they were found.
+internal.download.chrom.states <- function(mnemonic, download.dir=".") {
+    results <- list()
+    for(number.of.states in c(15, 18)) {
+        gzipped.states = download.one.chrom.state(mnemonic, 18, download.dir)
+        if(!is.null(gzipped.states)) {
+            system(paste0("gzip -d -k ", gzipped.states))
+            results[[as.character(number.of.states)]] <- gsub(".gz", "", gzipped.states)
+        }
+    }
+    
+    return(results)
+}
+
 #' Import HMM chromatin states for the right cell type.
 #'
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
@@ -8,40 +72,27 @@
 #'
 #' @importFrom utils download.file
 #' @export
-import.chrom.states <- function(biosample, download.dir){
+import.chrom.states <- function(biosample, download.dir="."){
     # Grab the ENCODE identifier for the cell line. If there are more than
     # one (IE the biosample is ambiguous), we'll use the first.
-    number <- biosample.code$EID[grep(biosample, biosample.code$E.Mnemonic, ignore.case = TRUE)]
-    if(length(number) > 1) {
+    mnemonic <- get.encode.mnemonic(biosample)
+    if(length(mnemonic) > 1) {
         warning("biosample is ambiguous: the first matchign entry will be used.")
     }
 
-    if(length(number) > 0) {
-        base.url.18 = "http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/core_K27ac/jointModel/final/"
-        base.url.15 = "http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/"
-        file.18 = paste0(number, "_18_core_K27ac_mnemonics.bed.gz")
-        file.15 = paste0(number, "_15_coreMarks_mnemonics.bed.gz")
-
-        url.18 <- paste0(base.url.18, file.18)
-        url.15 <- paste0(base.url.15, file.15)
-
-        if (file.exists(url.18)) {
-            download.file(url.18, download.dir)
-            downloaded.file = url.18
-        } else if (file.exists(url.15)) {
-            download.file(url.15, download.dir)
-            downloaded.file = url.15
+    if(length(mnemonic) > 0) {
+        downloaded.states = internal.download.chrom.states(mnemonic, download.dir)
+        if(!is.null(downloaded.states[["18"]])) {
+            return(downloaded.states[["18"]])
+        } else if(!is.null(downloaded.states[["15"]])) {
+            return(downloaded.states[["15"]])
         } else {
             warning("No chromatin state segmentation were found for the given biosample.")
             return(NULL)
         }
-
-        system(paste0("gzip -d -k ", download.dir, "/*.gz"))
-
-        return (file.path(download.dir, downloaded.file))
     } else {
         warning("No ENCODE tissue match the given biosample.")
-        return(NULL)
+        return(NULL)    
     }
 }
 
@@ -400,4 +451,22 @@ download.encode.polymerases <- function(biosample, assembly,
     return(download.encode.chip(biosample, assembly,
                                 download.filter=pol2.download.filter.chip, 
                                 download.dir=download.dir, ...))
+}
+
+#' Helper function for obtaining chromatin states through import.chrom.states.
+#'
+#' @param biosample The biosample identifier from ENCODE. Valid examples are
+#'   GM12878, K562 or MCF-7.
+#' @param genome.assembly Which genome assembly should the results come from?
+#' @param download.dir The folder where the downloaded files should be stored.
+#'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
+#' @return A GRanges object with the loaded chromatin states, or NULL if the do not exist.
+#' @export
+download.chromatin.states <- function(biosample, assembly, download.dir=file.path("input/ENCODE", biosample, assembly)) {
+    downloaded.file = import.chrom.states(biosample, download.dir)
+    if(!is.null(downloaded.file)) {
+        return(load.chrom.state(downloaded.file))
+    } else {
+        return(NULL)
+    }
 }
