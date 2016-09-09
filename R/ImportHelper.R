@@ -10,6 +10,37 @@ import.and.discard.metadata <- function(x, extraCols) {
     return(regions)
 }
 
+#' Import a set of bed-lie files into a \linkS4class{GRangesList}.
+#'
+#' @param all.files A named vector with the files to be imported. The GRangesList elements
+#'   will share the vector element's names.
+#' @param file.format The format of the files to be imported. Can be "bed",
+#'   "broad" or "narrow".
+#' @return A \linkS4class{GRanges} object representing the regions of the files in input.dir.
+#' @importFrom GenomicRanges GRangesList
+#' @importFrom rtracklayer import
+#' @export
+import.files.into.grl <- function(all.files, file.format, discard.metadata=FALSE) {
+    # Determine which extra columns should be imported.
+    if(file.format=="bed") {
+        extraCols = c()
+    } else if(file.format == "broad") {
+        extraCols <- c(signalValue = "numeric", pValue = "numeric", qValue = "numeric")
+    } else {
+        extraCols <- c(signalValue = "numeric", pValue = "numeric", qValue = "numeric", peak = "integer")
+    }
+    
+    # Import all files.
+    if(discard.metadata) {
+        grl <- GenomicRanges::GRangesList(lapply(all.files, import.and.discard.metadata, extraCols =extraCols))
+    } else {
+        grl <- GenomicRanges::GRangesList(lapply(all.files, rtracklayer::import, format="BED", extraCols =extraCols))
+    }
+    
+    names(grl) <- gsub(file.ext, "", names(all.files))
+    return(grl)
+}
+
 #' Import a set of bed files in a directory into a \linkS4class{GRangesList}.
 #'
 #' @param input.dir The name of the directory from which BED files must be imported.
@@ -21,55 +52,39 @@ import.and.discard.metadata <- function(x, extraCols) {
 #'   be imported. If "plain", files are sought directly within the directory. If
 #'   "mugqic", the output structure of the MUGQIC pipeline is searched for.
 #' @return A \linkS4class{GRanges} object representing the regions of the files in input.dir.
-#' @importFrom GenomicRanges GRangesList
-#' @importFrom rtracklayer import
 #' @export
 import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, discard.metadata=FALSE, dir.type="plain") {
-    # Define certain parameters based on the file format.
+  # Define certain parameters based on the file format.
+  if(is.null(file.ext)) {
     if(file.format=="bed") {
-        if(is.null(file.ext)) {
-            file.ext="bed"
-        }
-        extraCols = c()
+      file.ext="bed"
     } else if(file.format == "broad") {
-        if(is.null(file.ext)) {
-            file.ext="_peaks.broadPeak"
-        }
-        extraCols <- c(signalValue = "numeric", pValue = "numeric", qValue = "numeric")
+      file.ext="_peaks.broadPeak"
     } else {
-        if(is.null(file.ext)) {
-            file.ext="_peaks.narrowPeak"
-        }
-        extraCols <- c(signalValue = "numeric", pValue = "numeric", qValue = "numeric", peak = "integer")
+      file.ext="_peaks.narrowPeak"
     }
+  }
 
-    if(dir.type=="mugqic") {
-        peak.input.dir = file.path(input.dir, "peak_call")
+  if(dir.type=="mugqic") {
+    peak.input.dir = file.path(input.dir, "peak_call")
 
-        # Make a list of all directories in the peak_call directory.
-        # Each directory will contain one peak file.
-        peak.dirs = list.files(peak.input.dir, include.dirs=TRUE)
+    # Make a list of all directories in the peak_call directory.
+    # Each directory will contain one peak file.
+    peak.dirs = list.files(peak.input.dir, include.dirs=TRUE)
 
-        # Generate a list of all peak files.
-        all.files = file.path(peak.input.dir, peak.dirs, paste(peak.dirs, file.ext, sep=""))
+    # Generate a list of all peak files.
+    all.files = file.path(peak.input.dir, peak.dirs, paste(peak.dirs, file.ext, sep=""))
+    names(all.files) = peak.dirs
+  } else {
+    # Grab all files in directory.
+    all.filenames = list.files(input.dir, pattern=file.ext, include.dirs=TRUE)
+    all.files = file.path(input.dir, all.filenames)
+    names(all.files) = gsub("\\.$", "", gsub(file.ext, "", all.filenames))
+  }
 
-        list.names = peak.dirs
-    } else {
-        # Grab all files in directory.
-        all.filenames = list.files(input.dir, pattern=file.ext, include.dirs=TRUE)
-        all.files = file.path(input.dir, all.filenames)
-        list.names = gsub("\\.$", "", gsub(file.ext, "", all.filenames))
-    }
-
-    # Import regions and discard extra data if requested.
-    if(discard.metadata) {
-        grl <- GenomicRanges::GRangesList(lapply(all.files, import.and.discard.metadata, extraCols =extraCols))
-    } else {
-        grl <- GenomicRanges::GRangesList(lapply(all.files, rtracklayer::import, format="BED", extraCols =extraCols))
-    }
-    names(grl) <- gsub(file.ext, "", list.names)
-
-    return(grl)
+  grl = import.files.into.grl(all.files, file.format, discard.metadata=discard.metadata)
+  
+  return(grl)
 }
 
 

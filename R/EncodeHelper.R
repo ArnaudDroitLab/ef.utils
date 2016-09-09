@@ -236,6 +236,64 @@ isoform.download.filter.rna <- function(query.results, genome.assembly) {
   return(filtered.results)
 }
 
+consensus.and.signal.mean <- function(grl, keep.signal) {
+    overlap.results = intersect.overlap(build.intersect(grl, keep.signal = keep.signal))
+    mcols(overlap.results) <- rowMeans(as.data.frame(mcols(overlap.results)), na.rm = TRUE)
+    names(mcols(overlap.results)) <- "signalValue"
+    return(unlist(overlap.results))
+}
+
+#' @importFrom rtracklayer import
+import.plus.consensus <- function(files.to.import, file.format, keep.signal = FALSE) {
+    grl = import.files.into.grl(files.to.import, file.format, discard.metadata=!keep.signal)
+    return(consensus.and.signal.mean(grl, keep.signal))
+}
+
+download.chip.and.import <- function(query.results, peak.type, out.dir=".", keep.signal = FALSE) {
+    # Create a directory for downloaded files.
+    download.dir = file.path(out.dir, peak.type)
+    dir.create(download.dir, recursive = TRUE, showWarnings=FALSE)
+
+    # Subset the query results to only keep files in the right format.
+    query.results.subset = query.results
+    query.results.subset$experiment = query.results$experiment[grepl(peak.type, query.results$experiment$file_format_type),]
+
+    # Download the files.
+    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.subset, resultOrigin="queryEncode", dir=download.dir, force=FALSE)
+
+    # Write the metadata about the downloaded files.
+    write.table(query.results$experiment, file=file.path(out.dir, paste0(peak.type, ".metadata.txt")))
+
+    # Unzip the files. Use gzip -d since on windows, gunzip is not installed by default.
+    if(dir.exists(download.dir)) {
+      system(paste0("gzip -d -k ", download.dir, "/*.gz"))
+      
+      results.list = list()
+      for(target in unique(query.results.subset$experiment$target)) {
+        query.subset = query.results.subset$experiment[query.results.subset$experiment$target == target,]
+        
+        # Perform consensuss across replicates.
+        accession.list = list()
+        for(accession in unique(query.subset$accession)) {
+          accession.files = file.path(download.dir, paste0(query.subset$file_accession, ".bed"))
+          accession.list[[accession]] = import.plus.consensus(accession.files, peak.type, keep.signal)
+        }
+        
+        # Perform consensus across experiments.
+        results.list[[target]] = consensus.and.signal.mean(GRangesList(accession.list), keep.signal)
+      }
+      
+      out.gr = GRangesList(results.list)
+      out.gr@unlistData@elementMetadata@listData$peak <- NULL
+    } else {
+      out.gr = NULL
+    }
+    
+    return(list(Metadata=query.results.subset$experiment,
+                Downloaded=downloaded.files,
+                Regions=out.gr))
+}
+
 #' Obtains and process transcription factor data from ENCODE.
 #'
 #' Given an encode biosample identifier (GM12878, MCF-7, etc.), this function
@@ -273,62 +331,12 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
     query.results$experiment = download.filter(query.results$experiment, assembly)
     dir.create(download.dir, recursive=TRUE, showWarnings=FALSE)
 
-    # Separate narrow and broad peaks
-    narrow.dir = file.path(download.dir, "narrow")
-    broad.dir = file.path(download.dir, "broad")
-    dir.create(narrow.dir, recursive = TRUE, showWarnings=FALSE)
-    dir.create(broad.dir, recursive = TRUE, showWarnings=FALSE)
-    query.results.narrow = query.results
-    query.results.narrow$experiment = query.results$experiment[query.results$experiment$file_format_type == "narrowPeak",]
-    query.results.broad = query.results
-    query.results.broad$experiment = query.results$experiment[query.results$experiment$file_format_type == "broadPeak",]
-
-    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.narrow, resultOrigin="queryEncode", dir=narrow.dir, force=FALSE)
-    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.broad, resultOrigin="queryEncode", dir=broad.dir, force=FALSE)
-
-    # Write the metadata about the downloaded files.
-    write.table(query.results$experiment, file=file.path(download.dir, "metadata.txt"))
-
-    # Unzip the files. Use gzip -d since on windows, gunzip is not installed by default.
-    if(dir.exists(narrow.dir)){
-      system(paste0("gzip -d -k ", narrow.dir, "/*.gz"))
-      narrow.gr = import.into.grl(narrow.dir, file.format="narrow", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
-      narrow.gr@unlistData@elementMetadata@listData$peak <- NULL
-    } else {
-      narrow.gr = NULL
+    results = list()
+    for(peak.type in c("narrow", "broad")) {
+        results[[peak.type]] = download.chip.and.import(query.results, peak.type, download.dir, keep.signal)
     }
-    if (dir.exists(broad.dir)){
-      system(paste0("gzip -d -k ", broad.dir, "/*.gz"))
-      broad.gr = import.into.grl(broad.dir, file.format="broad", file.ext="bed", discard.metadata=(!keep.signal), dir.type="plain")
-    } else {
-      broad.gr = NULL
-    }
-
-    # Import the downloaded files.
-    all.gr = c(narrow.gr, broad.gr)
-
-    # Combine biological/technical replicates using consensus regions.
-    accession.replicates = GenomicRanges::GRangesList(plyr::dlply(query.results$experiment, ~accession, function(x) {
-        gr.subset = all.gr[names(all.gr) %in% x$file_accession]
-        overlap.results = intersect.overlap(build.intersect(gr.subset, keep.signal = keep.signal))
-        mcols(overlap.results) <- rowMeans(as.data.frame(mcols(overlap.results)), na.rm = TRUE)
-        names(mcols(overlap.results)) <- "signalValue"
-        return(unlist(overlap.results))
-    }))
-
-    # Combine all same-target replicates using consensus regions.
-    target.replicates = GenomicRanges::GRangesList(plyr::dlply(query.results$experiment, ~target, function(x) {
-        gr.subset = accession.replicates[names(accession.replicates) %in% x$accession]
-        overlap.results = intersect.overlap(build.intersect(gr.subset, keep.signal = keep.signal))
-        mcols(overlap.results) <- rowMeans(as.data.frame(mcols(overlap.results)), na.rm = TRUE)
-        names(mcols(overlap.results)) <- "signalValue"
-        return(overlap.results)
-    }))
-
-
-    return(list(Metadata=query.results$experiment,
-                Downloaded=downloaded.files,
-                Regions=target.replicates))
+    
+    return(results)
 }
 
 #' Obtains and process expression data from ENCODE.
