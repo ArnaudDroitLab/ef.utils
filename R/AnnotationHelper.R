@@ -780,6 +780,40 @@ associate.gene.chip <- function(regions, expression.data=NULL, biosample, genome
   return(regions)
 }
 
+#' Given the name of a bed file containing a chromatin state map, loads it into a GRanges object.
+#'
+#' @param input.chrom.state The name of the chromatin state bed file.
+#' @return A Granges object with the chromatin states.
+#' @importFrom rtracklayer import
+#' @export
+load.chrom.state <- function(input.chrom.state) {
+  # Load and rename chromatin states (for easier lexical ordering)
+  chrom.states = import(input.chrom.state)
+  chrom.states$name = gsub("^(.)_", "0\\1_", chrom.states$name)
+
+  # Sort according to name, which will cause the first match to also be the
+  # most relevant states (01_TSS first, 18_Quies last)
+  chrom.states = chrom.states[order(chrom.states$name)]
+  return(chrom.states)
+}
+
+#' Given a set of regions and a chromatin state map, match the "best" chromatin state to each region.
+#'
+#' @param regions The regions to which chromatin states should be associated.
+#' @param chrom.states.gr A GRanges containing the chromatin state map.
+#' @return A vector of the same length as regions, indicating the "best" chromatin state mapping to that region.
+#' @importFrom GenomicRanges findOverlaps
+#' @export
+chrom.state.match <- function(regions, chrom.states.gr) {
+  unique.states = sort(unique(chrom.states.gr$name))
+
+  # Add state annotation to regions
+  state.overlap.indices = findOverlaps(regions, chrom.states.gr, select="first")
+  matching.chrom.state = factor(chrom.states.gr$name[state.overlap.indices], levels=unique.states)
+    
+  return(matching.chrom.state)
+}
+
 #' Associate chromatin sates to a \linkS4class{GRanges} object.
 #'
 #' @param regions A \linkS4class{GRanges} object to annotate.
@@ -790,19 +824,10 @@ associate.gene.chip <- function(regions, expression.data=NULL, biosample, genome
 #' @importMethodsFrom GenomicRanges findOverlaps
 #' @export
 associate.chrom.state <- function(regions, input.chrom.state) {
-  # Annotate with chromatin states
-  # Load and rename chromatin states (for easier lexical ordering)
-  chrom.states = rtracklayer::import(input.chrom.state)
-  chrom.states$name = gsub("^(.)_", "0\\1_", chrom.states$name)
-
-  # Sort according to name, which will cause the first match to also be the
-  # most relevant states (01_TSS first, 18_Quies last)
-  chrom.states = chrom.states[order(chrom.states$name)]
-  unique.states = sort(unique(chrom.states$name))
-
-  # Add state annotation to regions
-  state.overlap.indices = findOverlaps(regions, chrom.states, select="first")
-  regions$Chrom.State = factor(chrom.states$name[state.overlap.indices], levels=unique.states)
+  # Load chromatin states
+  chrom.states = load.chrom.state(input.chrom.state)
+  matching = chrom.state.match(regions, chrom.states)
+  regions$Chrom.State = matching
 
   return(regions)
 }

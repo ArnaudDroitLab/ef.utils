@@ -4,7 +4,7 @@
 \alias{import.chrom.states}
 \title{Import HMM chromatin states for the right cell type.}
 \usage{
-import.chrom.states(biosample, download.dir)
+import.chrom.states(biosample, download.dir = ".")
 }
 \arguments{
 \item{biosample}{The biosample identifier from ENCODE. Valid examples are
