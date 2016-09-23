@@ -20,7 +20,7 @@ import.and.discard.metadata <- function(x, extraCols) {
 #' @importFrom GenomicRanges GRangesList
 #' @importFrom rtracklayer import
 #' @export
-import.files.into.grl <- function(all.files, file.format, discard.metadata=FALSE) {
+import.files.into.grl <- function(all.files, file.format, file.ext, discard.metadata=FALSE) {
     # Determine which extra columns should be imported.
     if(file.format=="bed") {
         extraCols = c()
@@ -82,7 +82,7 @@ import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, dis
     names(all.files) = gsub("\\.$", "", gsub(file.ext, "", all.filenames))
   }
 
-  grl = import.files.into.grl(all.files, file.format, discard.metadata=discard.metadata)
+  grl = import.files.into.grl(all.files, file.format, file.ext, discard.metadata=discard.metadata)
   
   return(grl)
 }
