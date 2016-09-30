@@ -119,11 +119,20 @@ default.download.filter.chip <- function(query.results, genome.assembly) {
             return(NULL)
         }
 
+        result_set=x
+        
         if(sum(x$lab=="ENCODE Consortium Analysis Working Group") > 0) {
-            return(subset(x, lab=="ENCODE Consortium Analysis Working Group"))
-        } else {
-            return(x)
+            result_set = subset(x, lab=="ENCODE Consortium Analysis Working Group")
         }
+        
+        if(sum(result_set$output_type=="optimal idr thresholded peaks") > 0) {
+            result_set = subset(result_set, output_type=="optimal idr thresholded peaks")
+        } else if(sum(result_set$output_type=="conservative idr thresholded peaks") > 0) {
+            result_set = subset(result_set, output_type=="conservative idr thresholded peaks")
+        }
+        
+        return(result_set)
+        
     }, genome.assembly=genome.assembly)
 
     return(filtered.results)
@@ -244,8 +253,8 @@ consensus.and.signal.mean <- function(grl, keep.signal) {
 }
 
 #' @importFrom rtracklayer import
-import.plus.consensus <- function(files.to.import, file.format, keep.signal = FALSE) {
-    grl = import.files.into.grl(files.to.import, file.format, discard.metadata=!keep.signal)
+import.plus.consensus <- function(files.to.import, file.format, file.ext = ".bed", keep.signal = FALSE) {
+    grl = import.files.into.grl(files.to.import, file.format, file.ext=file.ext, discard.metadata=!keep.signal)
     return(consensus.and.signal.mean(grl, keep.signal))
 }
 
