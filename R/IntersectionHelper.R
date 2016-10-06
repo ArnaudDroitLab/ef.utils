@@ -288,3 +288,87 @@ project.ranges <- function(query, target) {
     
     return(GRanges(ranges.df))
 }
+
+#' Calculates enrichment ratios for quer regions against a genome wide
+#' partition of the genome.
+#'
+#'
+#' @param query.regions The regions whose enrichment ratios must be calculated.
+#' @param genome.wide The genome partition indicating which part of the genome
+#'    fall within which category. Each range should have a 'name' attribute
+#'    indicating its category.
+#' @param factor.order An optional ordering of the region types for the produced plot.
+#' @param file.out An optional file name for a graphical representation of the enrichments.
+#' @return The collapsed regions.
+#' @export
+#' @import GenomicRanges
+#' @import ggplot2
+region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, file.out=NULL) {
+  # Project the query ranges into the genome ranges, so we can
+  # know their repartition with basepair precision.
+  in.query = project.ranges(query.regions, genome.wide)
+  
+  # Calculate total base-pair coverages for both the projected query 
+  # and the target regions.
+  all.region.types = sort(unique(genome.wide$name))
+  coverages = matrix(0.0, ncol=2, nrow=length(all.region.types), dimnames=list(all.region.types, c("Query", "Genome")))
+  for(region.type in all.region.types) {
+      coverages[region.type, "Genome"] = sum(as.numeric(width(reduce(subset(genome.wide, name == region.type)))))
+      coverages[region.type, "Query"]  = sum(as.numeric(width(reduce(subset(in.query, name == region.type)))))
+  }
+
+  # Transform the raw coverages into proportions.
+  proportions = t(apply(coverages, 1, '/', apply(coverages, 2, sum)))
+  
+  # Build a data frame for output/plotting.
+  enrichment.df = data.frame(Enrichment=log2(proportions[,"Query"] / proportions[,"Genome"]), 
+                             RegionType=all.region.types)
+  if(is.null(factor.order)) {
+    factor.order = all.region.types
+  }
+  enrichment.df$RegionType = factor(enrichment.df$RegionType, levels=rev(factor.order))
+  
+  # Plot the results.
+  if(!is.null(file.out)) {
+    ggplot(enrichment.df, aes(fill=Enrichment, y=RegionType, x="Network regions")) +
+        geom_tile() + 
+        scale_fill_distiller(palette="RdYlGn", name="log2(Enrichment)") +
+        labs(y="Region type", x=NULL)
+    
+    ggsave(file.out, width=7, height=7)
+  }
+  
+  return(enrichment.df)
+}
+
+#' Collapses a list of genomic ranges into a single set of unique, 
+#' non-overlapping ranges.
+#'
+#' Ranges are prioritized in the input list order. So, if the first element
+#' of the list (A) covers the range 1-10, and the second element (B) covers 
+#' the range 5-15, then the resulting ranges will have a 1-10 range named A,
+#' and a 11-15 range named 'B'.
+#'
+#' @param gr.list The ranges to be collapsed.
+#'
+#' @return The collapsed regions.
+#' @export
+collapse.regions <- function(gr.list) {
+  # Resulting regions.
+  collapsed.regions = list()
+  
+  # Keep track of the ranges that have already been assigned.
+  combined.regions = GenomicRanges::GRanges()
+  for(region.group in names(gr.list)) {
+    # The ranges assigned to this element are all the specified ranges,
+    # minus any range that has already been assigned.
+    collapsed.regions[[region.group]] = GenomicRanges::setdiff(gr.list[[region.group]], combined.regions)
+    collapsed.regions[[region.group]]$name = region.group
+    
+    # Add the newly assigned ranges to the set of assigned ranges.
+    combined.regions = GenomicRanges::union(combined.regions, collapsed.regions[[region.group]])
+  }
+
+  # Return a single set of ranges.
+  return(unlist(GenomicRanges::GRangesList(collapsed.regions)))
+}
