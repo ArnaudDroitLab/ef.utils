@@ -263,3 +263,28 @@ build.intersect.all <- function(regions, annotations.list, label) {
 
     return(intersect.object)
 }
+
+#' Projects the ranges in query into the ranges in target.
+#'
+#' Returns the ranges in target overlapping the ranges in query, adjusting
+#' their boundaries so that only the overlapping parts of the target ranges 
+#' are returned.
+#'
+#' @param query The ranges to be projected.
+#' @param target The ranges to be projected against.
+#'
+#' @return The projection of the query ranges on the target ranges.
+#' @export
+project.ranges <- function(query, target) {
+    hits = findOverlaps(target, query)
+
+    ranges.df = data.frame(seqname=seqnames(target)[queryHits(hits)],
+                            start=pmax(start(query)[subjectHits(hits)], start(target)[queryHits(hits)]),
+                            end=pmin(end(query)[subjectHits(hits)], end(target)[queryHits(hits)]),
+                            strand=strand(target)[queryHits(hits)])
+    
+    ranges.df = cbind(ranges.df, mcols(target)[queryHits(hits),], mcols(query)[subjectHits(hits),])
+    colnames(ranges.df) = c(colnames(ranges.df)[1:4], colnames(mcols(target)), colnames(mcols(query)))
+    
+    return(GRanges(ranges.df))
+}
