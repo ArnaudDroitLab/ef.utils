@@ -330,9 +330,11 @@ region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, fil
   
   # Plot the results.
   if(!is.null(file.out)) {
+    maxEnrich = max(abs(enrichment.df$Enrichment))
     ggplot(enrichment.df, aes(fill=Enrichment, y=RegionType, x="Network regions")) +
-        geom_tile() + 
-        scale_fill_distiller(palette="RdYlGn", name="log2(Enrichment)") +
+        geom_tile(color="black") + 
+        scale_fill_gradient2(low="dodgerblue", mid="white", high="yellow", midpoint=0, limits=c(-maxEnrich, maxEnrich)) +
+#       scale_fill_distiller(palette="YlGnBu", name="log2(Enrichment)") +
         labs(y="Region type", x=NULL)
     
     ggsave(file.out, width=7, height=7)
