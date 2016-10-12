@@ -382,8 +382,8 @@ download.encode.rna <- function(biosample, assembly, download.filter=default.dow
 
     # Read the files.
     if(!is.null(query.results)) {
-        rna.filenames = list.files(download.dir)
-        rna.data = read.identical(file.path(download.dir, rna.filenames), 1:5, 6:7, file.labels=gsub(".tsv", "", rna.filenames))
+        #rna.filenames = list.files(download.dir)
+        rna.data = read.identical(downloaded.files, 1:5, 6:7, file.labels=gsub(".tsv", "", downloaded.files))
         
         # Calculate mean of metrics.
         for(metric in c("TPM", "FPKM")) {
