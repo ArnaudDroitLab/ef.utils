@@ -285,7 +285,7 @@ download.chip.and.import <- function(query.results, peak.type, out.dir=".", keep
         accession.list = list()
         for(accession in unique(query.subset$accession)) {
           accession.files = file.path(download.dir, paste0(query.subset$file_accession, ".bed"))
-          accession.list[[accession]] = import.plus.consensus(accession.files, peak.type, keep.signal)
+          accession.list[[accession]] = import.plus.consensus(accession.files, peak.type, keep.signal=keep.signal)
         }
         
         # Perform consensus across experiments.
