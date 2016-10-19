@@ -333,6 +333,7 @@ region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, fil
     maxEnrich = max(abs(enrichment.df$Enrichment))
     ggplot(enrichment.df, aes(fill=Enrichment, y=RegionType, x="Network regions")) +
         geom_tile(color="black") + 
+        geom_text(mapping=aes(label=sprintf("%.2f", enrichment.df$Enrichment))) +
         scale_fill_gradient2(low="dodgerblue", mid="white", high="yellow", midpoint=0, limits=c(-maxEnrich, maxEnrich)) +
 #       scale_fill_distiller(palette="YlGnBu", name="log2(Enrichment)") +
         labs(y="Region type", x=NULL)
