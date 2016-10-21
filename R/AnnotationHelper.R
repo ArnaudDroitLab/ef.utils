@@ -528,6 +528,37 @@ kegg.enrichment.regions <- function(regions, annotations.list, ...) {
   return(kegg.enrichment(selected.genes, annotations.list=annotations.list, ...))
 }
 
+#' Generates a plot representing significant kegg pathways from an enrichment result.
+#'
+#' @param kegg.results.list A list of enrichment results returned by 
+#'   \code{\link{kegg.enrichment}}.
+#' @param filename The name of the file where the plot should be saved.
+#' @param p.threshold Minimum p-value for a category to be plotted.
+#' @param n.threshold Minimum number times a pathway is reported for it to be plotted.
+#'
+#' @export
+plot.multiple.keggs <- function(kegg.results.list, filename, p.threshold = 0.05, n.threshold = 2) {
+    # Identify all significant pathways.
+    sig = rep(FALSE, nrow(kegg.results.list[[1]]))
+    for(item.name in names(kegg.results.list)) {
+        sig = sig | (kegg.results.list[[item.name]]$AdjPVal <= p.threshold & kegg.results.list[[item.name]]$Chosen >= n.threshold)
+        kegg.results.list[[item.name]]$ResultSet = item.name
+    }
+    
+    # Concatenate results of all significant pathways.
+    plot.df = kegg.results.list[[1]][sig,]
+    for(i in 2:length(kegg.results.list)) {
+        plot.df = rbind(plot.df, kegg.results.list[[i]][sig,])
+    }
+    
+    # Plot it.
+    ggplot(plot.df, aes(x=ResultSet, y=Pathway, fill=-log10(AdjPVal), label=Chosen)) +
+        geom_tile() +
+        geom_text() +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+    ggsave(filename, width=7, height=7)
+}
+
 #' Given a set of regions, perform annotation, motif enrichment and KEGG enrichment.
 #'
 #' @param region A \linkS4class{GRanges} object with regions to be characterized.
