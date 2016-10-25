@@ -537,7 +537,7 @@ kegg.enrichment.regions <- function(regions, annotations.list, ...) {
 #' @param n.threshold Minimum number times a pathway is reported for it to be plotted.
 #'
 #' @export
-plot.multiple.keggs <- function(kegg.results.list, filename, p.threshold = 0.05, n.threshold = 2) {
+multiple.keggs.plot <- function(kegg.results.list, filename, p.threshold = 0.05, n.threshold = 2) {
     # Identify all significant pathways.
     sig = rep(FALSE, nrow(kegg.results.list[[1]]))
     for(item.name in names(kegg.results.list)) {
