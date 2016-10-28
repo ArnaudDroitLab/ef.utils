@@ -456,3 +456,24 @@ collapse.regions <- function(gr.list) {
   # Return a single set of ranges.
   return(unlist(GenomicRanges::GRangesList(collapsed.regions)))
 }
+
+#' Obtains consensus regions from a set of regions.
+#'
+#' @param regions The regiosn to be consensus'ed.
+#' @param keep.signal Whether or not the signal should be kept.
+#'
+#' @return The collapsed regions.
+#' @export
+region.consensus <- function(regions, keep.signal=TRUE, fake.signal=FALSE) {
+    consensus = intersect.overlap(build.intersect(regions, keep.signal=keep.signal))
+    if(keep.signal) {
+        mcols(consensus) <- rowMeans(as.data.frame(mcols(consensus)), na.rm = TRUE)
+        names(mcols(consensus)) <- "signalValue"
+    }
+    
+    if(!keep.signal && fake.signal) {
+        mcols(consensus)$signalValue = NA
+    }
+    
+    return(consensus)
+}
