@@ -20,7 +20,7 @@ indicating its category.}
 \item{file.out}{An optional file name for a graphical representation of the enrichments.}
 }
 \value{
-The collapsed regions.
+A data-frame containing the enrichment values.
 }
 \description{
 Calculates enrichment ratios for quer regions against a genome wide

@@ -292,14 +292,13 @@ project.ranges <- function(query, target) {
 #' Calculates enrichment ratios for quer regions against a genome wide
 #' partition of the genome.
 #'
-#'
 #' @param query.regions The regions whose enrichment ratios must be calculated.
 #' @param genome.wide The genome partition indicating which part of the genome
 #'    fall within which category. Each range should have a 'name' attribute
 #'    indicating its category.
 #' @param factor.order An optional ordering of the region types for the produced plot.
 #' @param file.out An optional file name for a graphical representation of the enrichments.
-#' @return The collapsed regions.
+#' @return A data-frame containing the enrichment values.
 #' @export
 #' @import GenomicRanges
 #' @import ggplot2
@@ -321,7 +320,11 @@ region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, fil
   proportions = t(apply(coverages, 1, '/', apply(coverages, 2, sum)))
   
   # Build a data frame for output/plotting.
-  enrichment.df = data.frame(Enrichment=log2(proportions[,"Query"] / proportions[,"Genome"]), 
+  enrichment.df = data.frame(QueryCoverage=coverages[,"Query"],
+                             GenomeCoverage=coverages[,"Genome"],
+                             QueryProportion=proportions[,"Query"],
+                             GenomeProportion=proportions[,"Genome"],
+                             Enrichment=log2(proportions[,"Query"] / proportions[,"Genome"]), 
                              RegionType=all.region.types)
   if(is.null(factor.order)) {
     factor.order = all.region.types
@@ -330,7 +333,10 @@ region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, fil
   
   # Plot the results.
   if(!is.null(file.out)) {
-    maxEnrich = max(abs(enrichment.df$Enrichment))
+    # Replace +/-Inf with NAs.
+    enrichment.df$Enrichment[is.infinite(enrichment.df$Enrichment)] <- NA
+    
+    maxEnrich = max(abs(enrichment.df$Enrichment), na.rm=TRUE)
     ggplot(enrichment.df, aes(fill=Enrichment, y=RegionType, x="Network regions")) +
         geom_tile(color="black") + 
         geom_text(mapping=aes(label=sprintf("%.2f", enrichment.df$Enrichment))) +
@@ -342,6 +348,81 @@ region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, fil
   }
   
   return(enrichment.df)
+}
+
+#' Performs region enrichment on a set of regions and returns summarized results.
+#'
+#' @param queries.regions A list of regions whose enrichment ratios must be calculated.
+#' @param genome.regions The genome partition indicating which part of the genome
+#'    fall within which category. Each range should have a 'name' attribute
+#' @param factor.order An optional ordering of the region types for the produced plot.
+#' @param file.prefix An optional file name prefix for tables and graphical representation.
+#' @return A list of summarized enrichment metrics.
+#' @export
+multiple.region.enrichment <- function(queries.regions, genome.regions, factor.order=NULL, file.prefix=NULL) {
+    results=list()
+    
+    # Loop over all given query regions and perform enrichments.
+    for(query in names(queries.regions)) { 
+        # Ifwe ahve an output prefix, figure out the name for the query-specific output.
+        if(!is.null(file.prefix)) {
+            file.out = paste0(file.prefix, " ", query, ".pdf")
+        } else {
+            file.out = NULL
+        }
+
+        results[[query]] = region.enrichment(queries.regions[[query]], genome.regions,
+                                             factor.order=factor.order, file.out=file.out)
+    }
+    
+    # Summarize the results and return them.
+    region.enrichment.summary(results, file.prefix)
+}
+
+#' Performs a summary of region enrichment results.
+#'
+#' @param result.list a list of results returned by region.enrichment.
+#' @param file.prefix An optional file name prefix for tables and graphical representation.
+#' @param plot.width The width of any resulting plot.
+#' @param plot.height The height of any resulting plot.
+#' @return A list of summarized enrichment metrics.
+#' @export
+region.enrichment.summary <- function(result.list, file.prefix=NULL, plot.width=7, plot.height=7) {
+    # Put all of metrics into a single multidimensional array.
+    metrics = c("QueryCoverage", "QueryProportion", "Enrichment")
+    result.summary = array(dim=c(length(result.list), nrow(result.list[[1]]), 3), 
+                           dimnames=list(names(result.list), rownames(result.list[[1]]), metrics))
+    for(result in names(result.list)) {
+        for(metric in metrics) {
+            result.summary[result, ,metric] = result.list[[result]][,metric]
+        }
+    }
+
+    # Add genomic/background information where appropriate. Enrichment is a ratio, so it cannot
+    # have genomic/background data.
+    results = list(Coverage=rbind(Genome=result.list[[1]]$GenomeCoverage, result.summary[,,"QueryCoverage"]),
+                   Proportion=rbind(Genome=result.list[[1]]$GenomeProportion, result.summary[,,"QueryProportion"]),
+                   Enrichment=result.summary[,,"Enrichment"])
+
+    # If a file prefix was provided, write out the tables/plots.
+    if(!is.null(file.prefix)) {
+        for(metric in names(results)) {
+            write.table(results[[metric]], file=paste0(file.prefix, " ", metric, ".txt"), sep="\t", col.names=TRUE, row.names=TRUE)
+            
+            result.df = melt(results[[metric]], varnames=c("Query", "Category"))
+            result.df$Query = factor(result.df$Query, levels=rownames(results[[metric]]))
+            result.df$Category = factor(result.df$Category, levels=colnames(results[[metric]]))
+            
+            ggplot(result.df, aes(x=Query, y=Category, fill=value)) +
+                geom_tile() +
+                scale_fill_continuous(name=metric) +
+                theme(axis.text.x = element_text(angle = 90, hjust = 1))
+                
+            ggsave(paste0(file.prefix, " all ", metric, ".pdf"), width=plot.width, height=plot.height)
+        }
+    }
+    
+    return(results)
 }
 
 #' Collapses a list of genomic ranges into a single set of unique, 
