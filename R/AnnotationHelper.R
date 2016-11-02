@@ -699,33 +699,9 @@ associate.is.gene.active <- function(regions){
 #' @importFrom GenomicRanges mcols
 #' @export
 associate.histone.marks <- function(regions, histone.regions){
-  all.columns <- data.frame(matrix(nrow = length(regions@seqnames), ncol = length(names(histone.regions))))
-  column = 1
-  for (hist.mark in names(histone.regions)) {
-    histone.regions.subset <- reduce(histone.regions[hist.mark])
-    # find overlaps
-    overlap.index <- findOverlaps(regions, unlist(histone.regions.subset))
-
-    if (length(overlap.index@to) != 0){
-      # to get the overlap length
-      overlap.length <- width(ranges(overlap.index, ranges(regions), ranges(unlist(histone.regions.subset))))
-
-      # correspondances between idexes from regions and the lengths
-      overlap.length.df <- data.frame(index=overlap.index@from, length=overlap.length)
-      # addition of the rows with repeated indices
-      overlap.length.df <- aggregate(overlap.length.df$length, list(overlap.length.df$index), sum)
-      colnames(overlap.length.df) <- c("index", "length")
-
-      # create the new vector
-      histone.overlap.percentage <- vector(length = length(regions@seqnames))
-      histone.overlap.percentage[overlap.length.df$index] <- overlap.length.df$length
-      histone.overlap.percentage <- histone.overlap.percentage / width(regions)
-      all.columns[,column] <- histone.overlap.percentage
-    }
-
-    column <- column + 1
-  }
-  colnames(all.columns) <- paste0(names(histone.regions), ".OverlapPercentage")
+  all.columns <- region.overlap(regions, histone.regions)
+  
+  colnames(all.columns) <- paste0(colnames(histone.regions), ".OverlapPercentage")
   if(dim(mcols(regions))[2] == 0){
     mcols(regions) <- all.columns
   } else {
@@ -733,6 +709,46 @@ associate.histone.marks <- function(regions, histone.regions){
   }
 
   return(regions)
+}
+
+#' Generate a matrix detailing the percentage of overlap between query regions and
+#' a list of target regions.
+#'
+#' @param query.regions The GRanges object detailing the regions against which 
+#'   the overlaps must be calculated.
+#' @param target.regions A GRangesList object detailing the regions whose overlaps
+#'   against each region in query.regions must be calculated.
+#' @param proportion If TRUE, proportions are returned instead of base pair counts.
+#'
+#' @return A matrix detailing the overlap between teh query and the targets.
+#' @importMethodsFrom GenomicRanges findOverlaps reduce ranges
+#' @importMethodsFrom BSgenome width
+#' @importFrom stats aggregate
+#' @export
+region.overlap <- function(query.regions, target.regions, proportion=TRUE) {
+  # Initialize the overlap matrix.
+  overlap.matrix <- matrix(0, nrow = length(query.regions), ncol = length(target.regions),
+                           dimnames=list(NULL, names(target.regions)))
+  for (target in names(target.regions)) {
+    # Flatten the target regions so we won't double dip.
+    target.flat <- reduce(target.regions[[target]])
+    
+    # Find the overlaps between query and target regions.
+    overlap.index <- findOverlaps(query.regions, target.flat)
+
+    if (length(overlap.index) > 0){
+      # Get the overlap length for each target, the aggregate the results oper query region.
+      overlap.length <- width(ranges(overlap.index, ranges(query.regions), ranges(target.flat)))
+      overlap.total <- aggregate(overlap.length, by=list(From=from(overlap.index)), FUN=sum)
+      overlap.matrix[overlap.total$From, target] <- overlap.total$x
+    }
+  }
+  
+  if(proportion) {
+    overlap.matrix = apply(overlap.matrix, 2, '/', width(query.regions))
+  }
+  
+  return(overlap.matrix)
 }
 
 #' Associate genomic regions to a \linkS4class{GRanges} object.
