@@ -302,7 +302,7 @@ project.ranges <- function(query, target) {
 #' @export
 #' @import GenomicRanges
 #' @import ggplot2
-region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, file.out=NULL) {
+region.enrichment <- function(query.regions, genome.wide, genome.order=NULL, file.out=NULL) {
   # Project the query ranges into the genome ranges, so we can
   # know their repartition with basepair precision.
   in.query = project.ranges(query.regions, genome.wide)
@@ -326,10 +326,10 @@ region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, fil
                              GenomeProportion=proportions[,"Genome"],
                              Enrichment=log2(proportions[,"Query"] / proportions[,"Genome"]), 
                              RegionType=all.region.types)
-  if(is.null(factor.order)) {
-    factor.order = all.region.types
+  if(is.null(genome.order)) {
+    genome.order = all.region.types
   }
-  enrichment.df$RegionType = factor(enrichment.df$RegionType, levels=rev(factor.order))
+  enrichment.df$RegionType = factor(enrichment.df$RegionType, levels=rev(genome.order))
   
   # Plot the results.
   if(!is.null(file.out)) {
@@ -341,7 +341,6 @@ region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, fil
         geom_tile(color="black") + 
         geom_text(mapping=aes(label=sprintf("%.2f", enrichment.df$Enrichment))) +
         scale_fill_gradient2(low="dodgerblue", mid="white", high="yellow", midpoint=0, limits=c(-maxEnrich, maxEnrich)) +
-#       scale_fill_distiller(palette="YlGnBu", name="log2(Enrichment)") +
         labs(y="Region type", x=NULL)
     
     ggsave(file.out, width=7, height=7)
@@ -357,9 +356,12 @@ region.enrichment <- function(query.regions, genome.wide, factor.order=NULL, fil
 #'    fall within which category. Each range should have a 'name' attribute
 #' @param factor.order An optional ordering of the region types for the produced plot.
 #' @param file.prefix An optional file name prefix for tables and graphical representation.
+#' @param plot.width The width of any resulting summary plot.
+#' @param plot.height The height of any resulting summary plot.
 #' @return A list of summarized enrichment metrics.
 #' @export
-multiple.region.enrichment <- function(queries.regions, genome.regions, factor.order=NULL, file.prefix=NULL) {
+multiple.region.enrichment <- function(queries.regions, genome.regions, query.order=NULL,
+                                       genome.order=NULL, file.prefix=NULL, plot.width=7, plot.height=7) {
     results=list()
     
     # Loop over all given query regions and perform enrichments.
@@ -372,22 +374,26 @@ multiple.region.enrichment <- function(queries.regions, genome.regions, factor.o
         }
 
         results[[query]] = region.enrichment(queries.regions[[query]], genome.regions,
-                                             factor.order=factor.order, file.out=file.out)
+                                             genome.order=genome.order, file.out=file.out)
     }
     
     # Summarize the results and return them.
-    region.enrichment.summary(results, file.prefix)
+    region.enrichment.summary(results, file.prefix, query.order=query.order,
+                              genome.order=genome.order, plot.width=plot.width, plot.height=plot.height)
 }
 
 #' Performs a summary of region enrichment results.
 #'
 #' @param result.list a list of results returned by region.enrichment.
 #' @param file.prefix An optional file name prefix for tables and graphical representation.
+#' @param genome.regions The genome partition indicating which part of the genome
+#'    fall within which category. Each range should have a 'name' attribute
+#' @param factor.order An optional ordering of the region types for the produced plot.
 #' @param plot.width The width of any resulting plot.
 #' @param plot.height The height of any resulting plot.
 #' @return A list of summarized enrichment metrics.
 #' @export
-region.enrichment.summary <- function(result.list, file.prefix=NULL, plot.width=7, plot.height=7) {
+region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order=NULL, genome.order=NULL, plot.width=7, plot.height=7) {
     # Put all of metrics into a single multidimensional array.
     metrics = c("QueryCoverage", "QueryProportion", "Enrichment")
     result.summary = array(dim=c(length(result.list), nrow(result.list[[1]]), 3), 
@@ -400,29 +406,43 @@ region.enrichment.summary <- function(result.list, file.prefix=NULL, plot.width=
 
     # Add genomic/background information where appropriate. Enrichment is a ratio, so it cannot
     # have genomic/background data.
-    results = list(Coverage=rbind(Genome=result.list[[1]]$GenomeCoverage, result.summary[,,"QueryCoverage"]),
-                   Proportion=rbind(Genome=result.list[[1]]$GenomeProportion, result.summary[,,"QueryProportion"]),
-                   Enrichment=result.summary[,,"Enrichment"])
+    results.data = list(Coverage=rbind(Genome=result.list[[1]]$GenomeCoverage, result.summary[,,"QueryCoverage"]),
+                        Proportion=rbind(Genome=result.list[[1]]$GenomeProportion, result.summary[,,"QueryProportion"]),
+                        Enrichment=result.summary[,,"Enrichment"])
 
     # If a file prefix was provided, write out the tables/plots.
+    results.plot = list()
     if(!is.null(file.prefix)) {
-        for(metric in names(results)) {
-            write.table(results[[metric]], file=paste0(file.prefix, " ", metric, ".txt"), sep="\t", col.names=TRUE, row.names=TRUE)
+        for(metric in names(results.data)) {
+            write.table(results.data[[metric]], file=paste0(file.prefix, " ", metric, ".txt"), sep="\t", col.names=TRUE, row.names=TRUE)
             
-            result.df = melt(results[[metric]], varnames=c("Query", "Category"))
-            result.df$Query = factor(result.df$Query, levels=rownames(results[[metric]]))
-            result.df$Category = factor(result.df$Category, levels=colnames(results[[metric]]))
+            result.df = melt(results.data[[metric]], varnames=c("Query", "Category"))
             
-            ggplot(result.df, aes(x=Query, y=Category, fill=value)) +
+            if(is.null(query.order)) {
+                query.order = rownames(results.data[[metric]])
+            }
+            result.df$Query = factor(result.df$Query, levels=query.order)
+
+            if(is.null(genome.order)) {
+                genome.order = colnames(results.data[[metric]])
+            }
+            result.df$Category = factor(result.df$Category, levels=rev(genome.order))
+            
+            results.plot[[metric]] = ggplot(result.df, aes(x=Query, y=Category, fill=value)) +
                 geom_tile() +
-                scale_fill_continuous(name=metric) +
+                scale_fill_gradient(low="white", high="red", name=metric) +
                 theme(axis.text.x = element_text(angle = 90, hjust = 1))
-                
-            ggsave(paste0(file.prefix, " all ", metric, ".pdf"), width=plot.width, height=plot.height)
+
+            if(metric=="Proportion") {
+                results.plot[[metric]] = results.plot[[metric]] + geom_text(mapping=aes(label=sprintf("%.0f%%", value*100)))
+            } else if(metric=="Enrichment") {
+                results.plot[[metric]] = results.plot[[metric]] + geom_text(mapping=aes(label=sprintf("%.1f", value)))
+            }
+            ggsave(paste0(file.prefix, " all ", metric, ".pdf"), plot=results.plot[[metric]], width=plot.width, height=plot.height)
         }
     }
     
-    return(results)
+    return(list(Data=results.data, Plots=results.plot))
 }
 
 #' Collapses a list of genomic ranges into a single set of unique, 
