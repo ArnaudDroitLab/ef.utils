@@ -4,7 +4,8 @@
 \alias{region.enrichment.summary}
 \title{Performs a summary of region enrichment results.}
 \usage{
-region.enrichment.summary(result.list, file.prefix = NULL, plot.width = 7,
+region.enrichment.summary(result.list, file.prefix = NULL,
+  query.order = NULL, genome.order = NULL, plot.width = 7,
   plot.height = 7)
 }
 \arguments{
@@ -15,6 +16,11 @@ region.enrichment.summary(result.list, file.prefix = NULL, plot.width = 7,
 \item{plot.width}{The width of any resulting plot.}
 
 \item{plot.height}{The height of any resulting plot.}
+
+\item{genome.regions}{The genome partition indicating which part of the genome
+fall within which category. Each range should have a 'name' attribute}
+
+\item{factor.order}{An optional ordering of the region types for the produced plot.}
 }
 \value{
 A list of summarized enrichment metrics.

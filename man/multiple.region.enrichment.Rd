@@ -5,7 +5,8 @@
 \title{Performs region enrichment on a set of regions and returns summarized results.}
 \usage{
 multiple.region.enrichment(queries.regions, genome.regions,
-  factor.order = NULL, file.prefix = NULL)
+  query.order = NULL, genome.order = NULL, file.prefix = NULL,
+  plot.width = 7, plot.height = 7)
 }
 \arguments{
 \item{queries.regions}{A list of regions whose enrichment ratios must be calculated.}
@@ -13,9 +14,13 @@ multiple.region.enrichment(queries.regions, genome.regions,
 \item{genome.regions}{The genome partition indicating which part of the genome
 fall within which category. Each range should have a 'name' attribute}
 
-\item{factor.order}{An optional ordering of the region types for the produced plot.}
-
 \item{file.prefix}{An optional file name prefix for tables and graphical representation.}
+
+\item{plot.width}{The width of any resulting summary plot.}
+
+\item{plot.height}{The height of any resulting summary plot.}
+
+\item{factor.order}{An optional ordering of the region types for the produced plot.}
 }
 \value{
 A list of summarized enrichment metrics.

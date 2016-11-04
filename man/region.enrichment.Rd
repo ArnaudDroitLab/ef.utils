@@ -5,7 +5,7 @@
 \title{Calculates enrichment ratios for quer regions against a genome wide
 partition of the genome.}
 \usage{
-region.enrichment(query.regions, genome.wide, factor.order = NULL,
+region.enrichment(query.regions, genome.wide, genome.order = NULL,
   file.out = NULL)
 }
 \arguments{
@@ -15,9 +15,9 @@ region.enrichment(query.regions, genome.wide, factor.order = NULL,
 fall within which category. Each range should have a 'name' attribute
 indicating its category.}
 
-\item{factor.order}{An optional ordering of the region types for the produced plot.}
-
 \item{file.out}{An optional file name for a graphical representation of the enrichments.}
+
+\item{factor.order}{An optional ordering of the region types for the produced plot.}
 }
 \value{
 A data-frame containing the enrichment values.
