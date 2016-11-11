@@ -358,16 +358,18 @@ region.enrichment <- function(query.regions, genome.wide, genome.order=NULL, fil
 #' @param file.prefix An optional file name prefix for tables and graphical representation.
 #' @param plot.width The width of any resulting summary plot.
 #' @param plot.height The height of any resulting summary plot.
+#' @param individual.plots If true, produce individual plots as well as combined plots.
 #' @return A list of summarized enrichment metrics.
 #' @export
 multiple.region.enrichment <- function(queries.regions, genome.regions, query.order=NULL,
-                                       genome.order=NULL, file.prefix=NULL, plot.width=7, plot.height=7) {
+                                       genome.order=NULL, file.prefix=NULL, plot.width=7, plot.height=7,
+                                       individual.plots=FALSE) {
     results=list()
     
     # Loop over all given query regions and perform enrichments.
     for(query in names(queries.regions)) { 
         # Ifwe ahve an output prefix, figure out the name for the query-specific output.
-        if(!is.null(file.prefix)) {
+        if(!is.null(file.prefix) && individual.plots) {
             file.out = paste0(file.prefix, " ", query, ".pdf")
         } else {
             file.out = NULL

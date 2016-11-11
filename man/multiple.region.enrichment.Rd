@@ -6,7 +6,7 @@
 \usage{
 multiple.region.enrichment(queries.regions, genome.regions,
   query.order = NULL, genome.order = NULL, file.prefix = NULL,
-  plot.width = 7, plot.height = 7)
+  plot.width = 7, plot.height = 7, individual.plots = FALSE)
 }
 \arguments{
 \item{queries.regions}{A list of regions whose enrichment ratios must be calculated.}
@@ -19,6 +19,8 @@ fall within which category. Each range should have a 'name' attribute}
 \item{plot.width}{The width of any resulting summary plot.}
 
 \item{plot.height}{The height of any resulting summary plot.}
+
+\item{individual.plots}{If true, produce individual plots as well as combined plots.}
 
 \item{factor.order}{An optional ordering of the region types for the produced plot.}
 }

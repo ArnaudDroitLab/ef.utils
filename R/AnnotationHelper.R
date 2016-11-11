@@ -879,6 +879,38 @@ associate.chrom.state <- function(regions, input.chrom.state) {
   return(regions)
 }
 
+#' Simplifies chromatin state names.
+#'
+#' Given a vector of canonical 18-state HMM-derived chromatin states,
+#' return a vector of the same length where each state is associated
+#' with a simplified version of itself.
+#'
+#' @param chrom.state.names The chromatin states to be simplified.
+#' @return The simplified chromatin states.
+#' @export
+simplify.chrom.state <- function(chrom.state.names) {
+    simple.chrom <- c("01_TssA"     = "TSS",
+                      "02_TssFlnk"  = "TSS", 
+                      "03_TssFlnkU" = "TSS",
+                      "04_TssFlnkD" = "TSS",
+                      "05_Tx"       = "Transcribed",
+                      "06_TxWk"     = "Transcribed", 
+                      "07_EnhG1"    = "Enhancer",
+                      "08_EnhG2"    = "Enhancer", 
+                      "09_EnhA1"    = "Enhancer",
+                      "10_EnhA2"    = "Enhancer",
+                      "11_EnhWk"    = "Enhancer",
+                      "12_ZNF/Rpts" = "Repressed/bivalent",
+                      "13_Het"      = "Repressed/bivalent", 
+                      "14_TssBiv"   = "Repressed/bivalent",
+                      "15_EnhBiv"   = "Repressed/bivalent",
+                      "16_ReprPC"   = "Repressed/bivalent",
+                      "17_ReprPCWk" = "Repressed/bivalent",
+                      "18_Quies"    = "Repressed/bivalent")
+    
+    return(factor(simple.chrom[chrom.state.names], levels=c("TSS", "Transcribed", "Enhancer", "Repressed/bivalent")))
+}
+
 #' Associate TF overlaps to a \linkS4class{GRanges} object.
 #'
 #' @param regions A \linkS4class{GRanges} object to annotate.
@@ -933,7 +965,7 @@ associate.tissue.specificity.human <- function(regions) {
 #'
 #' @return The \linkS4class{GRanges} object with identified essential genes.
 #' @export
-associate.fitness.genes <- function(regions){
+associate.fitness.genes <- function(regions) {
 
   # Add the "essential ratio" to the data
   fitness.match <- match(regions$SYMBOL, essential.genes$Gene)
@@ -941,4 +973,37 @@ associate.fitness.genes <- function(regions){
   regions$Fitness <- ifelse(is.na(regions$Fitness), 0, (regions$Fitness / 6))
 
   return(regions)
+}
+
+#' Generate a GRanges object partitioning the genome into Promoter, Exon, introns,
+#' downstream and distal intergenic regions.
+#'
+#' @param TxDb A TxDb object giving the locations of all genes for the given genome. 
+#' @param available.genome A Granges object to be used as a background of all 
+#'   the available genome.
+#' @param BSgenome A BSgenome object to be used for generating an available genome
+#'   background. Ignored if available.genome is provided.
+#' @param flank.width The distance from the TSS/TES which are considered Promoters/Downstream.
+#'
+#' @return A GRanges object partitioning the genome into functional genomic regions.
+#' @export
+partition.genomic.regions <- function(TxDb, available.genome=NULL, BSgenome=NULL, flank.width=1000) {
+    stopifnot(!is.null(BSgenome) | !is.null(available.genome))
+    
+    # Genomic region enrichment of the whole network.            
+    geneList = unlist(transcriptsBy(TxDb))
+    
+    # Generate "available.genome" regions containing the entire genome.
+    if(is.null(available.genome)) {
+      all.chr = unique(seqnames(geneList))
+      all.chr.lengths = seqlengths(BSgenome)[all.chr]
+      available.genome = GRanges(data.frame(seqnames=all.chr, start=1, end=all.chr.lengths, strand="+"))
+    }
+    
+    region.list = list(Promoter=flank(geneList, width=flank.width, start=TRUE, both=TRUE),
+                       Exon=unlist(exonsBy(TxDb)),
+                       Intron=unlist(intronsByTranscript(TxDb)),
+                       Downstream=flank(geneList, width=flank.width, start=FALSE, both=FALSE),
+                       "Distal intergenic"=available.genome)
+    genomic.regions = collapse.regions(region.list)
 }
