@@ -889,26 +889,33 @@ associate.chrom.state <- function(regions, input.chrom.state) {
 #' @return The simplified chromatin states.
 #' @export
 simplify.chrom.state <- function(chrom.state.names) {
-    simple.chrom <- c("01_TssA"     = "TSS",
-                      "02_TssFlnk"  = "TSS", 
-                      "03_TssFlnkU" = "TSS",
-                      "04_TssFlnkD" = "TSS",
-                      "05_Tx"       = "Transcribed",
-                      "06_TxWk"     = "Transcribed", 
-                      "07_EnhG1"    = "Enhancer",
-                      "08_EnhG2"    = "Enhancer", 
-                      "09_EnhA1"    = "Enhancer",
-                      "10_EnhA2"    = "Enhancer",
-                      "11_EnhWk"    = "Enhancer",
-                      "12_ZNF/Rpts" = "Repressed/bivalent",
-                      "13_Het"      = "Repressed/bivalent", 
-                      "14_TssBiv"   = "Repressed/bivalent",
-                      "15_EnhBiv"   = "Repressed/bivalent",
-                      "16_ReprPC"   = "Repressed/bivalent",
-                      "17_ReprPCWk" = "Repressed/bivalent",
-                      "18_Quies"    = "Repressed/bivalent")
-    
-    return(factor(simple.chrom[chrom.state.names], levels=c("TSS", "Transcribed", "Enhancer", "Repressed/bivalent")))
+    simple.chrom <- simple.chrom.state.map()
+    return(factor(simple.chrom[chrom.state.names], levels=unique(simple.chrom.state.map())))
+}
+
+#' Returns the mapping used to go from full chromatin states to simple ones.
+#'
+#' @return The mapping used to go from full chromatin states to simple ones.
+#' @export
+simple.chrom.state.map <- function() {
+    c("01_TssA"     = "TSS",
+      "02_TssFlnk"  = "TSS", 
+      "03_TssFlnkU" = "TSS",
+      "04_TssFlnkD" = "TSS",
+      "05_Tx"       = "Transcribed",
+      "06_TxWk"     = "Transcribed", 
+      "07_EnhG1"    = "Enhancer",
+      "08_EnhG2"    = "Enhancer", 
+      "09_EnhA1"    = "Enhancer",
+      "10_EnhA2"    = "Enhancer",
+      "11_EnhWk"    = "Enhancer",
+      "12_ZNF/Rpts" = "Repressed/bivalent",
+      "13_Het"      = "Repressed/bivalent", 
+      "14_TssBiv"   = "Repressed/bivalent",
+      "15_EnhBiv"   = "Repressed/bivalent",
+      "16_ReprPC"   = "Repressed/bivalent",
+      "17_ReprPCWk" = "Repressed/bivalent",
+      "18_Quies"    = "Repressed/bivalent")
 }
 
 #' Associate TF overlaps to a \linkS4class{GRanges} object.
