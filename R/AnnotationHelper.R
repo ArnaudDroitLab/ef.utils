@@ -1014,3 +1014,29 @@ partition.genomic.regions <- function(TxDb, available.genome=NULL, BSgenome=NULL
                        "Distal intergenic"=available.genome)
     genomic.regions = collapse.regions(region.list)
 }
+
+
+# Position NIPBL/SMC1A peaks in relation to genes dysregulated by NIPBL/SMC1A
+# mutations in CDLS.
+gene.peaks.distances <- function(peaks, genes, annot) {
+  # Annotate the NIPBL peaks.
+  peaks.annotation = as.data.frame(annotatePeak(peaks, TxDb=annot$TxDb))
+  
+  # Associate symbols.
+  peaks.annotation$SYMBOL = mapIds(annot$OrgDb, as.data.frame(peaks.annotation)$transcriptId, c("SYMBOL"), "UCSCKG")
+  
+  # Reorder them by distance to TSS.
+  peaks.annotation = peaks.annotation[order(abs(peaks.annotation$distanceToTSS)),]
+  
+  # Keep closest to TSS
+  peaks.best = peaks.annotation[match(unique(peaks.annotation$SYMBOL), peaks.annotation$SYMBOL),]
+  peaks.best$Simple.Annotation = gsub(" \\(.*\\)", "", peaks.best$annotation)
+  
+  # Cross reference with gene list
+  gene.peaks = peaks.best[peaks.best$SYMBOL %in% genes,]
+
+  nb.peaks = table(gene.peaks$Simple.Annotation)
+  nb.peaks["None"] = length(genes) - sum(nb.peaks)
+  
+  return(nb.peaks / sum(nb.peaks))
+}  
