@@ -1016,8 +1016,14 @@ partition.genomic.regions <- function(TxDb, available.genome=NULL, BSgenome=NULL
 }
 
 
-# Position NIPBL/SMC1A peaks in relation to genes dysregulated by NIPBL/SMC1A
-# mutations in CDLS.
+#' Generate a summary of the distances separating a set of genes from a set of peaks.
+#'
+#' @param peaks A GRanges object describing the peaks whose distance from the genes must be summarized.
+#' @param genes A vector of gene symbols.
+#' @param annot An annotation list returned by select.annotation for putting th esymbols in context.
+#'
+#' @return A numeric vector containing the proportion of genes within each distance category.
+#' @export
 gene.peaks.distances <- function(peaks, genes, annot) {
   # Annotate the NIPBL peaks.
   peaks.annotation = as.data.frame(annotatePeak(peaks, TxDb=annot$TxDb))
