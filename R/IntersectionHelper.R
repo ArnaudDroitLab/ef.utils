@@ -340,10 +340,12 @@ region.enrichment <- function(query.regions, genome.wide, genome.order=NULL, fil
     ggplot(enrichment.df, aes(fill=Enrichment, y=RegionType, x="Network regions")) +
         geom_tile(color="black") + 
         geom_text(mapping=aes(label=sprintf("%.2f", enrichment.df$Enrichment))) +
-        scale_fill_gradient2(low="dodgerblue", mid="white", high="yellow", midpoint=0, limits=c(-maxEnrich, maxEnrich)) +
+        scale_fill_gradient2(low="dodgerblue", mid="white", high="red", midpoint=0, limits=c(-maxEnrich, maxEnrich)) +
         labs(y="Region type", x=NULL)
     
     ggsave(file.out, width=7, height=7)
+    
+    write.table(enrichment.df, file=paste0(file.out, ".txt"), sep="\t", row.names=FALSE, col.names=TRUE)
   }
   
   return(enrichment.df)
@@ -420,11 +422,13 @@ region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order
             
             result.df = melt(results.data[[metric]], varnames=c("Query", "Category"))
             
+            # Reorder queries
             if(is.null(query.order)) {
                 query.order = rownames(results.data[[metric]])
             }
             result.df$Query = factor(result.df$Query, levels=query.order)
 
+            # Reorder categories.
             if(is.null(genome.order)) {
                 genome.order = colnames(results.data[[metric]])
             }
@@ -432,13 +436,20 @@ region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order
             
             results.plot[[metric]] = ggplot(result.df, aes(x=Query, y=Category, fill=value)) +
                 geom_tile() +
-                scale_fill_gradient(low="white", high="red", name=metric) +
                 theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
+            # Change text labels depending on the type of data.
             if(metric=="Proportion") {
                 results.plot[[metric]] = results.plot[[metric]] + geom_text(mapping=aes(label=sprintf("%.0f%%", value*100)))
             } else if(metric=="Enrichment") {
                 results.plot[[metric]] = results.plot[[metric]] + geom_text(mapping=aes(label=sprintf("%.1f", value)))
+            }
+            
+            # Change type fo scale (two colors or three colors) depending on the type of data.
+            if(metric=="Enrichment") {
+                results.plot[[metric]] = results.plot[[metric]] + scale_fill_gradient2(low="dodgerblue", mid="white", high="red", name=metric)
+            } else {
+                results.plot[[metric]] = results.plot[[metric]] + scale_fill_gradient(low="white", high="red", name=metric)
             }
             ggsave(paste0(file.prefix, " all ", metric, ".pdf"), plot=results.plot[[metric]], width=plot.width, height=plot.height)
         }
