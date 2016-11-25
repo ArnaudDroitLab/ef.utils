@@ -898,24 +898,28 @@ simplify.chrom.state <- function(chrom.state.names) {
 #' @return The mapping used to go from full chromatin states to simple ones.
 #' @export
 simple.chrom.state.map <- function() {
-    c("01_TssA"     = "TSS",
-      "02_TssFlnk"  = "TSS", 
-      "03_TssFlnkU" = "TSS",
-      "04_TssFlnkD" = "TSS",
-      "05_Tx"       = "Transcribed",
-      "06_TxWk"     = "Transcribed", 
-      "07_EnhG1"    = "Enhancer",
-      "08_EnhG2"    = "Enhancer", 
-      "09_EnhA1"    = "Enhancer",
-      "10_EnhA2"    = "Enhancer",
-      "11_EnhWk"    = "Enhancer",
-      "12_ZNF/Rpts" = "Repressed/bivalent",
-      "13_Het"      = "Repressed/bivalent", 
-      "14_TssBiv"   = "Repressed/bivalent",
-      "15_EnhBiv"   = "Repressed/bivalent",
-      "16_ReprPC"   = "Repressed/bivalent",
-      "17_ReprPCWk" = "Repressed/bivalent",
-      "18_Quies"    = "Repressed/bivalent")
+    mapping = c("01_TssA"     = "TSS",
+                "02_TssFlnk"  = "TSS", 
+                "03_TssFlnkU" = "TSS",
+                "04_TssFlnkD" = "TSS",
+                "05_Tx"       = "Transcribed",
+                "06_TxWk"     = "Transcribed", 
+                "07_EnhG1"    = "Enhancer",
+                "08_EnhG2"    = "Enhancer", 
+                "09_EnhA1"    = "Enhancer",
+                "10_EnhA2"    = "Enhancer",
+                "11_EnhWk"    = "Enhancer",
+                "12_ZNF/Rpts" = "Repressed",
+                "13_Het"      = "Repressed", 
+                "14_TssBiv"   = "TSS",
+                "15_EnhBiv"   = "Enhancer",
+                "16_ReprPC"   = "Repressed",
+                "17_ReprPCWk" = "Repressed",
+                "18_Quies"    = "Quiescent")
+                
+    mapping = factor(mapping, levels=c("TSS", "Transcribed", "Enhancer", "Repressed", "Quiescent"))
+    
+    return(mapping)
 }
 
 #' Associate TF overlaps to a \linkS4class{GRanges} object.
