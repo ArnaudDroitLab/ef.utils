@@ -396,6 +396,7 @@ multiple.region.enrichment <- function(queries.regions, genome.regions, query.or
 #' @param plot.width The width of any resulting plot.
 #' @param plot.height The height of any resulting plot.
 #' @return A list of summarized enrichment metrics.
+#' @import reshape melt
 #' @export
 region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order=NULL, genome.order=NULL, plot.width=7, plot.height=7) {
     # Put all of metrics into a single multidimensional array.
