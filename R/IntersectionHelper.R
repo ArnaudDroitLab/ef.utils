@@ -396,7 +396,7 @@ multiple.region.enrichment <- function(queries.regions, genome.regions, query.or
 #' @param plot.width The width of any resulting plot.
 #' @param plot.height The height of any resulting plot.
 #' @return A list of summarized enrichment metrics.
-#' @import reshape melt
+#' @importFrom reshape2 melt
 #' @export
 region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order=NULL, genome.order=NULL, plot.width=7, plot.height=7) {
     # Put all of metrics into a single multidimensional array.
@@ -421,7 +421,7 @@ region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order
         for(metric in names(results.data)) {
             write.table(results.data[[metric]], file=paste0(file.prefix, " ", metric, ".txt"), sep="\t", col.names=TRUE, row.names=TRUE)
             
-            result.df = melt(results.data[[metric]], varnames=c("Query", "Category"))
+            result.df = reshape2::melt(results.data[[metric]], varnames=c("Query", "Category"))
             
             # Reorder queries
             if(is.null(query.order)) {
@@ -437,7 +437,16 @@ region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order
             
             results.plot[[metric]] = ggplot(result.df, aes(x=Query, y=Category, fill=value)) +
                 geom_tile() +
-                theme(axis.text.x = element_text(angle = 90, hjust = 1))
+                theme_bw() +
+                theme(axis.line = element_line(colour = "black"),
+                      axis.text = element_text(color="black"),
+                      axis.text.x = element_text(angle = 90, hjust = 1),
+                      axis.title = element_text(size=14),
+                      panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank(),
+                      panel.border = element_blank(),
+                      panel.background = element_blank())
+                
 
             # Change text labels depending on the type of data.
             if(metric=="Proportion") {
