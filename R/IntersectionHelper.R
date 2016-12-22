@@ -341,7 +341,10 @@ region.enrichment <- function(query.regions, genome.wide, genome.order=NULL, fil
         geom_tile(color="black") + 
         geom_text(mapping=aes(label=sprintf("%.2f", enrichment.df$Enrichment))) +
         scale_fill_gradient2(low="dodgerblue", mid="white", high="red", midpoint=0, limits=c(-maxEnrich, maxEnrich)) +
-        labs(y="Region type", x=NULL)
+        labs(y="Region type", x=NULL) +
+        theme(axis.line=element_blank(),
+              axis.ticks=element_blank(),
+              axis.title=element_blank())
     
     ggsave(file.out, width=7, height=7)
     
