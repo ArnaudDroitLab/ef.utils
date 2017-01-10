@@ -373,7 +373,7 @@ multiple.region.enrichment <- function(queries.regions, genome.regions, query.or
     
     # Loop over all given query regions and perform enrichments.
     for(query in names(queries.regions)) { 
-        # Ifwe ahve an output prefix, figure out the name for the query-specific output.
+        # If we have an output prefix, figure out the name for the query-specific output.
         if(!is.null(file.prefix) && individual.plots) {
             file.out = paste0(file.prefix, " ", query, ".pdf")
         } else {
@@ -464,7 +464,7 @@ region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order
             } else {
                 results.plot[[metric]] = results.plot[[metric]] + scale_fill_gradient(low="white", high="red", name=metric)
             }
-            ggsave(paste0(file.prefix, " all ", metric, ".pdf"), plot=results.plot[[metric]], width=plot.width, height=plot.height)
+            ggsave(paste0(file.prefix, " all ", metric, ".pdf"), plot=results.plot[[metric]], width=plot.width, height=plot.height, limitsize=FALSE)
         }
     }
     
