@@ -147,7 +147,7 @@ build.intersect <- function(grl, keep.signal = FALSE) {
 #' @return The grid object representing the venn.diagram.
 #' @importFrom VennDiagram venn.diagram
 #' @export
-plot.intersect.venn <- function(intersect.object, filename=NULL) {
+intersect.venn.plot <- function(intersect.object, filename=NULL) {
     if(intersect.object$Length > 5) {
         stop("Cannot plot venn diagram of more than 5 groups!")
     }
@@ -256,7 +256,7 @@ build.intersect.all <- function(regions, annotations.list, label) {
 
     intersect.object = build.intersect(regions)
 
-    plot.intersect.venn(intersect.object, file.path(base.dir, "Venn diagram.tiff"))
+    intersect.venn.plot(intersect.object, file.path(base.dir, "Venn diagram.tiff"))
     annotate.venn.center(intersect.object, annotations.list, file.path(base.dir, "Venn intersection annotation.txt"))
     annotate.venn.exclusive(intersect.object, annotations.list, file.path(base.dir, "/"))
     pairwise.overlap(intersect.object, file.path(base.dir, "Pairwise overlap.txt"))

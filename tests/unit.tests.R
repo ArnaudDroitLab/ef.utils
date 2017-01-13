@@ -89,14 +89,14 @@ intersect.overlap.test <- intersect.overlap(intersect.test)
       stopifnot(intersect.overlap(intersect.test, exclusive=TRUE)==intersect.overlap(intersect.test))
 
 #####################################
-# Test plot.intersect.venn
+# Test intersect.venn.plot
 #####################################
 # Specific tests
       intersect.test.2 <- intersect.test
       intersect.test.2$Length <- 7
-      test_that("plot.intersect.venn_length > 5", expect_error(plot.intersect.venn(intersect.test.2)))
+      test_that("intersect.venn.plot_length > 5", expect_error(intersect.venn.plot(intersect.test.2)))
 
-      plot.intersect.venn(intersect.test, file="Test.tiff")
+      intersect.venn.plot(intersect.test, file="Test.tiff")
       stopifnot(file.exists("Test.tiff"))
       file.remove("Test.tiff")
 
