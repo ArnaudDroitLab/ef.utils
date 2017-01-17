@@ -998,11 +998,14 @@ associate.fitness.genes <- function(regions) {
 #'
 #' @return A GRanges object partitioning the genome into functional genomic regions.
 #' @export
+#' @importFrom GenomicFeatures transcriptsBy
+#' @importFrom GenomicFeatures exonsBy
+#' @importFrom GenomicFeatures intronsByTranscript
 partition.genomic.regions <- function(TxDb, available.genome=NULL, BSgenome=NULL, flank.width=1000) {
     stopifnot(!is.null(BSgenome) | !is.null(available.genome))
     
     # Genomic region enrichment of the whole network.            
-    geneList = unlist(transcriptsBy(TxDb))
+    geneList = unlist(GenomicFeatures::transcriptsBy(TxDb))
     
     # Generate "available.genome" regions containing the entire genome.
     if(is.null(available.genome)) {
@@ -1012,8 +1015,8 @@ partition.genomic.regions <- function(TxDb, available.genome=NULL, BSgenome=NULL
     }
     
     region.list = list(Promoter=flank(geneList, width=flank.width, start=TRUE, both=TRUE),
-                       Exon=unlist(exonsBy(TxDb)),
-                       Intron=unlist(intronsByTranscript(TxDb)),
+                       Exon=unlist(GenomicFeatures::exonsBy(TxDb)),
+                       Intron=unlist(GenomicFeatures::intronsByTranscript(TxDb)),
                        Downstream=flank(geneList, width=flank.width, start=FALSE, both=FALSE),
                        "Distal intergenic"=available.genome)
     genomic.regions = collapse.regions(region.list)
