@@ -20,7 +20,7 @@ import.and.discard.metadata <- function(x, extraCols) {
 #' @importFrom GenomicRanges GRangesList
 #' @importFrom rtracklayer import
 #' @export
-import.files.into.grl <- function(all.files, file.format, file.ext, discard.metadata=FALSE) {
+import_files_into_grl <- function(all.files, file.format, file.ext, discard.metadata=FALSE) {
     # Determine which extra columns should be imported.
     if(file.format=="bed") {
         extraCols = c()
@@ -53,7 +53,7 @@ import.files.into.grl <- function(all.files, file.format, file.ext, discard.meta
 #'   "mugqic", the output structure of the MUGQIC pipeline is searched for.
 #' @return A \linkS4class{GRanges} object representing the regions of the files in input.dir.
 #' @export
-import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, discard.metadata=FALSE, dir.type="plain") {
+import_into_grl <- function(input.dir=".", file.format="bed", file.ext=NULL, discard.metadata=FALSE, dir.type="plain") {
   # Define certain parameters based on the file format.
   if(is.null(file.ext)) {
     if(file.format=="bed") {
@@ -82,7 +82,7 @@ import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, dis
     names(all.files) = gsub("\\.$", "", gsub(file.ext, "", all.filenames))
   }
 
-  grl = import.files.into.grl(all.files, file.format, file.ext, discard.metadata=discard.metadata)
+  grl = import_files_into_grl(all.files, file.format, file.ext, discard.metadata=discard.metadata)
   
   return(grl)
 }
@@ -104,7 +104,7 @@ import.into.grl <- function(input.dir=".", file.format="bed", file.ext=NULL, dis
 #'   in the resulting data frame.
 #' @return A \code{data-frame} with the concatenated information from all files.
 #' @export
-read.identical <- function(file.names, header.columns, data.columns, file.labels=basename(file.names), sep="\t", header=TRUE, ...) {
+read_identical <- function(file.names, header.columns, data.columns, file.labels=basename(file.names), sep="\t", header=TRUE, ...) {
     results=NULL
     for(i in 1:length(file.names)) {
         file.name = file.names[i]

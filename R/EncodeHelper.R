@@ -5,7 +5,7 @@
 #'
 #' @return The ENCODE mnemonic associated with the biosample.
 #' @export
-get.encode.mnemonic <- function(biosample) {
+get_encode_mnemonic <- function(biosample) {
     return(biosample.code$EID[grep(biosample, biosample.code$E.Mnemonic, ignore.case = TRUE)])
 }
 
@@ -49,7 +49,7 @@ download.one.chrom.state <- function(mnemonic, number.of.states, download.dir) {
 #' @param download.dir The folder where the downloaded files should be stored.
 #'
 #' @return A list containing the names of the unzipped chromatin state files, if they were found.
-internal.download.chrom.states <- function(mnemonic, download.dir=".") {
+internal.download_chrom_states <- function(mnemonic, download.dir=".") {
     results <- list()
     for(number.of.states in c(15, 18)) {
         gzipped.states = download.one.chrom.state(mnemonic, 18, download.dir)
@@ -72,16 +72,16 @@ internal.download.chrom.states <- function(mnemonic, download.dir=".") {
 #'
 #' @importFrom utils download.file
 #' @export
-import.chrom.states <- function(biosample, download.dir="."){
+import_chrom_states <- function(biosample, download.dir="."){
     # Grab the ENCODE identifier for the cell line. If there are more than
     # one (IE the biosample is ambiguous), we'll use the first.
-    mnemonic <- get.encode.mnemonic(biosample)
+    mnemonic <- get_encode_mnemonic(biosample)
     if(length(mnemonic) > 1) {
         warning("biosample is ambiguous: the first matchign entry will be used.")
     }
 
     if(length(mnemonic) > 0) {
-        downloaded.states = internal.download.chrom.states(mnemonic, download.dir)
+        downloaded.states = internal.download_chrom_states(mnemonic, download.dir)
         if(!is.null(downloaded.states[["18"]])) {
             return(downloaded.states[["18"]])
         } else if(!is.null(downloaded.states[["15"]])) {
@@ -97,7 +97,7 @@ import.chrom.states <- function(biosample, download.dir="."){
 }
 
 
-#' Default filtering function for \code{\link{download.encode.chip}}.
+#' Default filtering function for \code{\link{download_encode_chip}}.
 #'
 #' The filtering function does three things: \enumerate{
 #'   \item It removes all files which do not have the correct genome assembly.
@@ -111,7 +111,7 @@ import.chrom.states <- function(biosample, download.dir="."){
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
 #' @export
-default.download.filter.chip <- function(query.results, genome.assembly) {
+default_download_filter_chip <- function(query.results, genome.assembly) {
     filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
         x = subset(x, assembly==genome.assembly)
 
@@ -138,7 +138,7 @@ default.download.filter.chip <- function(query.results, genome.assembly) {
     return(filtered.results)
 }
 
-#' Alternative filtering function for \code{\link{download.encode.chip}}.
+#' Alternative filtering function for \code{\link{download_encode_chip}}.
 #'
 #' The filtering function does three things: \enumerate{
 #'   \item It removes all files which do not have the correct genome assembly.
@@ -152,7 +152,7 @@ default.download.filter.chip <- function(query.results, genome.assembly) {
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
 #' @export
-histone.download.filter.chip <- function(query.results, genome.assembly) {
+histone_download_filter_chip <- function(query.results, genome.assembly) {
   filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
     x = subset(x, assembly==genome.assembly)
 
@@ -170,7 +170,7 @@ histone.download.filter.chip <- function(query.results, genome.assembly) {
   return(filtered.results)
 }
 
-#' Alternative filtering function for \code{\link{download.encode.chip}}.
+#' Alternative filtering function for \code{\link{download_encode_chip}}.
 #'
 #' The filtering function does three things: \enumerate{
 #'   \item It removes all files which do not have the correct genome assembly.
@@ -184,7 +184,7 @@ histone.download.filter.chip <- function(query.results, genome.assembly) {
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
 #' @export
-pol2.download.filter.chip <- function(query.results, genome.assembly) {
+pol2_download_filter_chip <- function(query.results, genome.assembly) {
   filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
     x = subset(x, assembly==genome.assembly)
 
@@ -203,7 +203,7 @@ pol2.download.filter.chip <- function(query.results, genome.assembly) {
 
 }
 
-#' Default filtering function for \code{\link{download.encode.rna}}.
+#' Default filtering function for \code{\link{download_encode_rna}}.
 #'
 #' The filtering function does three things: \enumerate{
 #'   \item It removes all files which do not have the correct genome assembly.
@@ -216,7 +216,7 @@ pol2.download.filter.chip <- function(query.results, genome.assembly) {
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
 #' @export
-default.download.filter.rna <- function(query.results, genome.assembly) {
+default_download_filter_rna <- function(query.results, genome.assembly) {
     filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
         return(subset(x, grepl("genes", x$submitted_file_name) & assembly==genome.assembly & is.na(treatment)))
     }, genome.assembly=genome.assembly)
@@ -224,7 +224,7 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
     return(filtered.results)
 }
 
-#' Alternative filtering function for \code{\link{download.encode.rna}}.
+#' Alternative filtering function for \code{\link{download_encode_rna}}.
 #'
 #' The filtering function does three things: \enumerate{
 #'   \item It removes all files which do not have the correct genome assembly.
@@ -237,7 +237,7 @@ default.download.filter.rna <- function(query.results, genome.assembly) {
 #' @return A filtered \code{data frame}.
 #' @importFrom plyr ddply
 #' @export
-isoform.download.filter.rna <- function(query.results, genome.assembly) {
+isoform_download_filter_rna <- function(query.results, genome.assembly) {
   filtered.results = plyr::ddply(query.results, ~accession, function(x, genome.assembly) {
     return(subset(x, grepl("isoform", x$submitted_file_name) & assembly==genome.assembly & is.na(treatment)))
   }, genome.assembly=genome.assembly)
@@ -246,7 +246,7 @@ isoform.download.filter.rna <- function(query.results, genome.assembly) {
 }
 
 consensus.and.signal.mean <- function(grl, keep.signal) {
-    overlap.results = intersect.overlap(build.intersect(grl, keep.signal = keep.signal))
+    overlap.results = intersect_overlap(build_intersect(grl, keep.signal = keep.signal))
     mcols(overlap.results) <- rowMeans(as.data.frame(mcols(overlap.results)), na.rm = TRUE)
     names(mcols(overlap.results)) <- "signalValue"
     return(unlist(overlap.results))
@@ -254,7 +254,7 @@ consensus.and.signal.mean <- function(grl, keep.signal) {
 
 #' @importFrom rtracklayer import
 import.plus.consensus <- function(files.to.import, file.format, file.ext = ".bed", keep.signal = FALSE) {
-    grl = import.files.into.grl(files.to.import, file.format, file.ext=file.ext, discard.metadata=!keep.signal)
+    grl = import_files_into_grl(files.to.import, file.format, file.ext=file.ext, discard.metadata=!keep.signal)
     return(consensus.and.signal.mean(grl, keep.signal))
 }
 
@@ -329,7 +329,7 @@ download.chip.and.import <- function(query.results, peak.type, out.dir=".", keep
 #' @importFrom stats aggregate
 #' @importMethodsFrom GenomicRanges findOverlaps
 #' @export
-download.encode.chip <- function(biosample, assembly, download.filter=default.download.filter.chip,
+download_encode_chip <- function(biosample, assembly, download.filter=default_download_filter_chip,
                                    download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq"), keep.signal = FALSE) {
     # Query ENCODE to obtain appropriate files.
     # queryEncode has a bug and will fail if encode_df is not loaded.
@@ -369,7 +369,7 @@ download.encode.chip <- function(biosample, assembly, download.filter=default.do
 #' @importFrom ENCODExplorer queryEncode
 #' @importFrom ENCODExplorer downloadEncode
 #' @export
-download.encode.rna <- function(biosample, assembly, download.filter=default.download.filter.rna, download.dir=file.path("input/ENCODE", biosample, assembly, "rna-seq")) {
+download_encode_rna <- function(biosample, assembly, download.filter=default_download_filter_rna, download.dir=file.path("input/ENCODE", biosample, assembly, "rna-seq")) {
     # Query ENCODE to obtain appropriate files.
     # queryEncode has a bug and will fail if encode_df is not loaded.
     data("encode_df", package="ENCODExplorer")
@@ -383,7 +383,7 @@ download.encode.rna <- function(biosample, assembly, download.filter=default.dow
     # Read the files.
     if(!is.null(query.results)) {
         #rna.filenames = list.files(download.dir)
-        rna.data = read.identical(downloaded.files, 1:5, 6:7, file.labels=gsub(".tsv", "", downloaded.files))
+        rna.data = read_identical(downloaded.files, 1:5, 6:7, file.labels=gsub(".tsv", "", downloaded.files))
         
         # Calculate mean of metrics.
         for(metric in c("TPM", "FPKM")) {
@@ -404,73 +404,73 @@ download.encode.rna <- function(biosample, assembly, download.filter=default.dow
                 Expression=rna.data))    
 }
 
-#' Helper function for obtaining transcription factor data through download.encode.chip.
+#' Helper function for obtaining transcription factor data through download_encode_chip.
 #'
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562 or MCF-7.
 #' @param genome.assembly Which genome assembly should the results come from?
 #' @param download.dir The folder where the downloaded files should be stored.
 #'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
-#' @param ... Other parameters to be passed to download.encode.chip.
+#' @param ... Other parameters to be passed to download_encode_chip.
 #' @return A list containing three elements: \describe{
 #' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
 #'     about all files which matched the query.}
 #' \item{Downloaded}{The list of files which were downloaded.}
 #' \item{Regions}{The processed peak regions.}}
 #' @export
-download.encode.tf <- function(biosample, assembly, 
+download_encode_tf <- function(biosample, assembly, 
                                download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf"),
                                ...) {
-    return(download.encode.chip(biosample, assembly,
-                                download.filter=default.download.filter.chip, 
+    return(download_encode_chip(biosample, assembly,
+                                download.filter=default_download_filter_chip, 
                                 download.dir=download.dir, ...))
 }
 
-#' Helper function for obtaining histone data through download.encode.chip.
+#' Helper function for obtaining histone data through download_encode_chip.
 #'
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562 or MCF-7.
 #' @param genome.assembly Which genome assembly should the results come from?
 #' @param download.dir The folder where the downloaded files should be stored.
 #'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
-#' @param ... Other parameters to be passed to download.encode.chip.
+#' @param ... Other parameters to be passed to download_encode_chip.
 #' @return A list containing three elements: \describe{
 #' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
 #'     about all files which matched the query.}
 #' \item{Downloaded}{The list of files which were downloaded.}
 #' \item{Regions}{The processed peak regions.}}
 #' @export
-download.encode.histones <- function(biosample, assembly,
+download_encode_histones <- function(biosample, assembly,
                                      download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq", "histones"),
                                      ...) {
-    return(download.encode.chip(biosample, assembly, 
-                                download.filter=histone.download.filter.chip, 
+    return(download_encode_chip(biosample, assembly, 
+                                download.filter=histone_download_filter_chip, 
                                 download.dir=download.dir, ...))
 }
 
-#' Helper function for obtaining polymerase data through download.encode.chip.
+#' Helper function for obtaining polymerase data through download_encode_chip.
 #'
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562 or MCF-7.
 #' @param genome.assembly Which genome assembly should the results come from?
 #' @param download.dir The folder where the downloaded files should be stored.
 #'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
-#' @param ... Other parameters to be passed to download.encode.chip.
+#' @param ... Other parameters to be passed to download_encode_chip.
 #' @return A list containing three elements: \describe{
 #' \item{Metadata}{The metadata returned by \code{\link[ENCODExplorer]{queryEncode}}, containing information
 #'     about all files which matched the query.}
 #' \item{Downloaded}{The list of files which were downloaded.}
 #' \item{Regions}{The processed peak regions.}}
 #' @export
-download.encode.polymerases <- function(biosample, assembly,
+download_encode_polymerases <- function(biosample, assembly,
                                         download.dir=file.path("input/ENCODE", biosample, assembly, "chip-seq", "polymerases"),
                                         ...) {
-    return(download.encode.chip(biosample, assembly,
-                                download.filter=pol2.download.filter.chip, 
+    return(download_encode_chip(biosample, assembly,
+                                download.filter=pol2_download_filter_chip, 
                                 download.dir=download.dir, ...))
 }
 
-#' Helper function for obtaining chromatin states through import.chrom.states.
+#' Helper function for obtaining chromatin states through import_chrom_states.
 #'
 #' @param biosample The biosample identifier from ENCODE. Valid examples are
 #'   GM12878, K562 or MCF-7.
@@ -479,10 +479,10 @@ download.encode.polymerases <- function(biosample, assembly,
 #'   defaults to \code{file.path("input/ENCODE", biosample, assembly, "chip-seq", "tf")}.
 #' @return A GRanges object with the loaded chromatin states, or NULL if the do not exist.
 #' @export
-download.chromatin.states <- function(biosample, assembly, download.dir=file.path("input/ENCODE", biosample, assembly)) {
-    downloaded.file = import.chrom.states(biosample, download.dir)
+download_chromatin_states <- function(biosample, assembly, download.dir=file.path("input/ENCODE", biosample, assembly)) {
+    downloaded.file = import_chrom_states(biosample, download.dir)
     if(!is.null(downloaded.file)) {
-        return(load.chrom.state(downloaded.file))
+        return(load_chrom_state(downloaded.file))
     } else {
         return(NULL)
     }

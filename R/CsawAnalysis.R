@@ -198,7 +198,7 @@ multiple.testing <- function(filtered.counted.reads, results, txdb){
 #' @return annotations, list, annotation of considered regions
 #'
 #' @export
-post.processing <- function(merged, tabcom, txdb, orgdb){
+post_processing <- function(merged, tabcom, txdb, orgdb){
   # Adding gene-based annotation
   annotations <- detailRanges(merged$region, txdb = txdb, orgdb = orgdb, promoter = c(3000, 1000), dist = 5000)
 
@@ -219,7 +219,7 @@ post.processing <- function(merged, tabcom, txdb, orgdb){
 #' @importFrom Biobase cache
 #'
 #' @export
-csaw.analyze <- function(correspondances, reference, genome.build, output.dir = "csaw_output/", threshold = 3, save.plots = TRUE) {
+csaw_analyze <- function(correspondances, reference, genome.build, output.dir = "csaw_output/", threshold = 3, save.plots = TRUE) {
   correspondances <- read.table(correspondances, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   bam.files <- correspondances[,2]
   correspondances$Factors <- factor(correspondances$Factors)
@@ -233,8 +233,8 @@ csaw.analyze <- function(correspondances, reference, genome.build, output.dir = 
   dir.create(cache.dir, recursive = TRUE)
 
   #Load appropriate libraries
-  install.annotations(genome.build)
-  annotations <- select.annotations(genome.build)
+  install_annotations(genome.build)
+  annotations <- select_annotations(genome.build)
   txdb <- annotations$TxDb
   orgdb <- annotations$OrgDb
 
@@ -258,8 +258,8 @@ csaw.analyze <- function(correspondances, reference, genome.build, output.dir = 
   merged <- list.multiple.testing[[1]]
   tabcom <- list.multiple.testing[[2]]
 
-  # post.processing
-  annotations <- post.processing(merged, tabcom, txdb, orgdb)
+  # post_processing
+  annotations <- post_processing(merged, tabcom, txdb, orgdb)
 
   # Save plots and files
   if (save.plots){
@@ -365,7 +365,7 @@ csaw.save.plots <- function(list.reads.to.counts, list.reads.filter, list.normal
   write.table(table.best.broad, file = file.path(output.dir, "Representative windows (promoter-based).txt"), sep = "\t")
   write.table(logFC.best.windows.broads, file = file.path(output.dir, "LogFC of best windows in each cluster (promoter-based).txt"), sep = "\t")
 
-  # Save results of post.processing
+  # Save results of post_processing
   # Saving the results
   csaw.output <- gzfile(file.path(output.dir, "csaw_clusters.gz"), open="w")
   write.table(data.frame(as.data.frame(merged$region)[,1:3], tabcom, annotations), file = csaw.output,

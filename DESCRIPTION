@@ -1,4 +1,4 @@
-Package: eric.utils
+Package: ef.utils
 Title: Eric Utilities
 Version: 0.0.0.9000
 Authors@R: person("Eric", "Fournier", email = "Fournier.Eric.2@crchudequebec.ulaval.ca", role = c("aut", "cre"))

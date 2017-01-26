@@ -54,7 +54,7 @@ inclusive.overlap.internal <- function(all.regions, overlap.matrix, which.factor
 #' If both indices and names are \code{NULL}, the inner intersection
 #' is calculated.
 #'
-#' @param intersect.object An \code{intersect.object} returned by \code{\link{build.intersect}}.
+#' @param intersect.object An \code{intersect.object} returned by \code{\link{build_intersect}}.
 #'   by the rows of \code{overlap.matrix}.
 #' @param indices A vector of indices into the factors of \code{intersect.object}.
 #' @param names A vector of factor names in \code{intersect.object}.
@@ -62,7 +62,7 @@ inclusive.overlap.internal <- function(all.regions, overlap.matrix, which.factor
 #    indices or names are the ONLY the factors present at that region.
 #' @return A \linkS4class{GRanges} object with the regions matching the given criteria.
 #' @export
-intersect.overlap <- function(intersect.object, indices=NULL, names=NULL, exclusive=FALSE) {
+intersect_overlap <- function(intersect.object, indices=NULL, names=NULL, exclusive=FALSE) {
     if(is.null(indices) && is.null(names)) {
        which.factors = rep(TRUE, intersect.object$Length)
     } else if (!is.null(names)) {
@@ -102,7 +102,7 @@ intersect.overlap <- function(intersect.object, indices=NULL, names=NULL, exclus
 #' @importFrom GenomicRanges mcols
 #' @importMethodsFrom GenomicRanges countOverlaps findOverlaps
 #' @export
-build.intersect <- function(grl, keep.signal = FALSE) {
+build_intersect <- function(grl, keep.signal = FALSE) {
     # Flatten the GRangesList so we can get a list of all possible regions.
     #all.regions = biovizBase::flatGrl(GenomicRanges::reduce(unlist(grl)))
     all.regions = GenomicRanges::reduce(unlist(grl))
@@ -141,13 +141,13 @@ build.intersect <- function(grl, keep.signal = FALSE) {
 
 #' Generates a venn diagram from an \code{intersect.object}.
 #'
-#' @param intersect.object An intersect object returned by \code{\link{build.intersect}}.
+#' @param intersect.object An intersect object returned by \code{\link{build_intersect}}.
 #' @param filename A filename for the resulting venn diagram. Pass \code{NULL}
 #'   to skip saving to a file.
 #' @return The grid object representing the venn.diagram.
 #' @importFrom VennDiagram venn.diagram
 #' @export
-intersect.venn.plot <- function(intersect.object, filename=NULL) {
+intersect_venn_plot <- function(intersect.object, filename=NULL) {
     if(intersect.object$Length > 5) {
         stop("Cannot plot venn diagram of more than 5 groups!")
     }
@@ -163,17 +163,17 @@ intersect.venn.plot <- function(intersect.object, filename=NULL) {
 #' Given an \code{intersect.object}, generate annotations for the regions
 #' where all factors are present.
 #'
-#' @param intersect.object An intersect object returned by \code{\link{build.intersect}}.
-#' @param annotations.list A list of annotation objects returned by \code{\link{select.annotations}}
+#' @param intersect.object An intersect object returned by \code{\link{build_intersect}}.
+#' @param annotations.list A list of annotation objects returned by \code{\link{select_annotations}}
 #' @param filename A filename for the resulting annotations. Pass \code{NULL}
 #'   to skip saving to a file.
 #' @return The annotations for the intersect's inner regions.
 #' @export
-annotate.venn.center <- function(intersect.object, annotations.list, filename=NULL) {
+annotate_venn_center <- function(intersect.object, annotations.list, filename=NULL) {
     #overlap.regions = exclusive.overlap(intersect.object, rep(TRUE, intersect.object$Length))
-    overlap.regions <- intersect.overlap(intersect.object, exclusive = TRUE)
+    overlap.regions <- intersect_overlap(intersect.object, exclusive = TRUE)
 
-    return(annotate.region(overlap.regions, annotations.list, filename))
+    return(annotate_region(overlap.regions, annotations.list, filename))
 }
 
 #' Annotate the outer groups of an \code{intersect.object}.
@@ -181,17 +181,17 @@ annotate.venn.center <- function(intersect.object, annotations.list, filename=NU
 #' Given an \code{intersect.object}, generate annotations for the regions
 #' where only one factor is present. One annotation per factor is generated.
 #'
-#' @param intersect.object An intersect object returned by \code{\link{build.intersect}}.
-#' @param annotations.list A list of annotation objects returned by \code{\link{select.annotations}}
+#' @param intersect.object An intersect object returned by \code{\link{build_intersect}}.
+#' @param annotations.list A list of annotation objects returned by \code{\link{select_annotations}}
 #' @param file.prefix A prefix for the names of the output files where the
 #'   annotations will be written. Pass \code{NULL} to skip saving to a file.
 #' @return A list with the generated annotations.
 #' @export
-annotate.venn.exclusive <- function(intersect.object, annotations.list, file.prefix=NULL) {
+annotate_venn_exclusive <- function(intersect.object, annotations.list, file.prefix=NULL) {
     results = list()
     for(i in 1:intersect.object$Length) {
         which.factors = 1:intersect.object$Length == i
-        subset.regions = intersect.overlap(intersect.object, which.factors, exclusive = TRUE)
+        subset.regions = intersect_overlap(intersect.object, which.factors, exclusive = TRUE)
 
         if(length(subset.regions) > 0) {
             factor.name = intersect.object$Names[i]
@@ -201,7 +201,7 @@ annotate.venn.exclusive <- function(intersect.object, annotations.list, file.pre
                 output.file = paste0(file.prefix, "Annotation for ", factor.name, " specific.txt")
             }
 
-            results[[factor.name]] = annotate.region(subset.regions, annotations.list, output.file)
+            results[[factor.name]] = annotate_region(subset.regions, annotations.list, output.file)
         }
     }
 
@@ -210,14 +210,14 @@ annotate.venn.exclusive <- function(intersect.object, annotations.list, file.pre
 
 #' Calculate the pairwise overlaps of all factors within an \code{intersect.object}.
 #'
-#' @param intersect.object An intersect object returned by \code{\link{build.intersect}}.
+#' @param intersect.object An intersect object returned by \code{\link{build_intersect}}.
 #' @param filename A name for prefix for the names of the output files where the
 #'   annotations will be written. Pass \code{NULL} to skip saving to a file.
 #' @return A matrix containing the pairwise overlaps of all factors in
 #' \code{intersect.object}. The row's factor is used as a denominator. Therefore, the
 #    matrix is not symmetric.
 #' @export
-pairwise.overlap <- function(intersect.object, filename=NULL) {
+pairwise_overlap <- function(intersect.object, filename=NULL) {
     overlap.percentage <- matrix(0, nrow=intersect.object$Length, ncol=intersect.object$Length,
                                  dimnames=list(intersect.object$Names, intersect.object$Names))
 
@@ -246,20 +246,20 @@ pairwise.overlap <- function(intersect.object, filename=NULL) {
 #'   \item The pairwise overlap of all factors.}
 #'
 #' @param regions A \linkS4class{GRangesList} of the regions to be intersected and analyzed.
-#' @param annotations.list A list of annotation objects returned by \code{\link{select.annotations}}
+#' @param annotations.list A list of annotation objects returned by \code{\link{select_annotations}}
 #' @param label A label to use when generating file names.
 #' @return The generated intersect object.
 #' @export
-build.intersect.all <- function(regions, annotations.list, label) {
+build_intersect_all <- function(regions, annotations.list, label) {
     base.dir = file.path("output/", label)
     dir.create(base.dir, showWarnings = FALSE, recursive = TRUE)
 
-    intersect.object = build.intersect(regions)
+    intersect.object = build_intersect(regions)
 
-    intersect.venn.plot(intersect.object, file.path(base.dir, "Venn diagram.tiff"))
-    annotate.venn.center(intersect.object, annotations.list, file.path(base.dir, "Venn intersection annotation.txt"))
-    annotate.venn.exclusive(intersect.object, annotations.list, file.path(base.dir, "/"))
-    pairwise.overlap(intersect.object, file.path(base.dir, "Pairwise overlap.txt"))
+    intersect_venn_plot(intersect.object, file.path(base.dir, "Venn diagram.tiff"))
+    annotate_venn_center(intersect.object, annotations.list, file.path(base.dir, "Venn intersection annotation.txt"))
+    annotate_venn_exclusive(intersect.object, annotations.list, file.path(base.dir, "/"))
+    pairwise_overlap(intersect.object, file.path(base.dir, "Pairwise overlap.txt"))
 
     return(intersect.object)
 }
@@ -275,7 +275,7 @@ build.intersect.all <- function(regions, annotations.list, label) {
 #'
 #' @return The projection of the query ranges on the target ranges.
 #' @export
-project.ranges <- function(query, target) {
+project_ranges <- function(query, target) {
     hits = findOverlaps(target, query)
 
     ranges.df = data.frame(seqname=seqnames(target)[queryHits(hits)],
@@ -302,10 +302,10 @@ project.ranges <- function(query, target) {
 #' @export
 #' @import GenomicRanges
 #' @import ggplot2
-region.enrichment <- function(query.regions, genome.wide, genome.order=NULL, file.out=NULL) {
+region_enrichment <- function(query.regions, genome.wide, genome.order=NULL, file.out=NULL) {
   # Project the query ranges into the genome ranges, so we can
   # know their repartition with basepair precision.
-  in.query = project.ranges(query.regions, genome.wide)
+  in.query = project_ranges(query.regions, genome.wide)
   
   # Calculate total base-pair coverages for both the projected query 
   # and the target regions.
@@ -366,7 +366,7 @@ region.enrichment <- function(query.regions, genome.wide, genome.order=NULL, fil
 #' @param individual.plots If true, produce individual plots as well as combined plots.
 #' @return A list of summarized enrichment metrics.
 #' @export
-multiple.region.enrichment <- function(queries.regions, genome.regions, query.order=NULL,
+multiple_region_enrichment <- function(queries.regions, genome.regions, query.order=NULL,
                                        genome.order=NULL, file.prefix=NULL, plot.width=7, plot.height=7,
                                        individual.plots=FALSE) {
     results=list()
@@ -380,18 +380,18 @@ multiple.region.enrichment <- function(queries.regions, genome.regions, query.or
             file.out = NULL
         }
 
-        results[[query]] = region.enrichment(queries.regions[[query]], genome.regions,
+        results[[query]] = region_enrichment(queries.regions[[query]], genome.regions,
                                              genome.order=genome.order, file.out=file.out)
     }
     
     # Summarize the results and return them.
-    region.enrichment.summary(results, file.prefix, query.order=query.order,
+    region_enrichment_summary(results, file.prefix, query.order=query.order,
                               genome.order=genome.order, plot.width=plot.width, plot.height=plot.height)
 }
 
 #' Performs a summary of region enrichment results.
 #'
-#' @param result.list a list of results returned by region.enrichment.
+#' @param result.list a list of results returned by region_enrichment.
 #' @param file.prefix An optional file name prefix for tables and graphical representation.
 #' @param genome.regions The genome partition indicating which part of the genome
 #'    fall within which category. Each range should have a 'name' attribute
@@ -401,7 +401,7 @@ multiple.region.enrichment <- function(queries.regions, genome.regions, query.or
 #' @return A list of summarized enrichment metrics.
 #' @importFrom reshape2 melt
 #' @export
-region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order=NULL, genome.order=NULL, plot.width=7, plot.height=7) {
+region_enrichment_summary <- function(result.list, file.prefix=NULL, query.order=NULL, genome.order=NULL, plot.width=7, plot.height=7) {
     # Put all of metrics into a single multidimensional array.
     metrics = c("QueryCoverage", "QueryProportion", "Enrichment")
     result.summary = array(dim=c(length(result.list), nrow(result.list[[1]]), 3), 
@@ -483,7 +483,7 @@ region.enrichment.summary <- function(result.list, file.prefix=NULL, query.order
 #'
 #' @return The collapsed regions.
 #' @export
-collapse.regions <- function(gr.list) {
+collapse_regions <- function(gr.list) {
   # Resulting regions.
   collapsed.regions = list()
   
@@ -510,8 +510,8 @@ collapse.regions <- function(gr.list) {
 #'
 #' @return The collapsed regions.
 #' @export
-region.consensus <- function(regions, keep.signal=TRUE, fake.signal=FALSE) {
-    consensus = intersect.overlap(build.intersect(regions, keep.signal=keep.signal))
+region_consensus <- function(regions, keep.signal=TRUE, fake.signal=FALSE) {
+    consensus = intersect_overlap(build_intersect(regions, keep.signal=keep.signal))
     if(keep.signal) {
         mcols(consensus) <- rowMeans(as.data.frame(mcols(consensus)), na.rm = TRUE)
         names(mcols(consensus)) <- "signalValue"
