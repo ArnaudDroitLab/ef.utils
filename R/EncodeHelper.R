@@ -264,41 +264,42 @@ download.chip.and.import <- function(query.results, peak.type, out.dir=".", keep
     dir.create(download.dir, recursive = TRUE, showWarnings=FALSE)
 
     # Subset the query results to only keep files in the right format.
-    query.results.subset = query.results
-    query.results.subset$experiment = query.results$experiment[grepl(peak.type, query.results$experiment$file_format_type),]
+    query.results.subset = query.results[grepl(peak.type, query.results$file_format_type),]
 
     # Download the files.
-    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results.subset, resultOrigin="queryEncode", dir=download.dir, force=FALSE)
-
-    # Write the metadata about the downloaded files.
-    write.table(query.results$experiment, file=file.path(out.dir, paste0(peak.type, ".metadata.txt")))
-
-    # Unzip the files. Use gzip -d since on windows, gunzip is not installed by default.
-    if(dir.exists(download.dir)) {
-      system(paste0("gzip -d -k ", download.dir, "/*.gz"))
+    out.gr = NULL
+    downloaded.files = c()
+    if(nrow(query.results.subset)>0) {
+      downloaded.files = ENCODExplorer::downloadEncode(file_acc=query.results.subset, dir=download.dir, force=FALSE)
       
-      results.list = list()
-      for(target in unique(query.results.subset$experiment$target)) {
-        query.subset = query.results.subset$experiment[query.results.subset$experiment$target == target,]
+      # Write the metadata about the downloaded files.
+      write.table(query.results, file=file.path(out.dir, paste0(peak.type, ".metadata.txt")))
+      
+      # Unzip the files. Use gzip -d since on windows, gunzip is not installed by default.
+      if(dir.exists(download.dir)) {
+        system(paste0("gzip -d -k ", download.dir, "/*.gz"))
         
-        # Perform consensuss across replicates.
-        accession.list = list()
-        for(accession in unique(query.subset$accession)) {
-          accession.files = file.path(download.dir, paste0(query.subset$file_accession, ".bed"))
-          accession.list[[accession]] = import.plus.consensus(accession.files, peak.type, keep.signal=keep.signal)
+        results.list = list()
+        for(target in unique(query.results.subset$target)) {
+          query.subset = query.results.subset[query.results.subset$target == target,]
+          
+          # Perform consensuss across replicates.
+          accession.list = list()
+          for(accession in unique(query.subset$accession)) {
+            accession.files = file.path(download.dir, paste0(query.subset$file_accession, ".bed"))
+            accession.list[[accession]] = import.plus.consensus(accession.files, peak.type, keep.signal=keep.signal)
+          }
+          
+          # Perform consensus across experiments.
+          results.list[[target]] = consensus.and.signal.mean(GRangesList(accession.list), keep.signal)
         }
         
-        # Perform consensus across experiments.
-        results.list[[target]] = consensus.and.signal.mean(GRangesList(accession.list), keep.signal)
+        out.gr = GRangesList(results.list)
+        out.gr@unlistData@elementMetadata@listData$peak <- NULL
       }
-      
-      out.gr = GRangesList(results.list)
-      out.gr@unlistData@elementMetadata@listData$peak <- NULL
-    } else {
-      out.gr = NULL
     }
     
-    return(list(Metadata=query.results.subset$experiment,
+    return(list(Metadata=query.results.subset,
                 Downloaded=downloaded.files,
                 Regions=out.gr))
 }
@@ -334,10 +335,10 @@ download_encode_chip <- function(biosample, assembly, download.filter=default_do
     # Query ENCODE to obtain appropriate files.
     # queryEncode has a bug and will fail if encode_df is not loaded.
     data("encode_df", package="ENCODExplorer")
-    query.results = ENCODExplorer::queryEncode(assay="ChIP-seq", biosample=biosample, file_format="bed", status="released")
+    query.results = ENCODExplorer::queryEncodeGeneric(assay="ChIP-seq", biosample_name=biosample, assembly=assembly, file_format="bed.*", status="released", fixed=FALSE)
 
     # Filter the ENCODE files using the supplied functions.  Only download relevant files.
-    query.results$experiment = download.filter(query.results$experiment, assembly)
+    query.results = download.filter(query.results, assembly)
     dir.create(download.dir, recursive=TRUE, showWarnings=FALSE)
 
     results = list()
@@ -373,15 +374,19 @@ download_encode_rna <- function(biosample, assembly, download.filter=default_dow
     # Query ENCODE to obtain appropriate files.
     # queryEncode has a bug and will fail if encode_df is not loaded.
     data("encode_df", package="ENCODExplorer")
-    query.results = ENCODExplorer::queryEncode(assay="RNA-seq", biosample=biosample, file_format="tsv", status="released")
+    query.results = ENCODExplorer::queryEncode(assay="RNA-seq", biosample_name=biosample, file_format="tsv", status="released")
 
     # Filter the ENCODE files using the supplied functions.  Only download relevant files.
-    query.results$experiment = download.filter(query.results$experiment, assembly)
+    query.results = download.filter(query.results, assembly)
     dir.create(download.dir, recursive=TRUE, showWarnings=FALSE)
-    downloaded.files = ENCODExplorer::downloadEncode(resultSet=query.results, resultOrigin="queryEncode", dir=download.dir, force=FALSE)
+    if(nrow(query.results)) {
+        downloaded.files = ENCODExplorer::downloadEncode(file_acc=query.results, dir=download.dir, force=FALSE)
+    } else {
+        downloaded.files = c()
+    }
 
     # Read the files.
-    if(!is.null(query.results)) {
+    if(!is.null(query.results) && nrow(query.results) > 0) {
         #rna.filenames = list.files(download.dir)
         rna.data = read_identical(downloaded.files, 1:5, 6:7, file.labels=gsub(".tsv", "", downloaded.files))
         
@@ -480,6 +485,7 @@ download_encode_polymerases <- function(biosample, assembly,
 #' @return A GRanges object with the loaded chromatin states, or NULL if the do not exist.
 #' @export
 download_chromatin_states <- function(biosample, assembly, download.dir=file.path("input/ENCODE", biosample, assembly)) {
+    dir.create(download.dir, recursive=TRUE, showWarnings=FALSE)
     downloaded.file = import_chrom_states(biosample, download.dir)
     if(!is.null(downloaded.file)) {
         return(load_chrom_state(downloaded.file))
