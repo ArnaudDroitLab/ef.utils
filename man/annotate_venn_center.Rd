@@ -21,4 +21,3 @@ The annotations for the intersect's inner regions.
 Given an \code{intersect.object}, generate annotations for the regions
 where all factors are present.
 }
-

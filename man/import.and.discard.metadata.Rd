@@ -17,4 +17,3 @@ A \linkS4class{GRanges} object representing the regions of x, without the metada
 \description{
 Import a bed file and discards its metadata.
 }
-

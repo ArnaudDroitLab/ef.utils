@@ -19,4 +19,3 @@ Returns the ranges in target overlapping the ranges in query, adjusting
 their boundaries so that only the overlapping parts of the target ranges 
 are returned.
 }
-

@@ -30,4 +30,3 @@ A data-frame with the enrichment results.
 Utility function which performs the same operations as \code{\link{motif_enrichment}},
 but accepts a list of genes instead of a list of regions.
 }
-

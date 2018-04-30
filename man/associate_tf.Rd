@@ -17,4 +17,3 @@ The \linkS4class{GRanges} object with associated TF overlaps.
 \description{
 Associate TF overlaps to a \linkS4class{GRanges} object.
 }
-

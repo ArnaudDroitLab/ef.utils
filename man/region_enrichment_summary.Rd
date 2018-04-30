@@ -28,4 +28,3 @@ A list of summarized enrichment metrics.
 \description{
 Performs a summary of region enrichment results.
 }
-

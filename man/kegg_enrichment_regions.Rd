@@ -22,4 +22,3 @@ A vector of Entrez gene ids containing a non-redundant list of the
 Conveniance function. Regions are converted to genes with
 \code{\link{gene_from_regions}} using default parameters.
 }
-

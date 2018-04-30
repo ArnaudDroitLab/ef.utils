@@ -22,4 +22,3 @@ The \linkS4class{GRanges} object with associated genes.
 \description{
 Associate genes to a \linkS4class{GRanges} object from ChIP-seq data.
 }
-

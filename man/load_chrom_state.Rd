@@ -15,4 +15,3 @@ A Granges object with the chromatin states.
 \description{
 Given the name of a bed file containing a chromatin state map, loads it into a GRanges object.
 }
-

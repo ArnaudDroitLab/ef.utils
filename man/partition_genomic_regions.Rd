@@ -26,4 +26,3 @@ A GRanges object partitioning the genome into functional genomic regions.
 Generate a GRanges object partitioning the genome into Promoter, Exon, introns,
 downstream and distal intergenic regions.
 }
-

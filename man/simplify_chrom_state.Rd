@@ -17,4 +17,3 @@ Given a vector of canonical 18-state HMM-derived chromatin states,
 return a vector of the same length where each state is associated
 with a simplified version of itself.
 }
-

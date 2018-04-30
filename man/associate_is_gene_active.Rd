@@ -16,4 +16,3 @@ The \linkS4class{GRanges} object with associated histone overlap percentage.
 Is.Gene.Active is \code{TRUE} if FPKM > 1
 Associate gene activity marker to a \linkS4class{GRanges} object.
 }
-

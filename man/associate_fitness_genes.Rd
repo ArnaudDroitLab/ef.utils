@@ -15,4 +15,3 @@ The \linkS4class{GRanges} object with identified essential genes.
 \description{
 Identify essential genes of a \linkS4class{GRanges} object.
 }
-

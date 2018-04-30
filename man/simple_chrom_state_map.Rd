@@ -12,4 +12,3 @@ The mapping used to go from full chromatin states to simple ones.
 \description{
 Returns the mapping used to go from full chromatin states to simple ones.
 }
-

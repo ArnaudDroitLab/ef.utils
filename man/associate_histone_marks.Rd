@@ -20,4 +20,3 @@ The \linkS4class{GRanges} object with associated histone overlap percentage.
 \description{
 Associate histone marks to a \linkS4class{GRanges} object.
 }
-

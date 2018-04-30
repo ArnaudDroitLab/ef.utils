@@ -28,4 +28,3 @@ A list containing the characterization results.
 \description{
 Given a set of Entrez gene ids, perform  KEGG enrichment and motif enrichement at the promoters.
 }
-

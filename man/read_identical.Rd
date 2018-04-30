@@ -28,4 +28,3 @@ A \code{data-frame} with the concatenated information from all files.
 Given a set of files with identical row names and column names, this
 function reads all files and concatenate the requested columns from each.
 }
-

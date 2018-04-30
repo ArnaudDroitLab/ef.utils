@@ -23,4 +23,3 @@ A list with the following elements: \describe{
 Given a genome build identifier, creates a list of annotation databases
 which can be passed to the annotation functions.
 }
-

@@ -19,4 +19,3 @@ A matrix containing the pairwise overlaps of all factors in
 \description{
 Calculate the pairwise overlaps of all factors within an \code{intersect.object}.
 }
-

@@ -25,4 +25,3 @@ conditions/proteins at indices which.factors are present,
 and no other factors are. Presence/absence at a given locus
 is obtained from the \code{overlap.matrix} parameter.
 }
-

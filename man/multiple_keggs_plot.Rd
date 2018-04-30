@@ -20,4 +20,3 @@ multiple_keggs_plot(kegg.results.list, filename, p.threshold = 0.05,
 \description{
 Generates a plot representing significant kegg pathways from an enrichment result.
 }
-

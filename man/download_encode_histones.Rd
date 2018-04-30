@@ -29,4 +29,3 @@ A list containing three elements: \describe{
 \description{
 Helper function for obtaining histone data through download_encode_chip.
 }
-

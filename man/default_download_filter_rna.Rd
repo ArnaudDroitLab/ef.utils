@@ -21,4 +21,3 @@ The filtering function does three things: \enumerate{
   \item It only keeps files with counts for genes, not transcripts or isoforms.
   \item If removes any file where treatment is not NA.}
 }
-

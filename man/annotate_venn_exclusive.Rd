@@ -22,4 +22,3 @@ A list with the generated annotations.
 Given an \code{intersect.object}, generate annotations for the regions
 where only one factor is present. One annotation per factor is generated.
 }
-

@@ -18,4 +18,3 @@ The grid object representing the venn.diagram.
 \description{
 Generates a venn diagram from an \code{intersect.object}.
 }
-

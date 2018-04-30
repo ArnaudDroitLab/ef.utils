@@ -17,4 +17,3 @@ The collapsed regions.
 \description{
 Obtains consensus regions from a set of regions.
 }
-

@@ -28,4 +28,3 @@ A list containing the characterization results.
 \description{
 Given a set of regions, perform annotation, motif enrichment and KEGG enrichment.
 }
-

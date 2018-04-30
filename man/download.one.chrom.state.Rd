@@ -19,4 +19,3 @@ The path of the downloaded file, if it was found.
 \description{
 Download a single chromatin state map from ENCODE.
 }
-

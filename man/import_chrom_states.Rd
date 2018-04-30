@@ -18,4 +18,3 @@ The name and path of the downloaded and unzipped files.
 \description{
 Import HMM chromatin states for the right cell type.
 }
-

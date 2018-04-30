@@ -18,4 +18,3 @@ The \linkS4class{GRanges} object with associated chromatin states.
 \description{
 Associate chromatin sates to a \linkS4class{GRanges} object.
 }
-

@@ -39,4 +39,3 @@ The annotated "\code{chip.data}".
 \description{
 Annotate "chip.data", given as parameter.
 }
-

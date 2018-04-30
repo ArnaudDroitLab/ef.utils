@@ -26,4 +26,3 @@ A data-frame containing the enrichment values.
 Calculates enrichment ratios for quer regions against a genome wide
 partition of the genome.
 }
-

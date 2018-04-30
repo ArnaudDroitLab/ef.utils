@@ -15,4 +15,3 @@ The \linkS4class{GRanges} object with associated tissue scpecificity.
 \description{
 Associate tissue specificity of genes to a \linkS4class{GRanges} object.
 }
-

@@ -26,4 +26,3 @@ factors described by either indices or names are present.
 If both indices and names are \code{NULL}, the inner intersection
 is calculated.
 }
-

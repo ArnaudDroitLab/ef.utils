@@ -22,4 +22,3 @@ The \linkS4class{GRanges} object with associated genomic regions.
 \description{
 Associate genomic regions to a \linkS4class{GRanges} object.
 }
-

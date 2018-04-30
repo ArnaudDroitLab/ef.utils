@@ -22,4 +22,3 @@ A GRanges object with the loaded chromatin states, or NULL if the do not exist.
 \description{
 Helper function for obtaining chromatin states through import_chrom_states.
 }
-

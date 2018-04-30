@@ -32,4 +32,3 @@ A list with the following elements: \describe{
 \description{
 Given a \linkS4class{GRangesList} object, determine which items overlap each others.
 }
-

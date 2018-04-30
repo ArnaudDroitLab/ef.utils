@@ -22,4 +22,3 @@ The filtering function does three things: \enumerate{
   \item If the provided results have been re-analyzed by the ENCODE Consortium,
     the ENCODE results are kept and the original ones discarded.}
 }
-

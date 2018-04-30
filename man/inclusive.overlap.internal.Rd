@@ -25,4 +25,3 @@ conditions/proteins at indices which.factors are present,
 regardless of whether or not other factors are. Presence/absence
 at a given locus is obtained from the overlap.matrix parameter.
 }
-

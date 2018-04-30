@@ -17,4 +17,3 @@ A vector of the same length as regions, indicating the "best" chromatin state ma
 \description{
 Given a set of regions and a chromatin state map, match the "best" chromatin state to each region.
 }
-

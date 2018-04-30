@@ -19,4 +19,3 @@ A numeric vector containing the proportion of genes within each distance categor
 \description{
 Generate a summary of the distances separating a set of genes from a set of peaks.
 }
-

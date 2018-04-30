@@ -28,4 +28,3 @@ A list with the following elements: \describe{
 Utility function which performs the same operations as motif_enrichment,
 but accepts a list of genes instead of a list of regions.
 }
-

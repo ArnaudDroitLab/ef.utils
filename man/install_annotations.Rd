@@ -14,4 +14,3 @@ Supported assemblies are hg19, hg28, mm10 and mm9.}
 Install \pkg{BiocInstaller} and the required annotation packages for the given
 genome assemblies.
 }
-

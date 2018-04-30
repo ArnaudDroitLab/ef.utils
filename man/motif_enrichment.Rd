@@ -31,4 +31,3 @@ A list with the following elements: \describe{
 Performs motif enrichment against \code{pwm.bg}. If \code{pwm.bg} is not provided,
 \code{annotations.list$PWMBG} is used.
 }
-

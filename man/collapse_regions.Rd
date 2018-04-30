@@ -19,4 +19,3 @@ of the list (A) covers the range 1-10, and the second element (B) covers
 the range 5-15, then the resulting ranges will have a 1-10 range named A,
 and a 11-15 range named 'B'.
 }
-

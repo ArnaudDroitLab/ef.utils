@@ -30,4 +30,3 @@ A data-frame with the enrichment results.
 \description{
 Utility function to get a gene list from a set of regions.
 }
-

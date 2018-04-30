@@ -16,4 +16,3 @@ The ENCODE mnemonic associated with the biosample.
 \description{
 Given a biosample's name, tries to match it with an ENCODE mnemonic.
 }
-

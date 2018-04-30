@@ -27,4 +27,3 @@ A \linkS4class{GRanges} object representing the regions of the files in input.di
 \description{
 Import a set of bed files in a directory into a \linkS4class{GRangesList}.
 }
-

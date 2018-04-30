@@ -23,4 +23,3 @@ After building the overlap, this function will generate: \enumerate{
   \item An annotation of the intersect's outer regions.
   \item The pairwise overlap of all factors.}
 }
-

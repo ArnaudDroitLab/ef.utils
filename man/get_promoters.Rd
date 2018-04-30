@@ -21,4 +21,3 @@ A \linkS4class{GRanges} objects representing the promoters of the given genes.
 \description{
 Given a set of Entrez IDS, retrieve the coordinates of those genes' promoters.
 }
-

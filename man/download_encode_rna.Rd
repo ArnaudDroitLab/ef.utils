@@ -32,4 +32,3 @@ A list containing three elements: \describe{
 Given an encode biosample identifier (GM12878, MCF-7, etc.), this function
 retrieved processed expression levels.
 }
-

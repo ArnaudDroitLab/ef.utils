@@ -17,4 +17,3 @@ The URL to download the requested chromatin state map.
 \description{
 Given a mnemonic and a number of states, builds the download URL for a chromatin state map.
 }
-
