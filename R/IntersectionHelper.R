@@ -147,7 +147,7 @@ build_intersect <- function(grl, keep.signal = FALSE) {
 #' @return The grid object representing the venn.diagram.
 #' @importFrom VennDiagram venn.diagram
 #' @export
-intersect_venn_plot <- function(intersect.object, filename=NULL) {
+intersect_venn_plot <- function(intersect.object, filename=NULL, title=NULL) {
     if(intersect.object$Length > 5) {
         stop("Cannot plot venn diagram of more than 5 groups!")
     }
@@ -155,7 +155,8 @@ intersect_venn_plot <- function(intersect.object, filename=NULL) {
     return(VennDiagram::venn.diagram(intersect.object$List,
                                      fill=c("red", "yellow", "green", "blue", "orange")[1:intersect.object$Length],
                                      filename=filename,
-                                     print.mode="raw"))
+                                     print.mode="raw",
+                                     main=title))
 }
 
 #' Annotate the inner group of an \code{intersect.object}.

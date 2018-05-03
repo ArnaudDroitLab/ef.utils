@@ -4,7 +4,7 @@
 \alias{intersect_venn_plot}
 \title{Generates a venn diagram from an \code{intersect.object}.}
 \usage{
-intersect_venn_plot(intersect.object, filename = NULL)
+intersect_venn_plot(intersect.object, filename = NULL, title = NULL)
 }
 \arguments{
 \item{intersect.object}{An intersect object returned by \code{\link{build_intersect}}.}
@@ -18,4 +18,3 @@ The grid object representing the venn.diagram.
 \description{
 Generates a venn diagram from an \code{intersect.object}.
 }
-
