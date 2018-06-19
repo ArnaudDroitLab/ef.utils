@@ -313,8 +313,8 @@ region_enrichment <- function(query.regions, genome.wide, genome.order=NULL, fil
   all.region.types = sort(unique(genome.wide$name))
   coverages = matrix(0.0, ncol=2, nrow=length(all.region.types), dimnames=list(all.region.types, c("Query", "Genome")))
   for(region.type in all.region.types) {
-      coverages[region.type, "Genome"] = sum(as.numeric(width(reduce(subset(genome.wide, name == region.type)))))
-      coverages[region.type, "Query"]  = sum(as.numeric(width(reduce(subset(in.query, name == region.type)))))
+      coverages[region.type, "Genome"] = sum(as.numeric(width(reduce(BiocGenerics::subset(genome.wide, name == region.type)))))
+      coverages[region.type, "Query"]  = sum(as.numeric(width(reduce(BiocGenerics::subset(in.query, name == region.type)))))
   }
 
   # Transform the raw coverages into proportions.

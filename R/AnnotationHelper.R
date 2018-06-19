@@ -298,7 +298,9 @@ motif_enrichment <- function(regions, annotations.list, file.label=NULL,  pwm.bg
         motif.name = gsub("/", "", motif.name)
 
         # Generate logo file.
-        pdf(paste(file.label, " ", i, " - ", motif.name, ".pdf"), width=7/1.5, height=11/6)
+        # Sanitize motif name for inclusion in a file name
+        sane.motif.name = gsub("[\\(\\)\\:\\?\\*]", "_", motif.name)
+        pdf(paste(file.label, " ", i, " - ", sane.motif.name, ".pdf"), width=7/1.5, height=11/6)
         PWMEnrich::plotMultipleMotifs(res$pwms[ordered.motifs[i]], xaxis=FALSE, titles="")
         dev.off()
       }
@@ -446,6 +448,68 @@ kegg_enrichment <- function(selected.genes, annotations.list, filename=NULL, dis
   }
 
   return(results)
+}
+
+#' Perform GO enrichment on a set of genes.
+#'
+#' Utility function performing GO enrichment using the topGO package.
+#'
+#' @param selected.genes A vector of ENTREZ gene ids to be subjected
+#'   to motif enrichment.
+#' @param annotations.list A list of annotation databases returned by
+#'   \code{\link{select_annotations}}.
+#' @param filename The path of the directory where the results should be saved.
+#'    If \code{NULL}, results are not saved to disk.
+#' @param gene.background A list of Entrez gene ids of the genes to be used
+#'   as the background of the enrichment. If \code{NULL}, all genes in \code{annotations.list$TxDb}
+#'   are used.
+#' @return A list the enrichment results for all three GO ontologies.
+#' @import topGO
+#' @export
+do.GO.enrichment <- function(selected.genes, annotations.list, filepath=NULL, gene.background=NULL) {
+  # Define the gene universe by extracting all possible Gene Ids from the source annotation.
+  if(is.null(gene.background)) {
+     gene.background <- unique(AnnotationDbi::as.list(annotations.list$TxDb)$genes$gene_id)
+  }
+  
+  # Turn it into a named vector for use with TopGO.
+  allGeneNamedVector <- rep(0, length(gene.background))
+  names(allGeneNamedVector) <- gene.background
+  allResults <- list()
+  
+  for(ontology in c("BP", "CC", "MF")) {
+    allResults[[ontology]] <- list()
+
+    results.table <- list()
+
+    # Turn the list of all genes into a named vector of a factor with values (0,1), 0 beings
+    # unselected genes and 1 being selected genes.
+    selectedFinal <- allGeneNamedVector
+    selectedFinal[names(selectedFinal) %in% selected.genes ] <- 1
+    
+    # Create the TopGO data object
+    # topGO objects rely on the packages .onAttach having been
+    # called to perform some operations on the GO database.
+    # So attach it explicitly here, even though it's poor form.
+    library(topGO)
+    topGODataObject <- new("topGOdata", description="topGO", ontology=ontology,
+                           allGenes=factor(selectedFinal),
+                           nodeSize=10,
+                           annotationFun=annFUN.org, mapping=annotations.list$OrgDbStr)
+    
+    # Perform the enrichment
+    resultWeight  = topGO::runTest(topGODataObject, algorithm = "weight01", statistic = "fisher")
+    resultClassic = topGO::runTest(topGODataObject, algorithm = "classic", statistic = "fisher")
+    
+    # Generate the result table
+    results.table = topGO::GenTable(topGODataObject, Weight=resultWeight, Classic=resultClassic, orderBy="Classic", ranksOf="Classic", topNodes=length(topGO::score(resultClassic)), numChar=2000)
+    out_name = file.path(filepath, paste("GO enrichments for ", ontology, ".txt", sep=""))
+    write.table(results.table, file=out_name, sep="\t", col.names=TRUE, row.names=FALSE, quote=TRUE)
+    
+    allResults[[ontology]] <- list(Table=results.table, Weight=resultWeight, Classic=resultClassic, TopGO=topGODataObject)
+  }
+  
+  return(allResults)
 }
 
 # Given a set of annotations, convert it to a set of Entrez gene ids before calling kegg_enrichment.
