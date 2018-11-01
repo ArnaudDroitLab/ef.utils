@@ -112,12 +112,12 @@ read_identical <- function(file.names, header.columns, data.columns, file.labels
 
         file.data = read.table(file.name, sep=sep, header=header, stringsAsFactors=FALSE, ...)
         if(is.null(results)) {
-            results = file.data[, header.columns]
+            results = file.data[, header.columns, drop=FALSE]
         }
 
         colnames(file.data) <- paste(file.label, colnames(file.data), sep=".")
 
-        results = cbind(results, file.data[,data.columns])
+        results = cbind(results, file.data[,data.columns, drop=FALSE])
     }
 
     return(results)
