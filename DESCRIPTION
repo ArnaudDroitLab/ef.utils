@@ -14,7 +14,8 @@ Imports:
     plyr,
     ENCODExplorer,
     ggplot2,
-    csaw
+    csaw,
+    BSgenome
 Suggests:
     BSgenome.Hsapiens.UCSC.hg38,
     TxDb.Hsapiens.UCSC.hg38.knownGene,
@@ -26,7 +27,7 @@ Suggests:
     TxDb.Mmusculus.UCSC.mm9.knownGene,
     BSgenome.Hsapiens.UCSC.hg19,
     TxDb.Hsapiens.UCSC.hg19.knownGene,
-    BiocInstaller
+    BiocManager
 Depends:
     R (>= 3.2.2),
     GenomicRanges

@@ -9,12 +9,11 @@
 #'
 #' @param which.assembly Which assembly's annotations should be installed.
 #'   Supported assemblies are hg19, hg28, mm10 and mm9.
-#' @importFrom BiocInstaller biocLite
+#' @importFrom BiocManager install
 #' @export
 install_annotations <- function(which.assembly) {
-    if(!requireNamespace("BiocInstaller")) {
-        source("https://bioconductor.org/biocLite.R")
-        biocLite("BiocInstaller")
+    if(!requireNamespace("BiocManager")) {
+        install.packages("BiocManager")
     }
 
     if("all" %in% which.assembly) {
@@ -22,8 +21,8 @@ install_annotations <- function(which.assembly) {
     }
 
     if("hg19" %in% which.assembly) {
-        if(requireNamespace("BiocInstaller")) {
-            BiocInstaller::biocLite(pkgs=c("BSgenome.Hsapiens.UCSC.hg19",
+        if(requireNamespace("BiocManager")) {
+            BiocManager::install(pkgs=c("BSgenome.Hsapiens.UCSC.hg19",
                  "TxDb.Hsapiens.UCSC.hg19.knownGene",
                  "PWMEnrich.Hsapiens.background",
                  "org.Hs.eg.db"))
@@ -31,8 +30,8 @@ install_annotations <- function(which.assembly) {
     }
 
     if("hg38" %in% which.assembly) {
-        if(requireNamespace("BiocInstaller")) {
-            BiocInstaller::biocLite(pkgs=c("BSgenome.Hsapiens.UCSC.hg38",
+        if(requireNamespace("BiocManager")) {
+            BiocManager::install(pkgs=c("BSgenome.Hsapiens.UCSC.hg38",
                  "TxDb.Hsapiens.UCSC.hg38.knownGene",
                  "PWMEnrich.Hsapiens.background",
                  "org.Hs.eg.db"))
@@ -40,8 +39,8 @@ install_annotations <- function(which.assembly) {
     }
 
     if("mm10" %in% which.assembly) {
-        if(requireNamespace("BiocInstaller")) {
-            BiocInstaller::biocLite(pkgs=c("BSgenome.Mmusculus.UCSC.mm10",
+        if(requireNamespace("BiocManager")) {
+            BiocManager::install(pkgs=c("BSgenome.Mmusculus.UCSC.mm10",
                  "TxDb.Mmusculus.UCSC.mm10.knownGene",
                  "PWMEnrich.Mmusculus.background",
                  "org.Mm.eg.db"))
@@ -49,8 +48,8 @@ install_annotations <- function(which.assembly) {
     }
 
     if("mm9" %in% which.assembly) {
-        if(requireNamespace("BiocInstaller")) {
-            BiocInstaller::biocLite(pkgs=c("BSgenome.Mmusculus.UCSC.mm9",
+        if(requireNamespace("BiocManager")) {
+            BiocManager::install(pkgs=c("BSgenome.Mmusculus.UCSC.mm9",
                  "TxDb.Mmusculus.UCSC.mm9.knownGene",
                  "PWMEnrich.Mmusculus.background",
                  "org.Mm.eg.db"))
