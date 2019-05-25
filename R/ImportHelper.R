@@ -82,6 +82,7 @@ import_into_grl <- function(input.dir=".", file.format="bed", file.ext=NULL, dis
     names(all.files) = gsub("\\.$", "", gsub(file.ext, "", all.filenames))
   }
 
+  all.files = all.files[file.exists(all.files)]
   grl = import_files_into_grl(all.files, file.format, file.ext, discard.metadata=discard.metadata)
   
   return(grl)
