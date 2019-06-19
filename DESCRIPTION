@@ -15,7 +15,8 @@ Imports:
     ENCODExplorer,
     ggplot2,
     csaw,
-    BSgenome
+    BSgenome,
+    topGO
 Suggests:
     BSgenome.Hsapiens.UCSC.hg38,
     TxDb.Hsapiens.UCSC.hg38.knownGene,
