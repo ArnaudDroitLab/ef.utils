@@ -465,7 +465,7 @@ kegg_enrichment <- function(selected.genes, annotations.list, filename=NULL, dis
 #' @return A list the enrichment results for all three GO ontologies.
 #' @import topGO
 #' @export
-do.GO.enrichment <- function(selected.genes, annotations.list, filepath=NULL, gene.background=NULL) {
+do.GO.enrichment <- function(selected.genes, annotations.list, filepath=".", gene.background=NULL) {
   # Define the gene universe by extracting all possible Gene Ids from the source annotation.
   if(is.null(gene.background)) {
      gene.background <- unique(AnnotationDbi::as.list(annotations.list$TxDb)$genes$gene_id)
